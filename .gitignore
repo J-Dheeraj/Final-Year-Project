@@ -1,0 +1,31 @@
+# ── API keys / secrets ────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Pipeline output ───────────────────────────────────────────────
+reports/
+seen_cves.json
+watcher.log
+watcher_stdout.log
+watcher_stderr.log
+watcher_boot.log
+watcher.pid
+.pipeline_cache/
+lab_audit.ndjson
+ssrf_lab/lab_audit.ndjson
+
+# ── Python cache ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# ── Virtual environments ──────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── OS noise ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
