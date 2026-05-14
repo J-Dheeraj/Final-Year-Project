@@ -271,7 +271,7 @@ def run_pipeline(cve_id: str, fmt: str, no_probe: bool,
         args = argparse.Namespace(
             cve_id    = cve_id,
             lab_url   = lab_url,
-            no_probe  = no_probe,
+            no_probe  = no_probe,   # False by default — probes are ON
             no_cache  = False,
             cache_dir = str(_HERE / ".pipeline_cache"),
             cache_ttl = 86_400,
