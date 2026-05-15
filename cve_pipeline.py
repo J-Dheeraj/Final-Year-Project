@@ -372,25 +372,52 @@ def fetch_advisory(ctx: RunContext[PipelineDeps], cve_or_ghsa_id: str) -> dict:
 
     result: dict = {}
     try:
+        gh_token = os.environ.get("GITHUB_TOKEN", "")
+
         # ── GitHub Advisory path ──────────────────────────────────────────
         if _extractor and re.match(r"GHSA-", cve_or_ghsa_id, re.I):
-            url = f"https://github.com/advisories/{cve_or_ghsa_id.upper()}"
-            raw = _extractor.parse_github_advisory(url)
-        elif _extractor and re.match(r"CVE-", cve_or_ghsa_id, re.I):
-            # Try to find the GHSA ID via GitHub search API first
-            ghsa_id = _resolve_ghsa_from_cve(cve_or_ghsa_id)
-            if ghsa_id:
+            ghsa_id = cve_or_ghsa_id.upper()
+            # Prefer REST API (structured JSON, richer data, no HTML parsing)
+            # Falls back to HTML scraper if API returns 404 or token is absent
+            if gh_token:
+                try:
+                    raw = _extractor.fetch_global_advisory(ghsa_id, token=gh_token)
+                    log.info("[Stage 1] Advisory fetched via GitHub REST API")
+                except Exception as api_exc:
+                    log.debug("[Stage 1] REST API failed (%s), falling back to HTML scraper", api_exc)
+                    url = f"https://github.com/advisories/{ghsa_id}"
+                    raw = _extractor.parse_github_advisory(url)
+            else:
+                # No token — use HTML scraper (works for public advisories)
                 url = f"https://github.com/advisories/{ghsa_id}"
                 raw = _extractor.parse_github_advisory(url)
+
+        elif _extractor and re.match(r"CVE-", cve_or_ghsa_id, re.I):
+            # Map CVE → GHSA via GraphQL, then fetch via REST API or HTML scraper
+            ghsa_id = _resolve_ghsa_from_cve(cve_or_ghsa_id)
+            if ghsa_id:
+                if gh_token:
+                    try:
+                        raw = _extractor.fetch_global_advisory(ghsa_id, token=gh_token)
+                        log.info("[Stage 1] Advisory fetched via GitHub REST API (CVE→GHSA)")
+                    except Exception as api_exc:
+                        log.debug("[Stage 1] REST API failed (%s), falling back to HTML", api_exc)
+                        url = f"https://github.com/advisories/{ghsa_id}"
+                        raw = _extractor.parse_github_advisory(url)
+                else:
+                    url = f"https://github.com/advisories/{ghsa_id}"
+                    raw = _extractor.parse_github_advisory(url)
             else:
-                # Fall back to NVD
-                nvd_url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_or_ghsa_id}"
+                # No GHSA mapping — fall back to NVD
+                nvd_url = (f"https://services.nvd.nist.gov/rest/json/cves/2.0"
+                           f"?cveId={cve_or_ghsa_id}")
                 raw = _extractor.parse_nvd_json(nvd_url)
         else:
             # Bare HTTP fallback — query NVD directly
             raw = _nvd_fallback(cve_or_ghsa_id)
 
         advisory = raw if _extractor else _nvd_fallback(cve_or_ghsa_id)
+        _api_meta = advisory.get("_api", {})
         result = {
             "ghsa_id":           advisory.get("advisory", {}).get("ghsa_id"),
             "cve_id":            advisory.get("advisory", {}).get("cve_id") or cve_id,
@@ -404,6 +431,12 @@ def fetch_advisory(ctx: RunContext[PipelineDeps], cve_or_ghsa_id: str) -> dict:
             "root_cause":        advisory.get("vulnerability", {}).get("root_cause"),
             "references":        advisory.get("remediation", {}).get("references", []),
             "raw_description":   advisory.get("raw_description"),
+            # REST API extras — present when fetched via GitHub REST, empty otherwise
+            "cwe_ids":           _api_meta.get("cwe_ids", []),
+            "cvss_v3_vector":    (_api_meta.get("cvss_v3") or {}).get("vector_string"),
+            "cvss_v4_vector":    (_api_meta.get("cvss_v4") or {}).get("vector_string"),
+            "advisory_state":    _api_meta.get("state"),
+            "published_at":      _api_meta.get("published_at"),
         }
         log.info("[Stage 1] Advisory fetched — pkg=%s  severity=%s",
                  result.get("package_name"), result.get("severity"))

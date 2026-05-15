@@ -184,7 +184,7 @@ def fetch_nvd(since: datetime) -> Iterator[str]:
         time.sleep(0.7)   # stay within NVD rate limit
 
 
-# ── GitHub Advisory fetcher ───────────────────────────────────────────────────
+# ── GitHub Advisory fetcher (global feed) ────────────────────────────────────
 
 GHSA_BASE = "https://api.github.com/advisories"
 
@@ -243,6 +243,102 @@ def fetch_ghsa(since: datetime) -> Iterator[str]:
 
         page += 1
         time.sleep(0.3)
+
+
+# ── Repository Advisory fetcher (per-repo feed) ───────────────────────────────
+
+GITHUB_REST_BASE = "https://api.github.com"
+GITHUB_API_VERSION = "2022-11-28"
+
+
+def fetch_repo_advisories(repos: list[str], since: datetime) -> Iterator[str]:
+    """
+    Yield CVE IDs from the repository-level security advisory API for each
+    owner/repo in *repos* published since *since*.
+
+    Uses GET /repos/{owner}/{repo}/security-advisories
+    Requires GITHUB_TOKEN with repo scope for private/draft access.
+    Public advisories are returned without a token (lower rate limits).
+
+    Only advisories that carry a CVE ID are yielded.
+    """
+    gh_token = os.environ.get("GITHUB_TOKEN", "")
+    headers: dict = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": GITHUB_API_VERSION,
+        "User-Agent": "cve-watcher/1.0",
+    }
+    if gh_token:
+        headers["Authorization"] = f"Bearer {gh_token}"
+
+    since_str = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    for repo_spec in repos:
+        repo_spec = repo_spec.strip()
+        if not repo_spec or "/" not in repo_spec:
+            log.warning(f"Skipping invalid repo spec: {repo_spec!r} (expected owner/repo)")
+            continue
+
+        owner, repo = repo_spec.split("/", 1)
+        url = f"{GITHUB_REST_BASE}/repos/{owner}/{repo}/security-advisories"
+        log.info(f"Polling repo advisories: {owner}/{repo} since {since_str} …")
+
+        page = 1
+        while True:
+            try:
+                resp = requests.get(
+                    url,
+                    params={
+                        "state":     "published",
+                        "per_page":  100,
+                        "page":      page,
+                        "direction": "desc",
+                        "sort":      "published",
+                    },
+                    headers=headers,
+                    timeout=30,
+                )
+            except Exception as exc:
+                log.warning(f"Repo advisory fetch error ({repo_spec}): {exc}")
+                break
+
+            if resp.status_code == 404:
+                log.warning(f"Repo {repo_spec} not found or advisory access denied")
+                break
+            if resp.status_code == 403:
+                log.warning(f"Repo {repo_spec}: 403 Forbidden — check GITHUB_TOKEN scope")
+                break
+
+            try:
+                resp.raise_for_status()
+                advisories = resp.json()
+            except Exception as exc:
+                log.warning(f"Repo advisory parse error ({repo_spec}): {exc}")
+                break
+
+            if not advisories:
+                break
+
+            any_in_window = False
+            for adv in advisories:
+                pub = adv.get("published_at", "")
+                cve = adv.get("cve_id") or ""
+                if pub and pub >= since_str:
+                    any_in_window = True
+                    if cve.startswith("CVE-"):
+                        yield cve
+                    else:
+                        # Advisory has no CVE yet — yield the GHSA ID
+                        ghsa = adv.get("ghsa_id", "")
+                        if ghsa:
+                            log.debug(f"  {repo_spec}: {ghsa} has no CVE ID yet — skipping")
+                elif pub and pub < since_str:
+                    return   # oldest-first would be cleaner but API is desc
+
+            if not any_in_window or len(advisories) < 100:
+                break
+            page += 1
+            time.sleep(0.3)
 
 
 # ── pipeline runner ───────────────────────────────────────────────────────────
@@ -314,10 +410,12 @@ def run_pipeline(cve_id: str, fmt: str, no_probe: bool,
 def poll_once(since: datetime, seen: SeenStore,
               fmt: str, no_probe: bool,
               workers: int = 1,
-              lab_url: str = "http://127.0.0.1:8000") -> tuple[int, int]:
+              lab_url: str = "http://127.0.0.1:8000",
+              repos: list[str] | None = None) -> tuple[int, int]:
     """
-    Fetch both feeds (NVD + GHSA), deduplicate, then run the pipeline
-    for every new CVE. Up to *workers* CVEs are processed concurrently.
+    Fetch all feeds (NVD + global GHSA + optional repo advisories),
+    deduplicate, then run the pipeline for every new CVE.
+    Up to *workers* CVEs are processed concurrently.
     Returns (new_found, succeeded).
     """
     new_ids: set[str] = set()
@@ -327,10 +425,15 @@ def poll_once(since: datetime, seen: SeenStore,
         if cve_id not in seen:
             new_ids.add(cve_id)
 
-    log.info(f"Polling GHSA since {since.isoformat()} ...")
+    log.info(f"Polling GHSA (global) since {since.isoformat()} ...")
     for cve_id in fetch_ghsa(since):
         if cve_id not in seen:
             new_ids.add(cve_id)
+
+    if repos:
+        for cve_id in fetch_repo_advisories(repos, since):
+            if cve_id not in seen:
+                new_ids.add(cve_id)
 
     if not new_ids:
         log.info("No new CVEs found.")
@@ -388,6 +491,12 @@ def main() -> None:
                         help="SSRF lab server URL (default: http://127.0.0.1:8000)")
     parser.add_argument("--once",      action="store_true",
                         help="Run one poll pass then exit")
+    parser.add_argument("--repos",     default="",
+                        help="Comma-separated owner/repo pairs to watch for new "
+                             "repository-level advisories, e.g. "
+                             "InternLM/lmdeploy,psf/requests  (requires GITHUB_TOKEN "
+                             "with repo scope for private/draft access; public repos "
+                             "work without a token)")
     args = parser.parse_args()
 
     if not _PIPELINE_AVAILABLE:
@@ -399,6 +508,8 @@ def main() -> None:
     else:
         log.info("AI backend : claude CLI / text-only (no ANTHROPIC_API_KEY needed)")
 
+    repos: list[str] = [r.strip() for r in args.repos.split(",") if r.strip()]
+
     seen = SeenStore(SEEN_FILE)
     log.info(
         f"CVE Watcher started  |  interval={args.interval}m  "
@@ -407,6 +518,10 @@ def main() -> None:
         f"seen={len(seen)} CVEs"
     )
     log.info(f"Pipeline : cve_pipeline (direct import — NVD + GHSA supported)")
+    if repos:
+        gh_token = os.environ.get("GITHUB_TOKEN", "")
+        auth_note = "authenticated" if gh_token else "unauthenticated (public only)"
+        log.info(f"Repo feed : {', '.join(repos)}  [{auth_note}]")
     log.info(f"Reports  → {REPORTS_DIR.resolve()}")
     log.info(f"Log      → {LOG_FILE.resolve()}")
 
@@ -425,6 +540,7 @@ def main() -> None:
                 no_probe=args.no_probe,
                 workers=args.workers,
                 lab_url=args.lab_url,
+                repos=repos or None,
             )
             log.info(f"Poll complete — {found} new CVE(s), {ok} pipeline(s) succeeded")
         except Exception as exc:
