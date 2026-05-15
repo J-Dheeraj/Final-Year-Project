@@ -29,6 +29,24 @@ def _fix_stdout_encoding() -> None:
     if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
+
+def _load_dotenv(path: Path) -> None:
+    """Minimal .env loader — no external dependency needed."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        val = val.strip().strip('"').strip("'")
+        if key and val and key not in os.environ:
+            os.environ[key] = val
+
+# Load .env from same directory as this script (silently ignored if absent)
+_load_dotenv(Path(__file__).parent / ".env")
+
 # ---------------------------------------------------------------------------
 # Optional dependencies — install with: pip install requests beautifulsoup4
 # ---------------------------------------------------------------------------
