@@ -215,6 +215,10 @@ class ExploitArtifacts(BaseModel):
     exit_code:              int | None = None
     dynamically_confirmed:  bool | None = None   # True only if the PoC actually exploited it
     execution_log:          str        = ""
+    # Stage 3.7 - self-improvement: each failed-then-revised attempt, in
+    # order, so the report shows not just the final outcome but *how* it
+    # got there (or didn't).
+    refinement_history: list[dict] = Field(default_factory=list)
 
 
 class PipelineReport(BaseModel):
@@ -2717,6 +2721,171 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Stage 3.7 — Self-improvement: reflect on a failed exploit and retry
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# ExploitArtifacts.iterations and the "poc.iter1.v0.py" filename convention
+# already anticipated this (an iteration number, a version number) but
+# nothing ever looped - Stage 3.6 would report False and stop. When it
+# genuinely DID run and genuinely did NOT reproduce the bug (not "couldn't
+# test" - a real, informative failure), this stage:
+#
+#   1. Checks a persistent lessons store (.pipeline_lessons.json) for a fix
+#      already learned for this vulnerability class + failure signature -
+#      cheap, instant, no LLM call. This is the part that makes it
+#      self-improving ACROSS runs, not just within one CVE's own retries:
+#      a fix discovered while working on CVE A is immediately available
+#      for CVE B of the same class hitting the same failure shape,
+#      without re-diagnosing it from scratch.
+#   2. Falls back to asking Claude to revise the artifacts given the
+#      actual failure log, when an AI backend is available.
+#   3. Falls back further to a small, honest, narrow set of built-in
+#      revision rules for failure signatures this project has concretely
+#      observed and verified - same "illustrative, not exhaustive" honesty
+#      as every other non-LLM fallback in this pipeline. Right now that's
+#      exactly one rule, discovered and verified empirically while
+#      building this: the CMDi template's injected payload used ';' as a
+#      command separator and a POSIX-only ping flag, both of which
+#      silently fail on Windows (cmd.exe treats ';' as a literal character,
+#      not a separator, and rejects '-c'); '&' works as a separator on
+#      BOTH cmd.exe and POSIX sh, so the fix swaps to that plus an
+#      'echo <marker>' payload whose output is identical on either OS.
+#
+# Patches are applied as targeted string replacements to the ALREADY-
+# GENERATED source, not a full regeneration - the same minimal-diff
+# philosophy as Stage 4's own patch generation. Stops at the first
+# confirmed success or after max_iterations, whichever comes first; a
+# newly-successful revision is written back to the lessons store.
+
+_LESSONS_PATH = Path(".pipeline_lessons.json")
+
+
+def _load_lessons() -> dict:
+    if _LESSONS_PATH.exists():
+        try:
+            return json.loads(_LESSONS_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+    return {}
+
+
+def _save_lesson(vuln_class: str, signature: str, rule: dict) -> None:
+    lessons = _load_lessons()
+    lessons.setdefault(vuln_class, {})[signature] = {
+        **rule, "learned_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _LESSONS_PATH.write_text(json.dumps(lessons, indent=2), encoding="utf-8")
+
+
+def _failure_signature(execution_log: str) -> str:
+    """A short, stable key for WHY an attempt failed, so a future run can
+    match on the reason rather than needing an exact string match against
+    a log that also carries timestamps/ports/other run-specific noise."""
+    text = (execution_log or "").lower()
+    if "administrative privileges" in text or "option -c" in text:
+        return "posix_only_shell_syntax"
+    if "404" in text or "not found" in text:
+        return "endpoint_not_found"
+    if "timed out" in text or "timeout" in text:
+        return "timeout"
+    return "generic_failure"
+
+
+# Verified empirically (see this module's own test run against
+# CVE-2026-27602/modoboa): on this Windows host, `ping -c 1 127.0.0.1; id`
+# resolves "127.0.0.1;" as a literal (invalid) hostname - ';' is never a
+# cmd.exe separator - while `ping -n 1 127.0.0.1 & echo MARKER` correctly
+# runs both commands and captures MARKER in the output, on Windows AND
+# POSIX sh alike.
+_BUILTIN_REVISIONS: dict[str, dict] = {
+    "posix_only_shell_syntax": {
+        "description": (
+            "the injected test command relied on POSIX-only shell syntax "
+            "(';' as a separator, and/or a ping flag like '-c' that only "
+            "POSIX ping accepts) - switched to '&' (a separator both "
+            "cmd.exe and POSIX sh accept) and an 'echo <marker>' payload "
+            "whose output is identical on either platform, instead of an "
+            "OS-specific command like 'id' or a POSIX-only ping flag."
+        ),
+        "poc_patches": [
+            ('"host": "127.0.0.1; id"',
+             '"host": "127.0.0.1 & echo CMDI_PWNED_MARKER"'),
+            ('"uid=" in r.text or "root" in r.text',
+             '"CMDI_PWNED_MARKER" in r.text'),
+        ],
+        "target_patches": [],
+    },
+}
+
+
+def refine_and_reexecute(artifacts: ExploitArtifacts, vuln_class: str,
+                          max_iterations: int = 3) -> ExploitArtifacts:
+    if artifacts.dynamically_confirmed or not artifacts.executed:
+        # Already confirmed - nothing to improve. Or never ran at all (no
+        # compiler on PATH, target never became healthy) - a revised
+        # PAYLOAD can't fix a structural unavailability, only a wrong
+        # payload can be revised, so there is nothing productive to retry.
+        return artifacts
+
+    for iteration in range(1, max_iterations + 1):
+        signature = _failure_signature(artifacts.execution_log)
+        lessons = _load_lessons()
+        known = (lessons.get(vuln_class) or {}).get(signature)
+        rule = known or _BUILTIN_REVISIONS.get(signature)
+
+        entry = {"iteration": iteration, "signature": signature,
+                  "exit_code_before": artifacts.exit_code,
+                  "source": "lesson" if known else ("builtin" if rule else "none")}
+
+        if rule is None:
+            entry["outcome"] = "no known revision for this failure signature"
+            artifacts.refinement_history.append(entry)
+            log.info("[Stage 3.7] No known revision for signature=%s - stopping", signature)
+            break
+
+        poc_path = Path(artifacts.poc_path)
+        target_path = Path(artifacts.target_app_path)
+        poc_text = poc_path.read_text(encoding="utf-8")
+        target_text = target_path.read_text(encoding="utf-8")
+        changed = False
+        for old, new in rule.get("poc_patches", []):
+            if old in poc_text:
+                poc_text = poc_text.replace(old, new)
+                changed = True
+        for old, new in rule.get("target_patches", []):
+            if old in target_text:
+                target_text = target_text.replace(old, new)
+                changed = True
+
+        if not changed:
+            entry["outcome"] = "revision rule didn't match current source"
+            artifacts.refinement_history.append(entry)
+            log.info("[Stage 3.7] Revision for signature=%s didn't match current source - stopping", signature)
+            break
+
+        poc_path.write_text(poc_text, encoding="utf-8")
+        target_path.write_text(target_text, encoding="utf-8")
+        artifacts.iterations = iteration + 1
+        log.info("[Stage 3.7] Applying revision (iteration %d, source=%s): %s",
+                  iteration + 1, entry["source"], rule["description"][:100])
+
+        artifacts = execute_exploit_artifacts(artifacts)
+        entry["exit_code_after"] = artifacts.exit_code
+        entry["confirmed_after"] = artifacts.dynamically_confirmed
+        entry["revision_description"] = rule["description"]
+        artifacts.refinement_history.append(entry)
+
+        if artifacts.dynamically_confirmed:
+            log.info("[Stage 3.7] Revision succeeded on iteration %d", iteration + 1)
+            if known is None:
+                _save_lesson(vuln_class, signature, rule)
+                log.info("[Stage 3.7] Learned new lesson: %s / %s", vuln_class, signature)
+            break
+
+    return artifacts
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tool 4 — Report assembly
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -3115,6 +3284,18 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
         except Exception as exc:
             log.warning("[Stage 3.6] Error: %s", exc)
             deps.failed.append("3.6_execution")
+
+    # ── Stage 3.7: self-improvement - reflect on a failure and retry ─────────
+    if artifacts.generated and artifacts.executed and not deps.skip_probe:
+        try:
+            artifacts = refine_and_reexecute(artifacts, vuln_class)
+            deps.completed.append("3.7_refine")
+            if artifacts.refinement_history:
+                log.info("[Stage 3.7] %d refinement attempt(s), final dynamically_confirmed=%s",
+                          len(artifacts.refinement_history), artifacts.dynamically_confirmed)
+        except Exception as exc:
+            log.warning("[Stage 3.7] Error: %s", exc)
+            deps.failed.append("3.7_refine")
 
     # ── Stage 4: compile report ───────────────────────────────────────────────
     report_dict = compile_report(

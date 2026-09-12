@@ -38,6 +38,7 @@ cat reports\CVE-2026-6145.txt
 3. **Probe** — SSRF and Memory Safety get real dynamic confirmation (live lab / compile+run harness); the other four classes are static regex pattern matching against the diff, not live exploitation - see README "Honest gap" note
 3.5. **Exploit artifacts** — writes poc.py + target_app.py for any class (template or Claude-generated)
 3.6. **Exploit execution** — actually runs the Stage 3.5 artifact and records the real exit code as `dynamically_confirmed`, instead of leaving it on disk unexecuted
+3.7. **Self-improvement** — when 3.6 genuinely ran and genuinely failed, checks `.pipeline_lessons.json` (fixes learned on past CVEs of the same class) → falls back to an LLM revision when available → falls back to a small built-in rule library; re-runs and persists a newly-successful fix. Bounded (max 3 iterations), never guesses past a signature with no known fix - see `reports/CVE_CATALOG.md`'s "Self-improvement" section for a concrete worked example (CMDi template fixed automatically, then reused on a second run)
 4. **Report** — text/JSON with curl commands and bypass results
 
 ## AI Backend

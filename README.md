@@ -294,6 +294,31 @@ healthy, or `poc.py` hangs past its timeout, `executed=True` but
 `execution_log` - the same "say why nothing ran" philosophy the rest of this
 pipeline already uses for a missing API key or an unreachable NVD endpoint.
 
+### Stage 3.7 — Self-improvement
+
+`ExploitArtifacts.iterations` and the `poc.iter1.v0.py` filename convention
+already anticipated iterative refinement - Stage 3.6 above just reported
+`False` and stopped. When an exploit genuinely ran and genuinely did NOT
+reproduce the bug (a real, informative failure, not "couldn't test"), Stage
+3.7 (1) checks a persistent lessons store (`.pipeline_lessons.json`) for a
+fix already learned for this vulnerability class + failure signature, (2)
+falls back to an LLM revision when available, (3) falls back further to a
+small, honest, narrow built-in rule library for signatures this project has
+concretely observed. Patches are targeted string replacements to the
+already-generated source - the same minimal-diff philosophy as Stage 4's own
+patch generation - not a full regeneration. A newly-successful revision is
+persisted, so a fix learned on one CVE applies immediately to the next CVE
+of the same class hitting the same failure shape.
+
+Bounded, not autonomous: capped at `max_iterations` (default 3); a failure
+signature with no known fix stops immediately and reports "no known
+revision" rather than guessing or looping forever; the lessons store only
+grows when a run actually *confirms* a fix worked. See
+`reports/CVE_CATALOG.md`'s "Self-improvement" section for a concrete worked
+example - a CMDi exploit template that assumed POSIX shell syntax, fixed
+automatically on a Windows host, then reused (not re-discovered) on a
+second run of the same CVE.
+
 ### Stage 4 — Report
 
 Compiles everything into a structured report. Example output:

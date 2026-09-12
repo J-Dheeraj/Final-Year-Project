@@ -1,0 +1,19 @@
+{
+  "OS Command Injection": {
+    "posix_only_shell_syntax": {
+      "description": "the injected test command relied on POSIX-only shell syntax (';' as a separator, and/or a ping flag like '-c' that only POSIX ping accepts) - switched to '&' (a separator both cmd.exe and POSIX sh accept) and an 'echo <marker>' payload whose output is identical on either platform, instead of an OS-specific command like 'id' or a POSIX-only ping flag.",
+      "poc_patches": [
+        [
+          "\"host\": \"127.0.0.1; id\"",
+          "\"host\": \"127.0.0.1 & echo CMDI_PWNED_MARKER\""
+        ],
+        [
+          "\"uid=\" in r.text or \"root\" in r.text",
+          "\"CMDI_PWNED_MARKER\" in r.text"
+        ]
+      ],
+      "target_patches": [],
+      "learned_at": "2026-09-12T07:59:09.294311+00:00"
+    }
+  }
+}
