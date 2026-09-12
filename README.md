@@ -183,7 +183,7 @@ Supports both CVE IDs (`CVE-2026-33626`) and GHSA IDs (`GHSA-6w67-hwm5-92mq`).
 
 ### Stage 2 — Vulnerability Analysis
 
-Classifies the vulnerability into one of seven classes:
+Classifies the vulnerability into one of eight classes:
 
 | Class | CWE | Probe |
 |---|---|---|
@@ -193,6 +193,7 @@ Classifies the vulnerability into one of seven classes:
 | XSS | CWE-79 | Reflected payload execution |
 | Path Traversal | CWE-22 | Directory traversal sequences |
 | Deserialization | CWE-502 | Unsafe object deserialization |
+| Memory Safety (buffer overflow / UAF / underflow) | CWE-121, CWE-416, CWE-191 | Compile + run a generated PoV harness against the real C source - see "Stage 3 (native code)" below |
 | UNKNOWN | — | Generic template |
 
 When Claude is available, it reads the patch diff to identify unsafe code patterns
@@ -209,6 +210,30 @@ Routes to a class-specific probe function. For SSRF:
 4. Switches lab to **patched mode**
 5. Retests the same payload and all bypass variants
 6. Returns curl commands, bypass results, and BLOCKED/EXPLOITED/THEORETICAL per technique
+
+**Honest gap, stated plainly (fixed by Stage 3.6 below for the artifact-execution
+half of it)**: SSRF is the only class above with a live lab wired into Stage 3
+itself. `_probe_sqli`, `_probe_cmdi`, `_probe_path_traversal`, `_probe_xss`, and
+`_probe_deserialization` are all static regex pattern-matching against the code
+diff - not live exploitation. Every one of their `bypass_results` entries carries
+`"tested": False` in the code, hardcoded. "THEORETICAL — test against WAF/patched
+endpoint" was a literal, honest label for what those probes actually do; it just
+wasn't obvious from the report output alone that "probe" and "regex match" meant
+the same thing for six of the seven classes.
+
+#### Stage 3 (native code) — Memory Safety
+
+The one class this pipeline had **zero** capability for before: buffer overflow,
+use-after-free, unsigned-integer underflow (the exact bug class behind AIxCC's
+own "Needle" case study, CVE-2023-0179). `_probe_memory_safety` generates a
+minimal proof-of-vulnerability `main()` harness (via `claude -p`, or a narrow
+rule-based fallback for the one calling shape it recognizes without a model - a
+raw `(buffer, unsigned length)` signature feeding an underflow into a copy call),
+compiles it together with the vulnerable source, and runs it. A real segfault
+(`exit -11`) on the vulnerable version and a clean exit on the patched version is
+what "confirmed: true" actually means here - not a regex match. Falls back
+honestly (`confirmed: false`, with a stated reason) when no C compiler is on
+PATH, or the function's signature isn't one a harness could be generated for.
 
 ### Stage 3.5 — Exploit Artifact Generation
 
@@ -238,6 +263,36 @@ python reports/CVE-2025-11024/poc.iter1.v0.py 127.0.0.1:5000
 Templates are available for all 6 vuln classes. When the `claude` CLI is available,
 the pipeline asks Claude to write CVE-specific code with the full advisory context;
 the template is the fallback.
+
+### Stage 3.6 — Actually run what Stage 3.5 generated
+
+Stage 3.5 above wrote `poc.py` + `target_app.py` to disk and stopped there - a
+human had to open two terminals and run them by hand to find out whether the
+generated exploit actually worked. `execute_exploit_artifacts()` closes that
+loop automatically: it starts `target_app.py` as a subprocess, polls `/health`
+until it's up, runs `poc.py` against it, and reads the real exit code (the
+convention every generated PoC's own docstring already documents: `0=exploited,
+1=failed`). `dynamically_confirmed` on the report is a genuine pass/fail from
+actually running the code, for **any** vulnerability class Stage 3.5 could
+generate an artifact for - not just SSRF, and not limited to the six classes
+with hardcoded templates, since the `claude -p` generation path works from the
+advisory text for classes it has never seen a template for too.
+
+```bash
+# What used to require two manual terminals now happens automatically as
+# part of the pipeline run - the CVE-2026-24712 example above would show:
+#   EXPLOIT ARTIFACTS
+#   Status               : GENERATED (iter 1, v0)
+#   Executed             : True
+#   Exit code             : 0
+#   Dynamically confirmed : True
+```
+
+Degrades honestly rather than faking success: if `target_app.py` never becomes
+healthy, or `poc.py` hangs past its timeout, `executed=True` but
+`dynamically_confirmed` stays `None` with the real reason recorded in
+`execution_log` - the same "say why nothing ran" philosophy the rest of this
+pipeline already uses for a missing API key or an unreachable NVD endpoint.
 
 ### Stage 4 — Report
 

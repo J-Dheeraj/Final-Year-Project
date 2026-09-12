@@ -34,8 +34,10 @@ cat reports\CVE-2026-6145.txt
 ## Pipeline Stages
 
 1. **Advisory** — fetch from NVD v2 API or GHSA
-2. **Analysis** — classify vuln (SSRF/SQLi/CMDi/XSS/PathTraversal/Deserialization/UNKNOWN)
-3. **Probe** — live exploit test + bypass analysis vs patched lab
+2. **Analysis** — classify vuln (SSRF/SQLi/CMDi/XSS/PathTraversal/Deserialization/MemorySafety/UNKNOWN)
+3. **Probe** — SSRF and Memory Safety get real dynamic confirmation (live lab / compile+run harness); the other four classes are static regex pattern matching against the diff, not live exploitation - see README "Honest gap" note
+3.5. **Exploit artifacts** — writes poc.py + target_app.py for any class (template or Claude-generated)
+3.6. **Exploit execution** — actually runs the Stage 3.5 artifact and records the real exit code as `dynamically_confirmed`, instead of leaving it on disk unexecuted
 4. **Report** — text/JSON with curl commands and bypass results
 
 ## AI Backend
