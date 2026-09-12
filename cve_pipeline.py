@@ -305,6 +305,18 @@ def _claude_available() -> bool:
         return False
 
 
+def _extract_marker(text: str, start: str, end: str) -> str:
+    """Pull the text between two literal markers out of an LLM response -
+    shared by Stage 3.5's generation prompt and Stage 3.7's revision
+    prompt, both of which use the same ===X_START===/===X_END=== contract."""
+    try:
+        s = text.index(start) + len(start)
+        e = text.index(end, s)
+        return text[s:e].strip()
+    except ValueError:
+        return ""
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # pydantic-ai agent
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2512,17 +2524,8 @@ Important rules:
         raw = _call_claude(prompt, timeout=180)
 
         if raw:
-            # Extract between markers
-            def _extract(text: str, start: str, end: str) -> str:
-                try:
-                    s = text.index(start) + len(start)
-                    e = text.index(end, s)
-                    return text[s:e].strip()
-                except ValueError:
-                    return ""
-
-            poc_code    = _extract(raw, "===POC_START===",    "===POC_END===")
-            target_code = _extract(raw, "===TARGET_START===", "===TARGET_END===")
+            poc_code    = _extract_marker(raw, "===POC_START===",    "===POC_END===")
+            target_code = _extract_marker(raw, "===TARGET_START===", "===TARGET_END===")
 
             if poc_code and target_code:
                 log.info("[Stage 3.5] AI-generated artifacts for %s", cve_id)
@@ -2818,6 +2821,65 @@ _BUILTIN_REVISIONS: dict[str, dict] = {
 }
 
 
+def _llm_revise_artifacts(vuln_class: str, poc_text: str, target_text: str,
+                           execution_log: str) -> tuple[str, str] | None:
+    """Ask Claude to diagnose why the generated exploit failed and rewrite
+    both files to fix it. This is the path that lets Stage 3.7 handle a
+    failure NOBODY anticipated - not just the ones already recognized by
+    a failure-signature match and hand-coded into _BUILTIN_REVISIONS. The
+    other two paths (lessons store, built-in rules) can only ever cover
+    what a human already noticed and coded a fix for; this one can, in
+    principle, cover anything the log itself makes diagnosable. Returns
+    None (never raises) if no AI backend is available or the response
+    doesn't parse - the caller falls back to reporting "no known
+    revision" rather than pretending a fix was attempted."""
+    if not _claude_available():
+        return None
+    prompt = f"""\
+You previously wrote a proof-of-concept exploit (poc.py) and a minimal
+vulnerable target (target_app.py) for a {vuln_class} vulnerability. It did
+NOT work - here is exactly what happened when it was run:
+
+```
+{execution_log[-2000:]}
+```
+
+Current poc.py:
+```python
+{poc_text}
+```
+
+Current target_app.py:
+```python
+{target_text}
+```
+
+Diagnose why the exploit failed from the execution log, then output BOTH
+files again, corrected so the exploit actually succeeds against the
+target's real vulnerability. Preserve the existing 4-phase pattern
+(health/exploit/verify/exit 0-or-1) and the target's /health endpoint -
+fix only what's needed to make the exploit succeed, don't redesign it.
+
+Output EXACTLY two sections, no markdown fences, no commentary outside them:
+
+===POC_START===
+(complete corrected poc.py)
+===POC_END===
+
+===TARGET_START===
+(complete corrected target_app.py)
+===TARGET_END===
+"""
+    raw = _call_claude(prompt, timeout=180)
+    if not raw:
+        return None
+    poc_code = _extract_marker(raw, "===POC_START===", "===POC_END===")
+    target_code = _extract_marker(raw, "===TARGET_START===", "===TARGET_END===")
+    if not poc_code or not target_code:
+        return None
+    return poc_code, target_code
+
+
 def refine_and_reexecute(artifacts: ExploitArtifacts, vuln_class: str,
                           max_iterations: int = 3) -> ExploitArtifacts:
     if artifacts.dynamically_confirmed or not artifacts.executed:
@@ -2832,42 +2894,68 @@ def refine_and_reexecute(artifacts: ExploitArtifacts, vuln_class: str,
         lessons = _load_lessons()
         known = (lessons.get(vuln_class) or {}).get(signature)
         rule = known or _BUILTIN_REVISIONS.get(signature)
-
-        entry = {"iteration": iteration, "signature": signature,
-                  "exit_code_before": artifacts.exit_code,
-                  "source": "lesson" if known else ("builtin" if rule else "none")}
-
-        if rule is None:
-            entry["outcome"] = "no known revision for this failure signature"
-            artifacts.refinement_history.append(entry)
-            log.info("[Stage 3.7] No known revision for signature=%s - stopping", signature)
-            break
+        source = "lesson" if known else ("builtin" if rule else None)
 
         poc_path = Path(artifacts.poc_path)
         target_path = Path(artifacts.target_app_path)
         poc_text = poc_path.read_text(encoding="utf-8")
         target_text = target_path.read_text(encoding="utf-8")
-        changed = False
-        for old, new in rule.get("poc_patches", []):
-            if old in poc_text:
-                poc_text = poc_text.replace(old, new)
-                changed = True
-        for old, new in rule.get("target_patches", []):
-            if old in target_text:
-                target_text = target_text.replace(old, new)
-                changed = True
 
-        if not changed:
-            entry["outcome"] = "revision rule didn't match current source"
+        new_poc_text: str | None = None
+        new_target_text: str | None = None
+
+        if rule is not None:
+            # Lesson or built-in rule: two shapes exist. Patch-based
+            # (poc_patches/target_patches) is a targeted string
+            # replacement, same minimal-diff philosophy as Stage 4's own
+            # patch generation. Full-file (poc_full/target_full) is what
+            # an LLM-derived fix persists as, below - reapplying it means
+            # writing the whole saved file back, not diffing against
+            # whatever the current template happens to say.
+            if "poc_full" in rule or "target_full" in rule:
+                new_poc_text = rule.get("poc_full") or poc_text
+                new_target_text = rule.get("target_full") or target_text
+            else:
+                p, t, changed = poc_text, target_text, False
+                for old, new in rule.get("poc_patches", []):
+                    if old in p:
+                        p = p.replace(old, new)
+                        changed = True
+                for old, new in rule.get("target_patches", []):
+                    if old in t:
+                        t = t.replace(old, new)
+                        changed = True
+                if changed:
+                    new_poc_text, new_target_text = p, t
+
+        if new_poc_text is None:
+            # No lesson, no built-in rule, or the rule didn't match this
+            # source - the path that lets Stage 3.7 handle a failure
+            # nobody anticipated, instead of stopping here unconditionally.
+            llm_fix = _llm_revise_artifacts(vuln_class, poc_text, target_text,
+                                             artifacts.execution_log)
+            if llm_fix is not None:
+                new_poc_text, new_target_text = llm_fix
+                source = "llm"
+                rule = {"description": "LLM-diagnosed revision from the execution log",
+                        "poc_full": new_poc_text, "target_full": new_target_text}
+
+        entry = {"iteration": iteration, "signature": signature, "source": source,
+                  "exit_code_before": artifacts.exit_code}
+
+        if new_poc_text is None:
+            entry["outcome"] = ("no known revision, and no AI backend available "
+                                 "to attempt one") if source is None else \
+                                "revision rule didn't match current source"
             artifacts.refinement_history.append(entry)
-            log.info("[Stage 3.7] Revision for signature=%s didn't match current source - stopping", signature)
+            log.info("[Stage 3.7] No usable revision for signature=%s - stopping", signature)
             break
 
-        poc_path.write_text(poc_text, encoding="utf-8")
-        target_path.write_text(target_text, encoding="utf-8")
+        poc_path.write_text(new_poc_text, encoding="utf-8")
+        target_path.write_text(new_target_text, encoding="utf-8")
         artifacts.iterations = iteration + 1
         log.info("[Stage 3.7] Applying revision (iteration %d, source=%s): %s",
-                  iteration + 1, entry["source"], rule["description"][:100])
+                  iteration + 1, source, rule["description"][:100])
 
         artifacts = execute_exploit_artifacts(artifacts)
         entry["exit_code_after"] = artifacts.exit_code
@@ -2876,10 +2964,12 @@ def refine_and_reexecute(artifacts: ExploitArtifacts, vuln_class: str,
         artifacts.refinement_history.append(entry)
 
         if artifacts.dynamically_confirmed:
-            log.info("[Stage 3.7] Revision succeeded on iteration %d", iteration + 1)
+            log.info("[Stage 3.7] Revision succeeded on iteration %d (source=%s)",
+                      iteration + 1, source)
             if known is None:
                 _save_lesson(vuln_class, signature, rule)
-                log.info("[Stage 3.7] Learned new lesson: %s / %s", vuln_class, signature)
+                log.info("[Stage 3.7] Learned new lesson: %s / %s (source=%s)",
+                          vuln_class, signature, source)
             break
 
     return artifacts

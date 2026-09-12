@@ -302,13 +302,18 @@ already anticipated iterative refinement - Stage 3.6 above just reported
 reproduce the bug (a real, informative failure, not "couldn't test"), Stage
 3.7 (1) checks a persistent lessons store (`.pipeline_lessons.json`) for a
 fix already learned for this vulnerability class + failure signature, (2)
-falls back to an LLM revision when available, (3) falls back further to a
-small, honest, narrow built-in rule library for signatures this project has
-concretely observed. Patches are targeted string replacements to the
-already-generated source - the same minimal-diff philosophy as Stage 4's own
-patch generation - not a full regeneration. A newly-successful revision is
-persisted, so a fix learned on one CVE applies immediately to the next CVE
-of the same class hitting the same failure shape.
+asks an LLM (`_llm_revise_artifacts`) to diagnose the actual failure log and
+rewrite both files when an AI backend is available - the path that handles
+a failure nobody pre-anticipated, not just the ones already coded into (3),
+a small, honest, narrow built-in rule library for signatures this project
+has concretely observed. Built-in/lesson fixes are targeted string
+replacements to the already-generated source (same minimal-diff philosophy
+as Stage 4's own patch generation); an LLM fix is a full-file replacement,
+the natural shape of its response, gated on a confirmed re-execution before
+being trusted or persisted either way. A newly-successful revision - from
+any source - is persisted, so a fix learned on one CVE applies immediately
+to the next CVE of the same class hitting the same failure shape, with no
+further AI call needed.
 
 Bounded, not autonomous: capped at `max_iterations` (default 3); a failure
 signature with no known fix stops immediately and reports "no known
