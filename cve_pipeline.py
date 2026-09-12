@@ -503,6 +503,16 @@ def _nvd_fallback(cve_id: str) -> dict:
             sev   = m.get("cvssData", {}).get("baseSeverity") or m.get("baseSeverity")
             break
     refs = [r["url"] for r in cve.get("references", []) if "url" in r]
+    # NVD's own structured CWE field - a real classification signal that
+    # existed all along and was simply never read. Real-world example this
+    # caught: CVE-2026-42208's NVD prose says a query "mixed the caller-
+    # supplied key value into the query text instead of passing it as a
+    # separate parameter" - correct SQLi (CWE-89), but the words "SQL" and
+    # "injection" never appear, so _classify_from_text's keyword matching
+    # alone landed on UNKNOWN despite NVD already knowing the exact CWE.
+    cwe_ids = [w["value"] for weak in cve.get("weaknesses", [])
+               for w in weak.get("description", [])
+               if w.get("lang") == "en" and w.get("value", "").startswith("CWE-")]
     return {
         "advisory": {"cve_id": cve.get("id"), "severity": sev, "cvss_score": score},
         "package":  {},
@@ -510,6 +520,7 @@ def _nvd_fallback(cve_id: str) -> dict:
         "vulnerability": {"root_cause": desc[:600] if desc else None},
         "remediation": {"references": refs[:10]},
         "raw_description": desc[:1500],
+        "_api": {"cwe_ids": cwe_ids},
     }
 
 
@@ -579,9 +590,14 @@ def analyze_vulnerability(
                 "diff_summary":        report.diff_summary,
             }
         else:
-            # Lightweight fallback: classify from the advisory description alone
+            # Lightweight fallback: prefer the advisory's own structured CWE
+            # field (see _classify_from_cwe) over prose keyword matching -
+            # real NVD advisories routinely describe a bug's mechanism
+            # ("mixed the caller-supplied value into the query text")
+            # without ever using the words a keyword scan looks for.
             desc = advisory.get("raw_description", "") or ""
-            vuln_class, cwe = _classify_from_text(desc)
+            cwe_hit = _classify_from_cwe(advisory.get("cwe_ids") or [])
+            vuln_class, cwe = cwe_hit if cwe_hit else _classify_from_text(desc)
             result = {
                 "vulnerability_class": vuln_class,
                 "cwe":                 cwe,
@@ -755,6 +771,39 @@ def _fetch_github_code_diff(references: list[str]) -> tuple[str, str, str] | Non
                 return code_before, code_after, filename
 
     log.info("[Stage 2] No GitHub code diff found in references — using text classification")
+    return None
+
+
+_CWE_TO_CLASS: dict[str, tuple[str, str]] = {
+    "CWE-918": ("Server-Side Request Forgery (SSRF)", "CWE-918"),
+    "CWE-89":  ("SQL Injection", "CWE-89"),
+    "CWE-78":  ("OS Command Injection", "CWE-78"),
+    "CWE-77":  ("OS Command Injection", "CWE-77"),
+    "CWE-79":  ("Cross-Site Scripting (XSS)", "CWE-79"),
+    "CWE-80":  ("Cross-Site Scripting (XSS)", "CWE-80"),
+    "CWE-87":  ("Cross-Site Scripting (XSS)", "CWE-87"),
+    "CWE-22":  ("Path Traversal", "CWE-22"),
+    "CWE-23":  ("Path Traversal", "CWE-23"),
+    "CWE-502": ("Insecure Deserialization", "CWE-502"),
+    "CWE-611": ("XML External Entity (XXE) Injection", "CWE-611"),
+    "CWE-121": ("Buffer Overflow", "CWE-121"),
+    "CWE-122": ("Buffer Overflow", "CWE-122"),
+    "CWE-416": ("Use After Free", "CWE-416"),
+    "CWE-191": ("Integer Underflow", "CWE-191"),
+    "CWE-190": ("Integer Overflow", "CWE-190"),
+}
+
+
+def _classify_from_cwe(cwe_ids: list[str]) -> tuple[str, str] | None:
+    """Prefer the advisory's own structured CWE field over prose keyword
+    matching when one is available - see the "_api.cwe_ids" plumbing added
+    to ghsa_extractor.py's parse_nvd_json / cve_pipeline.py's _nvd_fallback.
+    A real CWE ID beats guessing from free text every time text doesn't
+    happen to use the exact vocabulary this file's regexes look for."""
+    for cwe in cwe_ids:
+        hit = _CWE_TO_CLASS.get(cwe.upper())
+        if hit:
+            return hit
     return None
 
 
@@ -2486,6 +2535,12 @@ Important rules:
         "command injection":                "CMDi",
         "cmdi":                             "CMDi",
         "server-side request forgery":      "SSRF",
+        "server-side request forgery (ssrf)": "SSRF",  # what _classify_from_text/
+                                                          # _infer_vuln_class/_classify_from_cwe
+                                                          # all actually return - the bare form
+                                                          # above alone silently missed every SSRF
+                                                          # CVE routed through the lightweight
+                                                          # (no-auditor) classification path
         "ssrf":                             "SSRF",
         "path traversal":                   "PathTraversal",
         "directory traversal":              "PathTraversal",
@@ -2574,8 +2629,15 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
         artifacts.execution_skip_reason = "no artifacts were generated to execute"
         return artifacts
 
-    poc_path = Path(artifacts.poc_path)
-    target_path = Path(artifacts.target_app_path)
+    # generate_exploit_artifacts stores these RELATIVE to wherever the
+    # pipeline happened to be invoked from. Popen's `cwd=` below changes
+    # the child's working directory before it resolves its own argv[0]/argv,
+    # so a still-relative path here gets re-resolved against the NEW cwd -
+    # "reports/CVE-X/target_app.py" run with cwd="reports/CVE-X" silently
+    # looks for "reports/CVE-X/reports/CVE-X/target_app.py" instead. Resolve
+    # to absolute first so the two are independent of each other.
+    poc_path = Path(artifacts.poc_path).resolve()
+    target_path = Path(artifacts.target_app_path).resolve()
     if not poc_path.exists() or not target_path.exists():
         artifacts.execution_skip_reason = "generated artifact file(s) missing on disk"
         return artifacts
