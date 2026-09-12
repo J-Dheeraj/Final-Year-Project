@@ -205,6 +205,16 @@ class ExploitArtifacts(BaseModel):
     vuln_class:      str  = ""
     poc_summary:     str  = ""   # one-line description of what the PoC does
     iterations:      int  = 1    # generation attempt number (v0, v1, …)
+    # Stage 3.6 — did the generated artifact actually get RUN, and did it
+    # actually reproduce the bug? Before this, an artifact could sit on disk
+    # forever with nobody (human or pipeline) ever confirming it worked -
+    # "generated" and "confirmed" were being treated as the same thing when
+    # they are not.
+    executed:              bool        = False
+    execution_skip_reason: str         = ""
+    exit_code:              int | None = None
+    dynamically_confirmed:  bool | None = None   # True only if the PoC actually exploited it
+    execution_log:          str        = ""
 
 
 class PipelineReport(BaseModel):
@@ -880,6 +890,11 @@ def run_vuln_probe(
     # ── Insecure Deserialization ──────────────────────────────────────────────
     elif "deserializ" in vc or "pickle" in vc:
         result = _probe_deserialization(code_before, code_after)
+
+    # ── Memory-safety (buffer overflow / UAF / underflow, native C/C++) ──────
+    elif any(k in vc for k in ("buffer overflow", "use after free", "use-after-free",
+                                "underflow", "overflow", "cwe-121", "cwe-416", "cwe-191")):
+        result = _probe_memory_safety(code_before, code_after)
 
     # ── Fallback: static pattern analysis ────────────────────────────────────
     else:
@@ -1573,6 +1588,219 @@ def _probe_deserialization(code_before: str, code_after: str) -> dict:
     }
 
 
+def _has_existing_main(source_text: str) -> bool:
+    """True if `source_text` already defines its own `main()`. Comment/
+    string-aware so a docstring merely mentioning "main(" (like this one)
+    doesn't false-positive."""
+    stripped = re.sub(r'//[^\n]*|/\*.*?\*/|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'',
+                       " ", source_text, flags=re.DOTALL)
+    return re.search(r"\bmain\s*\(", stripped) is not None
+
+
+def _generate_memory_safety_harness(code_before: str) -> str | None:
+    """Write a minimal proof-of-vulnerability `main()` for a C/C++ memory-
+    safety bug via `claude -p` (same three-tier AI backend as the rest of
+    this pipeline), or fall back to a narrow rule for the one shape it can
+    reason about without a model: a raw (buffer, unsigned length) calling
+    convention feeding an unsigned subtraction into a copy call, the same
+    class Team Atlanta / AIxCC's own case studies model after CVE-2023-0179.
+    Passing length 0 is a generic trigger for that class, not tuned to any
+    one function's exact constants: `len - k` underflows for any positive
+    constant(s) a real bug subtracts, whenever len is smaller, and 0 always
+    is."""
+    if _claude_available():
+        prompt = (
+            "You are a security researcher writing a minimal proof-of-"
+            "vulnerability harness. Output ONLY a complete, self-contained C "
+            "`main()` function (plus any #includes/decls it needs) that calls "
+            "a function from the snippet below with input designed to trigger "
+            "its memory-safety bug. Do NOT redefine that function - only call "
+            "it as already declared. Exit 0 if it runs safely; crash/abort if "
+            "the bug fires. No markdown fences, no commentary.\n\n"
+            f"```c\n{code_before[:4000]}\n```\n"
+        )
+        harness = _call_claude(prompt, timeout=90).strip()
+        if harness.startswith("```"):
+            harness = harness.strip("`")
+            if harness.startswith("c\n"):
+                harness = harness[2:]
+        if "main(" in harness or "main (" in harness:
+            return harness
+
+    m = re.search(
+        r"\b(\w+)\s*\(\s*const\s+(?:unsigned\s+char|char|void)\s*\*\s*\w+\s*,\s*"
+        r"(?:unsigned\s+int|unsigned|size_t)\s+\w+\s*\)", code_before)
+    if m is None:
+        return None
+    fn_name = m.group(1)
+    return (
+        "int main(void) {\n"
+        "\tunsigned char reachcrs_poc_buf[1] = {0};\n"
+        f"\t{fn_name}(reachcrs_poc_buf, 0);\n"
+        "\treturn 0;\n"
+        "}\n"
+    )
+
+
+def _find_c_compiler() -> str | None:
+    import shutil
+    for candidate in ("cc", "gcc", "clang"):
+        if shutil.which(candidate):
+            return candidate
+    return None
+
+
+def _compile_and_run_c(cc: str, tmp_dir: Path, name: str, source: str,
+                        timeout: float = 15.0) -> dict:
+    """Same compile-then-run-and-check-the-exit-code mechanism reachcrs's
+    testing.py/exploit.py already proved out for C: build one translation
+    unit, run it with no args, and read the exit code as the crash signal.
+    """
+    src = tmp_dir / name
+    src.write_text(source, encoding="utf-8")
+    out_bin = tmp_dir / f"{name}.out"
+    try:
+        proc = subprocess.run([cc, str(src), "-o", str(out_bin)],
+                               capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return {"compiles": False, "crashed": None, "log": f"compiler timed out after {timeout:.0f}s"}
+    except OSError as exc:
+        return {"compiles": False, "crashed": None, "log": f"could not run compiler {cc!r}: {exc}"}
+    if proc.returncode != 0:
+        return {"compiles": False, "crashed": None, "log": proc.stdout + proc.stderr}
+    try:
+        run = subprocess.run([str(out_bin)], capture_output=True, text=True, timeout=timeout)
+        return {"compiles": True, "crashed": run.returncode != 0,
+                "log": f"exit {run.returncode}\n{run.stdout}{run.stderr}"}
+    except subprocess.TimeoutExpired:
+        return {"compiles": True, "crashed": True, "log": "PoC timed out (possible hang)"}
+
+
+# diff-extracted function bodies almost never carry their own #includes (the
+# harness prompt only asks Claude to satisfy its OWN needs, not the snippet's)
+# - without this, a plain memcpy/strcpy/malloc call with no visible prototype
+# is a hard compile error on some compilers and silent pointer-truncating UB
+# on others, either way masking a real bug behind a false "did not compile"
+# rather than a genuine "did not crash".
+_C_PRELUDE = "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\n"
+
+
+def _probe_memory_safety(code_before: str, code_after: str) -> dict:
+    """Stage 3 probe for native C/C++ memory-safety CVEs (buffer overflow,
+    use-after-free, unsigned underflow) - the one class every OTHER probe in
+    this file has zero real capability for; `_probe_static_generic` covers
+    it today with a fixed prose string ("Manual PoC required for Buffer "
+    "Overflow — review the code diff"), never executing anything.
+
+    Ported from reachcrs (this author's companion FYP tool for kernel/C
+    memory-safety discovery): generate a minimal PoV harness, compile it
+    together with the vulnerable source, and run it - a real crash/no-crash
+    signal instead of a description. Degrades honestly, never fakes success:
+    no compiler on PATH, no harness the generator could produce, a file that
+    already defines its own `main()`, or any unexpected error all report
+    *why* nothing ran rather than a false confirmed/not-confirmed verdict -
+    this must never be the one probe whose own failure takes down the whole
+    pipeline run for a CVE, the way the six purely-regex probes never could.
+    """
+    try:
+        return _probe_memory_safety_inner(code_before, code_after)
+    except Exception as exc:
+        log.warning("[Stage 3] memory-safety probe error: %s", exc)
+        return {
+            "ran": True, "probe_method": "memory_safety_dynamic",
+            "vulnerable_verdict": "INCONCLUSIVE", "patched_verdict": "INCONCLUSIVE",
+            "confirmed": False, "poc_payload": "",
+            "detail": f"memory-safety probe raised {type(exc).__name__}: {exc}",
+        }
+
+
+def _probe_memory_safety_inner(code_before: str, code_after: str) -> dict:
+    cc = _find_c_compiler()
+    if cc is None:
+        return {
+            "ran": True, "probe_method": "memory_safety_dynamic",
+            "vulnerable_verdict": "INCONCLUSIVE", "patched_verdict": "INCONCLUSIVE",
+            "confirmed": False, "poc_payload": "",
+            "detail": "no C compiler (cc/gcc/clang) found on PATH; cannot dynamically "
+                      "confirm this memory-safety finding",
+        }
+
+    harness = _generate_memory_safety_harness(code_before) if code_before else None
+    if harness is None:
+        return {
+            "ran": True, "probe_method": "memory_safety_dynamic",
+            "vulnerable_verdict": "INCONCLUSIVE", "patched_verdict": "INCONCLUSIVE",
+            "confirmed": False, "poc_payload": "",
+            "detail": "could not generate a proof-of-vulnerability harness for this "
+                      "function's signature - no code_before, or an unrecognized "
+                      "calling shape without an AI backend available",
+        }
+
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="cve_pipeline_memsafety_") as tmp:
+        tmp_path = Path(tmp)
+        results = {}
+        for label, src in (("vulnerable", code_before), ("patched", code_after)):
+            if not src or _has_existing_main(src):
+                results[label] = {"compiles": None, "crashed": None,
+                                   "log": "skipped: no source or source already has its own main()"}
+                continue
+            combined = (_C_PRELUDE + src +
+                        "\n\n/* --- generated proof-of-vulnerability harness --- */\n" + harness)
+            results[label] = _compile_and_run_c(cc, tmp_path, f"{label}.c", combined)
+
+        def _verdict(r: dict, want_crash: bool) -> str:
+            # Three real outcomes, not two: never compiled (INCONCLUSIVE - we
+            # learned nothing about the vulnerability, only about the
+            # harness/toolchain), or compiled and ran with the OUTCOME WE
+            # WANTED for this side (PASS) or not (FAIL). Collapsing "didn't
+            # compile" into "didn't crash" is exactly how a real bug gets
+            # masked behind an unrelated toolchain error. `want_crash` must
+            # differ between the two sides: a crash is the correct (PASS)
+            # outcome on the vulnerable side and the wrong (FAIL) outcome on
+            # the patched side - the same boolean meaning "PASS" in both
+            # calls would silently mislabel a successful fix as a failure.
+            if r.get("compiles") is not True:
+                return "INCONCLUSIVE"
+            return "PASS" if bool(r.get("crashed")) == want_crash else "FAIL"
+
+        vuln_result = results["vulnerable"]
+        patched_result = results.get("patched", {})
+        vuln_crashed = vuln_result["crashed"]
+        vuln_compiled = vuln_result.get("compiles") is True
+        patched_crashed = patched_result.get("crashed")
+        patched_compiled = patched_result.get("compiles") is True
+        confirmed = bool(vuln_compiled and vuln_crashed
+                          and (not patched_compiled or patched_crashed is False))
+
+        if not vuln_compiled:
+            vuln_detail = "the generated harness did not compile against the original (toolchain/harness issue, not evidence either way)"
+        elif vuln_crashed:
+            vuln_detail = "the generated harness crashed the original"
+        else:
+            vuln_detail = "the generated harness compiled and ran WITHOUT crashing the original"
+
+        if not patched_compiled:
+            patched_detail = "patched version not tested (missing, or didn't compile)"
+        elif patched_crashed:
+            patched_detail = "patched version still crashed"
+        else:
+            patched_detail = "patched version survived"
+
+        return {
+            "ran": True, "probe_method": "memory_safety_dynamic",
+            "vulnerable_verdict": _verdict(vuln_result, want_crash=True),
+            "patched_verdict": _verdict(patched_result, want_crash=False),
+            "confirmed": confirmed,
+            "poc_payload": harness,
+            "detail": f"{vuln_detail}; {patched_detail}",
+            "execution_log": (
+                f"=== vulnerable ===\n{vuln_result['log']}\n\n"
+                f"=== patched ===\n{patched_result.get('log', '(not run)')}"
+            ),
+        }
+
+
 def _probe_static_generic(vuln_class: str, code_before: str, code_after: str) -> dict:
     """
     Fallback for vulnerability classes without a dedicated probe.
@@ -2218,7 +2446,13 @@ Then: python poc.py 127.0.0.1:5000
 Important rules:
 - Both files must be runnable with only stdlib + requests/flask/werkzeug.
 - The PoC must exit 0 on success, 1 on failure.
-- Target app must listen on port 5000.
+- Target app must listen on port 5000, and the ONLY `port=` assignment in the
+  file must be the one inside `app.run(...)` - the pipeline auto-detects the
+  port by scanning for that pattern, so any other `port=`-shaped variable
+  will be picked up by mistake.
+- Target app must call `app.run(port=5000, debug=False)` - never `debug=True`
+  (Werkzeug's reloader forks a second process that a supervising script
+  cannot reliably terminate).
 - Tailor the exploit to the SPECIFIC vulnerability class and root cause above.
 - No markdown fences, no explanations outside the markers.
 """
@@ -2291,6 +2525,133 @@ Important rules:
     except Exception as exc:
         log.warning("[Stage 3.5] Failed to write artifacts: %s", exc)
         return ExploitArtifacts(generated=False, skip_reason=str(exc))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 3.6 — Actually RUN the generated artifact (close the loop)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Stage 3.5 above writes poc.py + target_app.py to disk and stops there - the
+# pipeline's own "confirmed" verdict for every class except SSRF has always
+# come from static regex pattern matching (_probe_sqli, _probe_cmdi, etc.),
+# never from actually running anything. Every one of that regex probe's
+# "bypass_results" is hardcoded "tested: False" - literally never executed.
+# This is the gap that matters most for "exploit any type of CVE": Stage 3.5
+# already asks Claude to write a CVE-specific PoC for ANY vulnerability class
+# (not just the 6 with hardcoded templates), so the fix isn't a new exploit
+# technique per class - it's making the pipeline actually run what it already
+# generates, the same way reachcrs's exploit.py compiles+runs an LLM-written
+# harness before trusting a patch. A generated-but-never-run PoC is a claim,
+# not evidence.
+
+_PORT_RE = re.compile(r"port\s*=\s*(\d+)")
+
+
+def _extract_target_port(target_app_path: Path, default: int = 5000) -> int:
+    """Generated target_app.py hardcodes its port (the templates and the
+    Claude-generation prompt both use :5000 by convention) rather than
+    reading one from the environment - scan for it instead of assuming, so
+    a differently-generated artifact still gets picked up correctly."""
+    try:
+        text = target_app_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return default
+    m = _PORT_RE.search(text)
+    return int(m.group(1)) if m else default
+
+
+def execute_exploit_artifacts(artifacts: ExploitArtifacts,
+                               health_timeout: float = 10.0,
+                               poc_timeout: float = 20.0) -> ExploitArtifacts:
+    """Start the generated target_app.py, run poc.py against it, and record
+    whether the exploit actually fired - turning Stage 3.5's "generated" into
+    a real "confirmed" or "not confirmed", for whatever vulnerability class
+    Claude (or the template fallback) was asked to target. Never raises -
+    any failure degrades to `executed=False` with a reason, same philosophy
+    as the rest of this pipeline's graceful-degradation error handling.
+    """
+    if not artifacts.generated or not artifacts.poc_path or not artifacts.target_app_path:
+        artifacts.execution_skip_reason = "no artifacts were generated to execute"
+        return artifacts
+
+    poc_path = Path(artifacts.poc_path)
+    target_path = Path(artifacts.target_app_path)
+    if not poc_path.exists() or not target_path.exists():
+        artifacts.execution_skip_reason = "generated artifact file(s) missing on disk"
+        return artifacts
+
+    port = _extract_target_port(target_path)
+    python = sys.executable
+
+    log.info("[Stage 3.6] Executing generated artifacts for %s on :%d …",
+              artifacts.vuln_class, port)
+
+    target_proc = subprocess.Popen(
+        [python, str(target_path)], cwd=str(target_path.parent),
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    artifacts.execution_log = ""
+    try:
+        healthy = False
+        deadline = time.monotonic() + health_timeout
+        last_error = ""
+        while time.monotonic() < deadline:
+            if target_proc.poll() is not None:
+                last_error = "target_app.py exited before becoming healthy"
+                break
+            try:
+                r = requests.get(f"http://127.0.0.1:{port}/health", timeout=1.5)
+                if r.status_code == 200:
+                    healthy = True
+                    break
+            except requests.RequestException as exc:
+                last_error = str(exc)
+            time.sleep(0.5)
+
+        if not healthy:
+            artifacts.executed = True
+            artifacts.execution_skip_reason = (
+                f"target_app.py never became healthy on :{port} "
+                f"(last error: {last_error})")
+            return artifacts
+
+        try:
+            poc = subprocess.run(
+                [python, str(poc_path), f"127.0.0.1:{port}"],
+                cwd=str(poc_path.parent), capture_output=True, text=True,
+                timeout=poc_timeout,
+            )
+            exit_code = poc.returncode
+            poc_output = poc.stdout + poc.stderr
+        except subprocess.TimeoutExpired:
+            exit_code = None
+            poc_output = f"poc.py timed out after {poc_timeout:.0f}s (possible hang)"
+
+        artifacts.executed = True
+        artifacts.exit_code = exit_code
+        # Convention documented in every generated poc.py's own docstring:
+        # "Exit: 0=exploited 1=failed" - the same convention reachcrs's
+        # --poc-cmd already uses for compiled C PoCs, applied here to the
+        # Python/Flask artifacts this pipeline generates.
+        artifacts.dynamically_confirmed = (exit_code == 0)
+        artifacts.execution_log = f"=== poc.py (exit {exit_code}) ===\n{poc_output}"
+        return artifacts
+    finally:
+        # Only NOW is it safe to read the target's own stdout without racing
+        # a still-running server: terminate first, then drain whatever it
+        # buffered. `artifacts` is mutated in place here, which is still
+        # reflected in the value already handed back by the `return` above -
+        # this is what makes the target's own output (stack traces, debug
+        # prints) actually show up in execution_log instead of always being
+        # empty, in every path, not just the "crashed before healthy" one.
+        target_proc.terminate()
+        try:
+            target_out, _ = target_proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            target_proc.kill()
+            target_out = ""
+        target_section = f"=== target_app.py ===\n{target_out or ''}"
+        artifacts.execution_log = f"{target_section}\n\n{artifacts.execution_log}".rstrip()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2526,12 +2887,24 @@ def render_text(report: PipelineReport) -> str:
                 f"  PoC         : {art.poc_path}",
                 f"  Target app  : {art.target_app_path}",
                 f"  Summary     : {art.poc_summary}",
+            ]
+            if art.executed:
+                lines += [
+                    "",
+                    f"  Executed              : True",
+                    f"  Exit code              : {art.exit_code}",
+                    f"  Dynamically confirmed  : {art.dynamically_confirmed}",
+                ]
+            elif art.execution_skip_reason:
+                lines += ["", f"  Execution   : SKIPPED — {art.execution_skip_reason}"]
+            port = _extract_target_port(Path(art.target_app_path)) if art.target_app_path else 5000
+            lines += [
                 "",
-                "  Usage:",
+                "  Manual re-run:",
                 f"    # Terminal 1 — start vulnerable target",
                 f"    python \"{art.target_app_path}\"",
                 f"    # Terminal 2 — run exploit",
-                f"    python \"{art.poc_path}\" 127.0.0.1:5000",
+                f"    python \"{art.poc_path}\" 127.0.0.1:{port}",
             ]
         else:
             lines.append(f"  Status      : SKIPPED — {art.skip_reason}")
@@ -2664,6 +3037,22 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
     except Exception as exc:
         log.warning("[Stage 3.5] Error: %s", exc)
         deps.failed.append("3.5_artifacts")
+
+    # ── Stage 3.6: actually run the generated artifact ───────────────────────
+    if artifacts.generated and not deps.skip_probe:
+        try:
+            artifacts = execute_exploit_artifacts(artifacts)
+            deps.completed.append("3.6_execution")
+            # Note: the real result lives on `artifacts` (report.exploit_artifacts,
+            # already a typed field below) - `probe` is a plain dict later filtered
+            # into SSRFProbeResult by field name, which has no matching field, so
+            # writing here would be silently discarded rather than surfaced.
+            if artifacts.executed:
+                log.info("[Stage 3.6] exit_code=%s  dynamically_confirmed=%s",
+                          artifacts.exit_code, artifacts.dynamically_confirmed)
+        except Exception as exc:
+            log.warning("[Stage 3.6] Error: %s", exc)
+            deps.failed.append("3.6_execution")
 
     # ── Stage 4: compile report ───────────────────────────────────────────────
     report_dict = compile_report(
