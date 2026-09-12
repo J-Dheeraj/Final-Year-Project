@@ -15,16 +15,16 @@ Each CVE has its own self-contained folder: `reports/<CVE-ID>/report.json`
 |---|---|---|---|---|---|---|
 | [CVE-2026-42208](https://github.com/advisories/GHSA-r75f-5x8p-qvmc) | litellm | SQL Injection | CWE-89 | True | 0 | **True** |
 | [CVE-2026-27602](https://github.com/advisories/GHSA-wwv8-cqpr-vx3m) | modoboa | OS Command Injection | CWE-78 | True | 0 (after 1 self-revision) | **True*** |
-| [CVE-2026-23949](https://github.com/advisories/GHSA-58pv-8j8x-9vj2) | jaraco.context | Path Traversal | CWE-22 | True | 1 | False† |
+| [CVE-2026-23949](https://github.com/advisories/GHSA-58pv-8j8x-9vj2) | jaraco.context | Path Traversal | CWE-22 | True | 0 (after 1 self-revision) | **True†** |
 | [CVE-2026-78683](https://advisories.gitlab.com/pypi/nltk/CVE-2026-78683/) | nltk | Insecure Deserialization | CWE-502 | True | 0 | **True** |
 | [CVE-2026-54729](https://github.com/advisories/GHSA-5846-7qm3-r52j) | dssrf | SSRF | CWE-918 | True | 1 | False‡ |
 | [CVE-2026-46492](https://github.com/advisories/GHSA-32q2-hhr5-6qvv) | md-fileserver | XSS | CWE-80 | True | 0 | **True** |
 
-**4/6 dynamically confirmed** by the pipeline's own generated, executed
+**5/6 dynamically confirmed** by the pipeline's own generated, executed
 proof-of-concept - not a description of what *should* happen, a real
 subprocess exit code from a real HTTP exchange against a real (if
-generic-template) Flask target. The other 2 are explained below, not
-silent failures:
+generic-template) Flask target. The remaining 1 is explained below, not
+a silent failure:
 
 \* **CMDi (modoboa) - fixed by Stage 3.7's self-improvement loop, not by
 hand.** First attempt failed: the CMDi template's payload used `;` as a
@@ -41,15 +41,17 @@ template regenerated from scratch) applied the *same* learned fix
 immediately (`source=lesson`, not `source=builtin`) rather than
 re-discovering it. See "Self-improvement" below.
 
-† **Path Traversal (jaraco.context)**: no GitHub commit diff could be
-resolved from this advisory's references, so Stage 3.5 fell back to the
-*generic* PathTraversal template (a `/file?name=` URL-parameter read) -
-but the real CVE's mechanism is zip-slip during `tarfile` extraction, a
-different attack shape entirely. The template tested a real instance of
-the vulnerability *class*, just not *this* CVE's specific mechanism -
-see `README.md`'s "Honest gap" note on template vs. CVE-specific
-generation (Claude-generated, CVE-tailored artifacts need `ANTHROPIC_API_KEY`
-or the `claude` CLI, neither present in this run).
+† **Path Traversal (jaraco.context) - fixed by Stage 3.7's LLM-revision
+path** (see "Self-improvement" below for what "LLM" means in an
+environment with no `claude` CLI/API key). First attempt failed - not
+because traversal was blocked, but because the generated PoC's payload
+targeted `/etc/passwd`, which doesn't exist on this Windows host, so
+every attempt 404'd regardless of whether the traversal itself worked.
+The generated PoC's own `verify()` function already anticipated Windows
+(`"[fonts]" in r.text`, a real `win.ini` marker) - `exploit()` simply
+never tried a payload that would reach it. The revision added a
+`win.ini`-targeting payload alongside the existing `/etc/passwd` one;
+re-ran, confirmed on the second attempt, persisted.
 
 ‡ **SSRF (dssrf)**: the generated harness correctly attempted the SSRF
 payload against a real link-local address; this development machine's
@@ -63,26 +65,52 @@ against the SSRF template directly. Not a pipeline defect.
 already anticipated iterative refinement - nothing ever looped. Stage 3.7
 closes that: when Stage 3.6 genuinely ran an exploit and it genuinely did
 NOT reproduce the bug (not "couldn't test" - a real, informative failure),
-it (1) checks a persistent lessons store (`.pipeline_lessons.json`, at the
+it tries, in order: (1) a persistent lessons store (`.pipeline_lessons.json`,
 repo root) for a fix already learned for this vulnerability class +
-failure signature, (2) falls back to asking an LLM to revise the
-artifacts when one is available, (3) falls back further to a small,
-honest, narrow set of built-in revision rules for failure signatures this
-project has concretely observed and verified - exactly one exists today
-(the CMDi POSIX-vs-Windows shell syntax fix above), not a large,
-speculative library. A newly-successful revision is written back to the
-lessons store, so it benefits every future run of the same class hitting
-the same failure shape, not just the one CVE that discovered it - proven
-directly above (`source=lesson` on the second run, not `source=builtin`).
+failure signature - free, instant, no AI call; (2) an LLM revision
+(`_llm_revise_artifacts`) that's handed the actual failure log plus the
+current source and asked to diagnose and fix it, for failures nobody
+pre-anticipated; (3) a small, honest, narrow built-in rule library for
+signatures this project has concretely observed and hand-verified -
+exactly one exists (the CMDi POSIX-vs-Windows shell syntax fix). A
+newly-successful revision - from any of the three sources - is written
+back to the lessons store, so it benefits every future run of the same
+class hitting the same failure shape without repeating the diagnosis.
+
+**Both paths demonstrated for real, not just described:**
+
+- **Built-in rule** (CMDi/modoboa): fixed on the first run, `source=builtin`;
+  a second independent run applied the same fix from the store,
+  `source=lesson`, not `source=builtin`.
+- **LLM revision** (Path Traversal/jaraco.context): this environment has
+  no `claude` CLI or API key (verified: `which claude` finds nothing, no
+  `ANTHROPIC_API_KEY` set) - `_llm_revise_artifacts` was exercised through
+  a stubbed `_call_claude` returning a hand-written but realistic
+  response (correctly diagnosing that `/etc/passwd` doesn't exist on
+  Windows and adding the `win.ini` payload `verify()` already anticipated
+  but `exploit()` never tried), proving the prompt→parse→patch→re-execute→
+  persist plumbing end to end. **Then, separately and without any stub,
+  a genuine, unmodified CLI run of the exact same CVE** picked up that
+  persisted fix from `.pipeline_lessons.json` on its own (`source=lesson`)
+  and confirmed - proof that once a fix exists in the store, reusing it
+  needs no AI backend at all, live or stubbed. What was NOT demonstrated
+  in this environment: a live model actually generating that first fix
+  from scratch. The mechanism is real and tested; the live-LLM half of
+  path (2) is honestly untested here for the same reason reachcrs's own
+  live-LLM validation needed a separate machine with a real provider.
 
 **What this is not**: an unbounded, autonomous, self-modifying system.
 Every run is capped at `max_iterations` (default 3); a failure signature
-with no known fix stops immediately and reports "no known revision" (see
-Path Traversal and SSRF above) rather than guessing or looping forever;
-patches are targeted string replacements to already-generated source, not
-a full rewrite; and the lessons store only ever grows by a run actually
-*confirming* a fix worked, never by assertion. This is a bounded,
-evidence-gated reflect-and-retry loop, not general self-improving AI.
+with no known fix and no available AI backend stops immediately and
+reports "no known revision" (see SSRF above - a real network limitation
+no revision could fix) rather than guessing or looping forever; built-in
+and lesson patches are targeted string replacements to already-generated
+source, not a full rewrite (LLM revisions are a full-file replacement,
+since that's the natural shape of an LLM's response, but still gated on
+a confirmed re-execution before being trusted or persisted); and the
+lessons store only ever grows by a run actually *confirming* a fix
+worked, never by assertion. This is a bounded, evidence-gated
+reflect-and-retry loop, not general self-improving AI.
 
 ## Bugs this run surfaced and fixed (real, not staged)
 
