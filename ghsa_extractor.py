@@ -659,7 +659,18 @@ def parse_nvd_json(source: str) -> dict[str, Any]:
     cause_pattern  = re.compile(r"ssrf|injection|overflow|traversal|bypass|without.valid|no.valid|arbitrary", re.I)
     root_cause     = " ".join(s for s in sentences if cause_pattern.search(s))[:600] or None
 
-    return _build_output(
+    # NVD's own structured weakness field - a real classification signal
+    # that existed all along and was simply never read here. Real example
+    # this caught: CVE-2026-42208's NVD prose describes SQLi ("mixed the
+    # caller-supplied key value into the query text instead of passing it
+    # as a separate parameter") without ever using the words "SQL" or
+    # "injection", so cve_pipeline.py's prose-keyword classifier alone
+    # landed on UNKNOWN despite NVD already knowing it's CWE-89.
+    cwe_ids = [w["value"] for weak in cve_item.get("weaknesses", [])
+               for w in weak.get("description", [])
+               if w.get("lang") == "en" and w.get("value", "").startswith("CWE-")]
+
+    out = _build_output(
         ghsa_id=ghsa_id,
         cve_id=cve_id,
         package=package,
@@ -674,6 +685,8 @@ def parse_nvd_json(source: str) -> dict[str, Any]:
         references=references,
         raw_description=raw_description[:1500],
     )
+    out["_api"] = {"source": "nvd_json", "cwe_ids": cwe_ids}
+    return out
 
 
 def _infer_ecosystem(cpe_uri: str, references: list[str]) -> str | None:
