@@ -1,5 +1,19 @@
 # Project Status
 
+## Session log
+
+Format: date — what was attempted — exit criteria met or not. Newest
+first. Add an entry at the end of every real work session so the next
+one's opening move is unambiguous.
+
+- **2026-09-15** — Extended the Stage 2 classification ablation from
+  n=1 to the full 6-CVE catalog (`docs/BENCHMARK_PROTOCOL.md` §7), run
+  directly against the real `_classify_from_text`/`_classify_from_cwe`
+  functions and real stored advisory data. Exit criterion met: 1/6
+  class-level failure, 2/6 CWE-level mismatches, both real and
+  reproducible. Live-LLM wiring and the S1 litellm stratum (below) were
+  deliberately NOT attempted this session — still open.
+
 Living checklist. Update after every real work session — mark nothing
 done that isn't actually verified. Adapted from an external plan's
 checklist pattern, applied to this project's actual stages, not a
