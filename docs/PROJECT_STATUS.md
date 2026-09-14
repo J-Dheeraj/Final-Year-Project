@@ -70,6 +70,10 @@ parallel system.
       prose beyond the `docs/` reference material above; do not treat
       any `docs/*.md` file as report-ready without adapting the voice
 
+See `docs/CONSIDERED_DIRECTIONS.md` for proposals evaluated and
+deliberately not adopted, with reasoning — check there before revisiting
+a direction that may have already been ruled out for a documented reason.
+
 ## What NOT to do without deliberately deciding to
 
 - Don't add fuzzing (AFL++/libFuzzer/coverage-guided mutation) as a
