@@ -4,6 +4,11 @@ An end-to-end pipeline that watches NVD and GitHub Advisory feeds for new CVEs,
 classifies the vulnerability, runs live exploit probes, generates bypass analysis,
 and writes runnable PoC exploit scripts — all without requiring an Anthropic API key.
 
+This is the base for an NTU final-year project on using LLMs to secure OSS.
+See [`docs/CRS_MAPPING.md`](docs/CRS_MAPPING.md) for how its stages map onto
+DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts, and
+[`docs/FREE5GC_LAB.md`](docs/FREE5GC_LAB.md) for the network-OSS target work.
+
 ---
 
 ## How it works
@@ -136,10 +141,22 @@ python cve_watcher.py --interval 60 --workers 2
 
 ```
 AI CVE Exploit Automation/
-├── cve_pipeline.py          # Core pipeline: all 4 stages + Stage 3.5
+├── cve_pipeline.py          # Orchestrator: pydantic-ai Tool 1-4 + CLI entry point
 ├── cve_watcher.py           # Feed watcher — polls NVD + GHSA, dispatches pipeline
 ├── dryrun.py                # End-to-end smoke test with no API key needed
 ├── ghsa_extractor.py        # GitHub Security Advisory extractor
+│
+├── src/                     # Extracted modules (see docs/CRS_MAPPING.md)
+│   ├── labs/exploit_templates.py       # Per-class PoC/target-app templates (Stage 3.5)
+│   ├── pipeline/self_improve.py        # Stage 3.7 self-improvement loop
+│   ├── pipeline/patch.py               # Stage 5 patch generation + validation
+│   ├── report/render.py                # Text/JSON report rendering
+│   ├── integrations/obsidian_ingest.py # Wiki auto-ingest
+│   └── metrics.py                      # Experiment/metrics harness over reports/
+│
+├── docs/
+│   ├── CRS_MAPPING.md       # How this pipeline maps onto AIxCC/OSS-CRS concepts
+│   └── FREE5GC_LAB.md       # The free5GC-adjacent lab and what it does/doesn't prove
 │
 ├── ssrf_lab/
 │   ├── server.py            # Dual-mode Flask lab (vulnerable / patched)
@@ -323,6 +340,27 @@ grows when a run actually *confirms* a fix worked. See
 example - a CMDi exploit template that assumed POSIX shell syntax, fixed
 automatically on a Windows host, then reused (not re-discovered) on a
 second run of the same CVE.
+
+### Stage 3.8 — Patch generation & validation
+
+The pipeline's exploit-generation-and-confirmation loop (3.5-3.7) never
+produced a *fix* — only a confirmed vulnerability. Stage 3.8 closes that:
+when an exploit is dynamically confirmed, `generate_and_validate_patch()`
+asks an LLM to patch `target_app.py`'s vulnerable handler (given the
+advisory's own `root_cause`/`fix_summary` as context), then trusts the
+result only if BOTH hold after re-running against the patched target:
+
+1. The *original* exploit script now **fails** (`verify()` returns falsy /
+   nonzero exit) — the vulnerability is actually closed, not just moved.
+2. `/health` still returns 200 — the patch didn't just break the app.
+
+A patch that fails either check is discarded and reported as
+`patch_validated: false` with the reason, never silently upgraded to a
+success. No AI backend available means no patch is attempted at all
+(`patch_skip_reason` states why) — same "say why nothing ran" honesty as
+every other AI-dependent stage in this pipeline. See `docs/CRS_MAPPING.md`
+for how this maps onto OSS-CRS's `apply-patch-build`/`run-pov`/`run-test`
+validation cycle, and `reports/CVE_CATALOG.md` for real outcomes.
 
 ### Stage 4 — Report
 

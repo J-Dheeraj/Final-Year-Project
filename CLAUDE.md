@@ -39,7 +39,17 @@ cat reports\CVE-2026-6145.txt
 3.5. **Exploit artifacts** — writes poc.py + target_app.py for any class (template or Claude-generated)
 3.6. **Exploit execution** — actually runs the Stage 3.5 artifact and records the real exit code as `dynamically_confirmed`, instead of leaving it on disk unexecuted
 3.7. **Self-improvement** — when 3.6 genuinely ran and genuinely failed, checks `.pipeline_lessons.json` (fixes learned on past CVEs of the same class) → falls back to an LLM revision when available → falls back to a small built-in rule library; re-runs and persists a newly-successful fix. Bounded (max 3 iterations), never guesses past a signature with no known fix - see `reports/CVE_CATALOG.md`'s "Self-improvement" section for a concrete worked example (CMDi template fixed automatically, then reused on a second run)
+3.8. **Patch generation & validation** (`src/pipeline/patch.py`) — when an exploit is dynamically confirmed, asks an LLM to patch the vulnerable handler, then trusts it only if the original exploit now fails AND `/health` still passes against the patched target. No AI backend → no patch attempt, stated honestly via `patch_skip_reason`.
 4. **Report** — text/JSON with curl commands and bypass results
+
+## Repo layout
+
+`cve_pipeline.py` holds the pydantic-ai Tool 1-4 registrations and CLI
+orchestration; `src/` holds extracted, self-contained modules (exploit
+templates, self-improvement, patch generation, rendering, Obsidian
+ingest, metrics). See `docs/CRS_MAPPING.md` for how these stages map onto
+DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts, and
+`docs/FREE5GC_LAB.md` for the free5GC-adjacent network-OSS lab.
 
 ## AI Backend
 
