@@ -5,9 +5,17 @@ classifies the vulnerability, runs live exploit probes, generates bypass analysi
 and writes runnable PoC exploit scripts — all without requiring an Anthropic API key.
 
 This is the base for an NTU final-year project on using LLMs to secure OSS.
-See [`docs/CRS_MAPPING.md`](docs/CRS_MAPPING.md) for how its stages map onto
-DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts, and
-[`docs/FREE5GC_LAB.md`](docs/FREE5GC_LAB.md) for the network-OSS target work.
+The project's original pitch ("fuzzing LLMs") has been deliberately dropped
+in favor of what this repo actually does and can defend: **LLM-assisted
+exploit confirmation and patch validation for known CVEs**, plus **real
+reachability-filtered static analysis on real upstream source** (not
+fuzz-discovery of unknown bugs) — see
+[`docs/CRS_MAPPING.md`](docs/CRS_MAPPING.md) for the full framing, how the
+stages map onto DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts, and
+what's honestly still a gap. [`docs/REACHABILITY.md`](docs/REACHABILITY.md)
+covers the reachability engine (ported from this FYP's earlier reachcrs
+prototype) against a real free5GC CVE; [`docs/FREE5GC_LAB.md`](docs/FREE5GC_LAB.md)
+covers the dynamic exploit lab for a related free5GC CVE.
 
 ---
 
@@ -149,14 +157,18 @@ AI CVE Exploit Automation/
 ├── src/                     # Extracted modules (see docs/CRS_MAPPING.md)
 │   ├── labs/exploit_templates.py       # Per-class PoC/target-app templates (Stage 3.5)
 │   ├── pipeline/self_improve.py        # Stage 3.7 self-improvement loop
-│   ├── pipeline/patch.py               # Stage 5 patch generation + validation
+│   ├── pipeline/patch.py               # Stage 3.8 patch generation + validation
 │   ├── report/render.py                # Text/JSON report rendering
 │   ├── integrations/obsidian_ingest.py # Wiki auto-ingest
-│   └── metrics.py                      # Experiment/metrics harness over reports/
+│   ├── metrics.py                      # Experiment/metrics harness over reports/
+│   └── reachability/                   # Ported from reachcrs: real AST reachability +
+│                                        # triage + patch against real C/C++/Go source
+│                                        # (see docs/REACHABILITY.md)
 │
 ├── docs/
 │   ├── CRS_MAPPING.md       # How this pipeline maps onto AIxCC/OSS-CRS concepts
-│   └── FREE5GC_LAB.md       # The free5GC-adjacent lab and what it does/doesn't prove
+│   ├── REACHABILITY.md      # The reachability engine vs. a real free5GC CVE
+│   └── FREE5GC_LAB.md       # The free5GC-adjacent dynamic exploit lab
 │
 ├── ssrf_lab/
 │   ├── server.py            # Dual-mode Flask lab (vulnerable / patched)

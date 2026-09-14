@@ -47,9 +47,23 @@ cat reports\CVE-2026-6145.txt
 `cve_pipeline.py` holds the pydantic-ai Tool 1-4 registrations and CLI
 orchestration; `src/` holds extracted, self-contained modules (exploit
 templates, self-improvement, patch generation, rendering, Obsidian
-ingest, metrics). See `docs/CRS_MAPPING.md` for how these stages map onto
-DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts, and
-`docs/FREE5GC_LAB.md` for the free5GC-adjacent network-OSS lab.
+ingest, metrics, reachability). See `docs/CRS_MAPPING.md` for how these
+stages map onto DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts,
+`docs/REACHABILITY.md` for `src/reachability/` (ported from this FYP's
+earlier reachcrs prototype) against a real free5GC CVE, and
+`docs/FREE5GC_LAB.md` for the free5GC-adjacent dynamic exploit lab.
+
+## Project framing (read before writing anything FYP-facing)
+
+This project's original pitch ("fuzzing LLMs to secure OSS") has been
+deliberately dropped - confirmed OK with the professor - because nothing
+in this pipeline does actual fuzzing (coverage-guided mutation), and
+saying otherwise would be indefensible in a viva. The honest, current
+framing: **LLM-assisted exploit confirmation and patch validation for
+known CVEs** (the main `cve_pipeline.py` flow) **plus real reachability-
+filtered static analysis on real upstream source** (`src/reachability/`).
+Don't reintroduce "fuzzing" language into docs/reports/commit messages
+for this project without the user explicitly asking.
 
 ## AI Backend
 
