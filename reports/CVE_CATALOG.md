@@ -112,6 +112,40 @@ lessons store only ever grows by a run actually *confirming* a fix
 worked, never by assertion. This is a bounded, evidence-gated
 reflect-and-retry loop, not general self-improving AI.
 
+## Patch generation & validation (Stage 3.8)
+
+Stages 3.5-3.7 only ever produce a *confirmed vulnerability*, never a fix.
+Stage 3.8 (`src/pipeline/patch.py`, added this session) closes that: given a
+dynamically-confirmed exploit, it asks an LLM to patch the vulnerable
+handler, then trusts the result only if re-running the *original, unmodified*
+exploit against the patched target now fails while `/health` still passes -
+reusing Stage 3.6's own execution logic rather than a separate
+implementation, so the validation path is exactly as battle-tested as
+exploit confirmation itself.
+
+Same honesty discipline as Stage 3.7's LLM-revision path: this environment
+has no `claude` CLI or API key, so the real end-to-end run against all six
+catalog CVEs correctly shows `patch_attempted: false` on every one, with
+`patch_skip_reason: "no AI backend available..."` - see `reports/METRICS.md`
+(`python -m src.metrics`). What WAS demonstrated, via the same
+stub-then-real-plumbing-test discipline as Stage 3.7: `_llm_generate_patch`
+was exercised through a stubbed `_call_claude` against the real, currently-
+passing SQLi CVE (CVE-2026-42208) - it patched the raw f-string SQL query to
+a parameterized one, re-execution of the *original, unmodified* exploit
+against the patch returned exit code 1 (failed, as required), and
+`patch_validated` came back `True`. The patched file this produced is kept
+at `reports/CVE-2026-42208/target_app.iter1.v0.patched.py` as evidence. What
+was NOT demonstrated here: a live model generating that patch from scratch -
+same untested-in-this-environment caveat as Stage 3.7's LLM path.
+
+## free5GC (network-OSS target)
+
+See `docs/FREE5GC_LAB.md` for a real, disclosed, CVSS-8.7 free5GC UDR bug
+(CVE-2026-40246) reproduced in a minimal Go lab and dynamically demonstrated
+both exploited and patched - a genuine cross-language (Go, not Python) target
+outside the six CVEs in the table above, not wired into the generic Stage
+3.5 pipeline (see that doc for exactly why).
+
 ## Bugs this run surfaced and fixed (real, not staged)
 
 Running these six for real - not just unit-testing the mechanism in

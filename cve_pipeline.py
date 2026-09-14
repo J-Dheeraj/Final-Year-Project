@@ -219,6 +219,16 @@ class ExploitArtifacts(BaseModel):
     # order, so the report shows not just the final outcome but *how* it
     # got there (or didn't).
     refinement_history: list[dict] = Field(default_factory=list)
+    # Stage 3.8 - patch generation & validation. `patch_validated` is only
+    # ever True after the original exploit is re-run against the patched
+    # target and confirmed to now FAIL while /health still passes - never
+    # set from the LLM's own claim about its patch.
+    patch_attempted:      bool       = False
+    patch_skip_reason:    str        = ""
+    patched_target_path:  str        = ""
+    patch_summary:        str        = ""   # one-line description of the fix
+    patch_validated:      bool | None = None
+    patch_validation_log: str        = ""
 
 
 class PipelineReport(BaseModel):
@@ -239,6 +249,10 @@ class PipelineReport(BaseModel):
     summary:           str = ""
     recommendations:   list[str] = Field(default_factory=list)
     errors:            list[str] = Field(default_factory=list)
+    # Wall-clock seconds for the whole run (PipelineDeps.t_start was always
+    # tracked via elapsed() but never surfaced on the report until now -
+    # src/metrics.py reads this for its per-CVE timing numbers).
+    elapsed_s:         float = 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2226,6 +2240,9 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
 # ── Stage 3.7 self-improvement (moved to src/pipeline/self_improve.py) ──────
 from src.pipeline.self_improve import refine_and_reexecute  # noqa: F401
 
+# ── Stage 3.8 patch generation & validation (src/pipeline/patch.py) ─────────
+from src.pipeline.patch import generate_and_validate_patch  # noqa: F401
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool 4 — Report assembly
@@ -2316,6 +2333,7 @@ def compile_report(
         "summary":          summary,
         "recommendations":  recommendations,
         "errors":           deps.errors,
+        "elapsed_s":        deps.elapsed(),
     }
 
     log.info("[Stage 4] Report compiled — risk=%s  stages=%s", risk, deps.completed)
@@ -2473,6 +2491,21 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
             log.warning("[Stage 3.7] Error: %s", exc)
             deps.failed.append("3.7_refine")
 
+    # ── Stage 3.8: generate + validate a patch for a confirmed exploit ───────
+    if artifacts.dynamically_confirmed and not deps.skip_probe:
+        try:
+            root_cause  = advisory.get("root_cause") or advisory.get("raw_description") or ""
+            fix_summary = analysis.get("fix_summary") or ""
+            artifacts = generate_and_validate_patch(
+                artifacts, vuln_class, root_cause=root_cause, fix_summary=fix_summary,
+            )
+            deps.completed.append("3.8_patch")
+            if artifacts.patch_attempted:
+                log.info("[Stage 3.8] patch_validated=%s", artifacts.patch_validated)
+        except Exception as exc:
+            log.warning("[Stage 3.8] Error: %s", exc)
+            deps.failed.append("3.8_patch")
+
     # ── Stage 4: compile report ───────────────────────────────────────────────
     report_dict = compile_report(
         ctx,
@@ -2553,6 +2586,7 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
         summary          = report_dict.get("summary",          ""),
         recommendations  = report_dict.get("recommendations",  []),
         errors           = report_dict.get("errors",           deps.errors),
+        elapsed_s        = report_dict.get("elapsed_s",         deps.elapsed()),
     )
     # Auto-ingest into Obsidian vault (silent on failure)
     obsidian_ingest(_final_report.cve_id, _final_report)

@@ -154,6 +154,19 @@ def render_text(report: PipelineReport) -> str:
                 ]
             elif art.execution_skip_reason:
                 lines += ["", f"  Execution   : SKIPPED — {art.execution_skip_reason}"]
+
+            if art.patch_attempted:
+                lines += [
+                    "",
+                    f"  Patch (Stage 3.8)      : {art.patch_summary}",
+                    f"  Patched target         : {art.patched_target_path}",
+                    f"  Patch validated        : {art.patch_validated}",
+                ]
+                if not art.patch_validated:
+                    lines.append(f"    {art.patch_validation_log[:300]}")
+            elif art.patch_skip_reason:
+                lines += ["", f"  Patch (Stage 3.8)      : SKIPPED — {art.patch_skip_reason}"]
+
             from cve_pipeline import _extract_target_port  # lazy: avoid circular import
             port = _extract_target_port(Path(art.target_app_path)) if art.target_app_path else 5000
             lines += [
