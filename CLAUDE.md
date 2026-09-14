@@ -53,6 +53,16 @@ stages map onto DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts,
 earlier reachcrs prototype) against a real free5GC CVE, and
 `docs/FREE5GC_LAB.md` for the free5GC-adjacent dynamic exploit lab.
 
+## Git remotes — read before any push
+
+`origin` (github.com/J-Dheeraj/AI-exploit-CVE) is deliberately frozen at
+commit `88844d2` (the pre-refactor, video-included version) per the
+user's explicit instruction — do not push there. `fyp`
+(github.com/J-Dheeraj/Final-Year-Project) is the only remote that
+receives new commits: `git push fyp main:main`. Never `git push origin
+main`. This local checkout stays ahead of `origin` indefinitely — that's
+expected, not a problem to fix.
+
 ## Project framing (read before writing anything FYP-facing)
 
 This project's original pitch ("fuzzing LLMs to secure OSS") has been
