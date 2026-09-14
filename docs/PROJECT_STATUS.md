@@ -11,8 +11,16 @@ one's opening move is unambiguous.
   directly against the real `_classify_from_text`/`_classify_from_cwe`
   functions and real stored advisory data. Exit criterion met: 1/6
   class-level failure, 2/6 CWE-level mismatches, both real and
-  reproducible. Live-LLM wiring and the S1 litellm stratum (below) were
-  deliberately NOT attempted this session — still open.
+  reproducible. Refined further same day: split into 3 metrics
+  (class-match/exact-CWE-match/full-miss), cross-checked NVD's CWE
+  against GitHub's independent advisory database for all 6 CVEs (6/6
+  agree — real mitigation of the single-source circularity concern),
+  pre-registered scoring methodology for the future live-LLM session.
+  `origin` (AI-exploit-CVE) force-pushed back to `88844d2` at the user's
+  explicit request — frozen for conference use; all work from here on
+  goes to `fyp` (Final-Year-Project) only. Live-LLM wiring and the S1
+  litellm stratum (below) were deliberately NOT attempted this
+  session — still open.
 
 Living checklist. Update after every real work session — mark nothing
 done that isn't actually verified. Adapted from an external plan's
@@ -107,6 +115,16 @@ parallel system.
       One successful S1 result turns Limitation 1 from a blanket
       disclaimer into a disclosed stratum with one real data point — a
       genuine strengthening, reportable either way it turns out.
+- [ ] **(Optional, low priority) Family-tolerant CWE matching** in
+      `_classify_from_text()` — currently hardcodes one representative
+      CWE per class (e.g. always CWE-79 for any XSS keyword hit), which
+      is what causes the CVE-2026-46492 mismatch in
+      `docs/BENCHMARK_PROTOCOL.md` §7. Deliberately NOT fixed now —
+      patching the classifier after already running and reporting that
+      ablation would turn a measurement into a moving target. If pursued
+      later: accept any member of the real CWE family per class,
+      sourced from the official CWE site at implementation time, not
+      from memory.
 - [ ] `docs/BENCHMARK_PROTOCOL.md`'s freeze date — not yet set; catalog
       is still open to additions
 - [ ] Second, independent CVE class for the free5GC reachability work
