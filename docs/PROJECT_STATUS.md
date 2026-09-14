@@ -55,12 +55,46 @@ parallel system.
       fuzzing baselines adopted)
 - [x] `docs/DEFENSE_PREP.md` — Q&A built from actual walkthrough gaps
 
-## Phase 4 — Open, not started
+## Phase 4 — Open, not started (top two elevated to priority — see plans below)
 
+- [ ] **Wire in a live LLM.** Per an external review of this project:
+      the flagship worked example (`docs/CRS_MAPPING.md`,
+      `materials_for_glm.md`) has zero live model calls end to end —
+      fetch is an API call, classification is a lookup, generation was a
+      hardcoded template, execution is LLM-independent, and patch
+      generation was stubbed. That's a real gap for a project about
+      using LLMs to secure OSS, not just a caveat. Concrete plan:
+      1. Install Ollama; pull a small code model (`qwen2.5-coder:7b` or
+         similar) — CPU inference will be slow but workable for 6-8 CVEs.
+      2. Add a provider-agnostic adapter alongside the existing
+         `_call_claude()`/`_claude_available()` in `cve_pipeline.py`
+         (same call sites Stage 3.5/3.7/3.8 already use — no new
+         architecture, just a second real backend).
+      3. Record `generation_mode` (`live`/`template`), model ID, and
+         temperature in every report — this is what keeps the
+         provenance table in `docs/BENCHMARK_PROTOCOL.md` §4 honest
+         during and after the transition.
+      4. Re-run the catalog; at least one `llm-live` result closes the
+         gap. Report degraded/failed generations honestly, don't cherry-pick.
+- [ ] **S1 fidelity stratum — real litellm, not a reproduction, for one
+      CVE.** The single highest-value upgrade to Limitation 1
+      (`docs/SCOPE_AND_LIMITATIONS.md`). Concrete plan:
+      1. `pip install litellm==<the CVE-2026-42208 vulnerable version>`
+         in an isolated environment/container.
+      2. Stand up litellm's actual proxy server with the config needed
+         to reach the vulnerable database-backed API-key-check code path
+         (real setup — litellm's proxy needs a master key and a DB
+         backend configured; this is not a one-line run).
+      3. Craft and confirm a real HTTP exploit against the real server
+         (not `target_app.py`) — same dynamic-confirmation discipline as
+         the rest of Stage 3.6, pointed at real code.
+      4. Patch-validate against the real package if feasible, or state
+         plainly why not (e.g. no upstream patch to apply cleanly).
+      One successful S1 result turns Limitation 1 from a blanket
+      disclaimer into a disclosed stratum with one real data point — a
+      genuine strengthening, reportable either way it turns out.
 - [ ] `docs/BENCHMARK_PROTOCOL.md`'s freeze date — not yet set; catalog
       is still open to additions
-- [ ] Live-LLM verification of Stage 3.7/3.8's LLM paths (currently
-      stub-only in this environment — see `docs/BENCHMARK_PROTOCOL.md` §4)
 - [ ] Second, independent CVE class for the free5GC reachability work
       (currently one case, CVE-2026-40248)
 - [ ] Decision on whether to pursue full dynamic free5GC confirmation
