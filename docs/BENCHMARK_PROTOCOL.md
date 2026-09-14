@@ -79,6 +79,14 @@ omission to fill in later without discussion.
 - **SELF-IMPROVED**: `len(exploit_artifacts.refinement_history) > 0` —
   Stage 3.7 was invoked because the first attempt genuinely failed.
 
+**Pre-registered for the future live-LLM classification/generation
+session** (frozen here, before that session runs, so template-mode and
+live-mode results are scored on the same yardstick): classification
+results are scored on **both** class-level and exact-CWE-level match,
+reported as separate rows — never collapse to one "accuracy" number.
+This mirrors §7's 3-metric table below and must not be redefined once
+live results start coming in.
+
 ## 4. Provenance / contamination controls
 
 Every LLM-dependent result in this catalog must record which of these it
@@ -144,31 +152,85 @@ not estimated, not hand-simulated):
 | CVE-2026-54729 (dssrf) | SSRF / CWE-918 | SSRF / CWE-918 | Yes | Yes |
 | CVE-2026-46492 (md-fileserver) | XSS / CWE-80 | XSS / **CWE-79** | Yes | **No** |
 
-S2-ID (CVE ID only, no advisory content at all) was also run directly:
-`_classify_from_text("")` and `_classify_from_cwe([])` both return no
-classification for every entry — confirms the classifier has no
-memorization shortcut keyed on the ID string itself; it genuinely
-requires advisory content of some kind.
+**Three metrics, not one** — splitting "match" into class-level and
+exact-CWE-level pre-empts the obvious examiner question ("CWE-79 and
+CWE-80 are both XSS — is that really a failure?"):
 
-**Result: 1/6 class-level failures (CVE-2026-42208), 2/6 CWE-level
-mismatches** (CVE-2026-42208 total failure, plus CVE-2026-46492 — prose
-matching correctly identifies the class as XSS but hardcodes CWE-79,
-while the real advisory's structured field says CWE-80; both are real
-XSS-family CWEs, but the specific ID differs). This is stronger than the
-original n=1 framing in two ways: it confirms the finding isn't a fluke
-(5/6 prose-only classifications would have been fine) while also
-surfacing a second, subtler failure mode (correct class, wrong CWE
-subtype) that the n=1 version didn't show.
+| Metric | S2-PROSE | S2-FULL (structured CWE) |
+|---|---|---|
+| Class-level match | 5/6 | 6/6 |
+| Exact-CWE match | 4/6 | 6/6 |
+| Full miss (UNKNOWN) | 1/6 | 0/6 |
 
-**Framing for the report**: Stage 2's dependence on structured advisory
-data is real but narrow at this sample size — 1 of 6 catalog entries
-would have been misclassified entirely without it (CVE-2026-42208, whose
-NVD prose never uses the words "SQL" or "injection"), and a second entry
-would have had the right class but the wrong specific CWE. Consuming
-NVD's structured weakness field is not redundant with prose matching; it
-catches errors prose matching provably makes on this catalog. State the
-counts as counts (1/6, 2/6) — not as a general claim about advisory text
-quality, which this sample is too small to support.
+At the class level, prose matching is mostly fine (5/6). The real
+failure mode is narrower and sharper: **a hardcoded family→representative
+CWE mapping can't reproduce an analyst-assigned subtype** — prose
+matching always returns CWE-79 for any "cross-site scripting" hit,
+regardless of which XSS-family CWE actually applies. That's the
+generalizable claim, not "keyword matching is unreliable."
+
+**S2-ID** (CVE ID only, no advisory content at all — the functions
+received nothing but the identifier, with no advisory fields populated)
+was also run directly: `_classify_from_text("")` and
+`_classify_from_cwe([])` both return no classification for every entry.
+Precise claim: this rules out **identifier-based special-casing** in
+either classifier (no hardcoded `CVE-2026-42208 -> CWE-89` shortcut
+exists in the code) — it does not, and cannot, speak to model
+memorization, since neither classifier is a model. S2-ID becomes
+informative for memorization only once a live LLM is wired in
+(`docs/PROJECT_STATUS.md`).
+
+**Validity caveat — circularity, and a real mitigation for it**: the
+ground-truth CWE used above is NVD's own structured field, so on its own
+this ablation only supports "structured beats prose within NVD's data,"
+not "NVD's CWE assignments are correct." Partial, real mitigation run
+2026-09-15: cross-checked GitHub's independent advisory database
+(`api.github.com/advisories?cve_id=<ID>`, unauthenticated REST, no
+GITHUB_TOKEN needed) against NVD's CWE for all 6 entries:
+
+| CVE | NVD CWE | GHSA CWE(s) |
+|---|---|---|
+| CVE-2026-42208 | CWE-89 | CWE-89 |
+| CVE-2026-27602 | CWE-78 | CWE-78 |
+| CVE-2026-23949 | CWE-22 | CWE-22 |
+| CVE-2026-78683 | CWE-502 | CWE-502 |
+| CVE-2026-54729 | CWE-918 | CWE-918 |
+| CVE-2026-46492 | CWE-80 | CWE-80, CWE-87 |
+
+Two independent sources (NVD's analysts, GitHub Security Lab's reviewers)
+agree on every entry — CVE-2026-46492 is the one case where GHSA lists
+an *additional* CWE (CWE-87) alongside the matching CWE-80, not a
+disagreement. This meaningfully narrows the circularity concern: prose
+classification's failure isn't an artifact of trusting one source's
+idiosyncratic labeling, since a second, independently-maintained source
+assigns the same CWE prose classification misses.
+
+**Downstream consequence of each failure mode**, so the finding is
+concrete rather than academic: an UNKNOWN class-level miss cascades into
+wrong probe selection in Stage 3 and the generic/`NotImplementedError`
+template in Stage 3.5 (both are keyed on `vuln_class`); a wrong-CWE-
+subtype miss does not cascade the same way — template selection is
+class-keyed, not CWE-keyed, so the generated exploit is unaffected, only
+the recorded `analysis.cwe` report field is wrong.
+
+**Result and framing for the report**: 1/6 class-level failures, 2/6
+exact-CWE mismatches, n=6 — report as counts, not a generalization the
+sample can't support. The mechanism worth one sentence in the report:
+NVD's structured field encodes an analyst's subtype judgment that a
+regex can only re-derive as accurately as someone hand-encoded its
+family→representative mapping; this ablation is evidence that the
+pipeline's existing precedence rule (prefer structured CWE over prose,
+`_classify_from_cwe()` before `_classify_from_text()`) was the right
+design call, not just an arbitrary implementation choice.
+
+**Deliberately not fixed**: the CWE-79 hardcode that causes the
+CVE-2026-46492 mismatch is left as-is. Patching the classifier after
+already running and reporting this ablation would turn a measurement
+into a moving target. If pursued later, the fix is family-tolerant CWE
+matching (accept any member of a CWE family, e.g. the real XSS family
+around CWE-79 for that class) — logged as an optional future item in
+`docs/PROJECT_STATUS.md`, pulling the actual child CWE sets from the
+official CWE site at write-up time rather than from memory.
 
 ## Change Log
 
