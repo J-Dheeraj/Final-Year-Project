@@ -1,5 +1,16 @@
 # How this pipeline maps onto AIxCC / OSS-CRS concepts
 
+**Framing note**: this project's original pitch ("fuzzing LLMs to secure
+OSS") has been deliberately dropped, confirmed OK with the professor.
+Nothing in this repo does actual fuzzing (coverage-guided input mutation),
+and claiming otherwise wouldn't survive a viva question. The honest,
+current framing is two complementary pieces: **LLM-assisted exploit
+confirmation and patch validation for known CVEs** (`cve_pipeline.py`,
+the bulk of this document) plus **real reachability-filtered static
+analysis on real upstream source** (`src/reachability/`, see
+`docs/REACHABILITY.md`) — ported from this FYP's own earlier prototype,
+reachcrs, rather than invented from scratch.
+
 This project is a CVE-driven exploit-generation-and-validation pipeline, not a
 full DARPA AIxCC-style cyber reasoning system (CRS) — it never discovers an
 *unknown* bug; every run starts from an already-published CVE/GHSA ID. But its
@@ -38,6 +49,7 @@ collapse onto that same three-phase shape:
 | PoV (proof of vulnerability) | `dynamically_confirmed` + `execution_log` on `ExploitArtifacts` | Real — a genuine subprocess exit code from a genuine HTTP exchange or compiled-harness run, not a static claim. This is the pipeline's strongest CRS-alignment point. |
 | Patch generation + `apply-patch-build`/`run-pov`/`run-test` validation | Stage 3.8 (`src/pipeline/patch.py`, added this session) | Partial/new — see "Patch generation" below. |
 | Multi-agent orchestration (Fuzzing Brain, Bug Buster) | Single sequential pipeline, one CVE at a time | Absent. `cve_watcher.py` parallelizes *across* CVEs (2 workers by default) but each CVE's own pipeline run is strictly sequential, not a team of cooperating agents. |
+| Reachability-filtered analysis scope (reduce what an LLM must look at) | `src/reachability/` (ported from reachcrs) | Real — AST-based call graph + BFS from entry points, 96.1% reduction (102 -> 4 functions) on a real free5GC source file, not a regex heuristic. See `docs/REACHABILITY.md`. |
 
 ## What's genuinely real (evidence, not description)
 
@@ -53,16 +65,28 @@ collapse onto that same three-phase shape:
 
 ## What's not real (the honest gap vs. a CRS)
 
-- **No discovery.** Every run starts from a CVE ID a human or feed already
-  knows about. A real CRS's hardest job — finding an *unknown* bug in an
-  unmodified upstream project via fuzzing/static analysis — doesn't exist
-  here at all.
-- **Targets are stand-ins, not upstream code.** `target_app.py` is a minimal
-  Flask app that *reproduces the vulnerability pattern* described in the
-  advisory; it is not the actual upstream project (litellm, modoboa,
-  jaraco.context, nltk, dssrf, md-fileserver) compiled and run. This is
-  the main reason `build-target` in the table above is marked "biggest gap."
-- **No fuzzing engine.** Nothing here does coverage-guided mutation.
+- **No discovery in the main CVE pipeline.** Every `cve_pipeline.py` run
+  still starts from a CVE ID a human or feed already knows about. This is
+  now *partially* offset, not closed, by `src/reachability/`: it does
+  real static reachability analysis on real upstream source (see
+  `docs/REACHABILITY.md`) — narrowing "what to look at" is a real,
+  separate capability a CRS needs, distinct from but adjacent to full
+  discovery. It still starts from a human-chosen entry point list, not
+  from nothing.
+- **Targets are stand-ins, not upstream code — except for the
+  reachability module's free5GC case.** `target_app.py` (main pipeline)
+  is still a minimal Flask app that *reproduces the vulnerability
+  pattern*, not the actual upstream project compiled and run. But
+  `src/reachability/` now genuinely operates on real upstream source
+  (free5GC/udr, fetched verbatim, both parsed and — separately —
+  compile-verified against a live clone of the real module) for one case.
+  The six main-pipeline CVEs (litellm, modoboa, jaraco.context, nltk,
+  dssrf, md-fileserver) are still stand-ins; this gap is closed for one
+  case, not generalized.
+- **No fuzzing engine, and this project no longer claims to need one** —
+  see the framing note at the top of this document. Nothing here does
+  coverage-guided mutation, and that's now a deliberate scope decision,
+  not an unstated gap.
 
 ## Patch generation (Stage 3.8)
 
@@ -96,11 +120,21 @@ session added, and an honest account of what it does and doesn't prove.
 
 ## Bottom line for the FYP framing
 
-This is fairly and accurately described as **a lightweight, single-CVE-at-a-
-time CRS component** — specifically the "confirm and patch a known bug"
-back-half of a real CRS's loop — rather than a CRS in the AIxCC/OSS-CRS sense,
-which is fundamentally a *discovery* system. That's not a weakness to hide;
-it's the actual, defensible scope of what a one-person FYP can build and
-verify in the time available, and it's exactly the framing OSS-CRS itself
-uses when it talks about "liberating" CRS *components* for reuse rather than
-requiring every user to reimplement discovery from scratch.
+This is fairly and accurately described as **two complementary CRS
+components**, not a full CRS in the AIxCC/OSS-CRS sense (which is
+fundamentally a *discovery* system):
+
+1. The "confirm and patch a known bug" back-half of a real CRS's loop
+   (`cve_pipeline.py`) — single-CVE-at-a-time, evidence-gated exploit
+   confirmation and patch validation.
+2. A real, AST-based "narrow what to look at" front-half capability
+   (`src/reachability/`) — reachability filtering on real upstream source,
+   proven against a real, disclosed free5GC CVE with real compile
+   verification against the actual project's dependency graph.
+
+That's not a weakness to hide; it's the actual, defensible scope of what
+a one-person FYP can build and verify in the time available, and it's
+exactly the framing OSS-CRS itself uses when it talks about "liberating"
+CRS *components* for reuse rather than requiring every user to
+reimplement a whole CRS from scratch. It is also, deliberately, no longer
+described as "fuzzing" — see the framing note at the top of this document.
