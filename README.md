@@ -19,6 +19,10 @@ covers the dynamic exploit lab for a related free5GC CVE.
 [`docs/SCOPE_AND_LIMITATIONS.md`](docs/SCOPE_AND_LIMITATIONS.md) is a
 report-ready statement of exactly what each result does and doesn't prove
 — read it before writing any claim in the FYP report.
+[`docs/BENCHMARK_PROTOCOL.md`](docs/BENCHMARK_PROTOCOL.md) freezes the
+CVE catalog and defines every metric precisely; [`docs/DEFENSE_PREP.md`](docs/DEFENSE_PREP.md)
+is viva Q&A built from an actual walkthrough of this codebase; [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)
+is the living done/open checklist.
 
 ---
 
