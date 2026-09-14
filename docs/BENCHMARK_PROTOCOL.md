@@ -115,6 +115,43 @@ this development machine, not a pipeline defect (`reports/CVE_CATALOG.md`).
 A benchmark table that quietly drops the one failure is not a benchmark,
 it's a highlight reel.
 
+## 7. Classification ablation (S2, LLM-independent — already run)
+
+Stage 2 (`analyze_vulnerability`) has a genuine, already-demonstrated
+dependence on advisory structure, distinct from the generation-stage
+ablation in §3-4 (which is not currently testable without a live LLM —
+see §4). This one requires no new infrastructure: it's a property of
+`_classify_from_cwe()` vs `_classify_from_text()`, both deterministic.
+
+**Conditions**: S2-FULL (prose + structured CWE + CVSS + references),
+S2-PROSE (prose description only), S2-ID (CVE ID only — measures whether
+a classifier could succeed on memorization/lookup alone, with no
+advisory content at all). Metric: classification accuracy against
+ground-truth CWE/class, over the 6-entry main catalog. n=6 — report
+counts, not a generalization claim.
+
+**Existing data point**: `CVE-2026-42208` (litellm, SQL injection).
+NVD's `raw_description` never contains the tokens "SQL" or "injection" —
+it describes the bug mechanically ("mixed the caller-supplied key value
+into the query text instead of passing it as a separate parameter").
+S2-PROSE (keyword/text classification alone) fails on this record;
+S2-FULL succeeds only because `_classify_from_cwe()` reads NVD's
+structured `weaknesses` field (`CWE-89`) instead of relying on prose.
+This was found and fixed as a real pipeline bug earlier in this
+project's history (`reports/CVE_CATALOG.md`), not constructed after the
+fact for this ablation.
+
+**Framing for the report**: Stage 2's dependence on structured advisory
+data is not incidental. For at least one catalog record, prose-only
+classification fails and structured-CWE lookup succeeds — pipelines that
+classify from description text alone will systematically miss such
+records. Consuming NVD's structured weakness field is load-bearing, not
+redundant. This is a stated finding with n=1 concrete evidence, not a
+generalized claim across the whole catalog — the other five entries
+weren't independently re-tested under S2-PROSE/S2-ID conditions; doing so
+for all six (a few minutes of deterministic reruns, no LLM needed) would
+strengthen this into a proper 6-row table before it goes in the report.
+
 ## Change Log
 
 - **[freeze pending — set the date here when you stop adding entries]**
