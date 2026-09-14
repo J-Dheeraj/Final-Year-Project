@@ -16,6 +16,9 @@ what's honestly still a gap. [`docs/REACHABILITY.md`](docs/REACHABILITY.md)
 covers the reachability engine (ported from this FYP's earlier reachcrs
 prototype) against a real free5GC CVE; [`docs/FREE5GC_LAB.md`](docs/FREE5GC_LAB.md)
 covers the dynamic exploit lab for a related free5GC CVE.
+[`docs/SCOPE_AND_LIMITATIONS.md`](docs/SCOPE_AND_LIMITATIONS.md) is a
+report-ready statement of exactly what each result does and doesn't prove
+— read it before writing any claim in the FYP report.
 
 ---
 
