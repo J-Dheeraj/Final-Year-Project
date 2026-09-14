@@ -197,13 +197,55 @@ GITHUB_TOKEN needed) against NVD's CWE for all 6 entries:
 | CVE-2026-54729 | CWE-918 | CWE-918 |
 | CVE-2026-46492 | CWE-80 | CWE-80, CWE-87 |
 
-Two independent sources (NVD's analysts, GitHub Security Lab's reviewers)
-agree on every entry — CVE-2026-46492 is the one case where GHSA lists
-an *additional* CWE (CWE-87) alongside the matching CWE-80, not a
-disagreement. This meaningfully narrows the circularity concern: prose
-classification's failure isn't an artifact of trusting one source's
-idiosyncratic labeling, since a second, independently-maintained source
-assigns the same CWE prose classification misses.
+CVE-2026-46492 is the one case where GHSA lists an *additional* CWE
+(CWE-87) alongside the matching CWE-80, not a disagreement.
+
+**This result supports a narrower claim than "cross-check mitigates
+circularity" — state it precisely, at two levels:**
+
+- **Pipeline-level (supported)**: the structured CWE signal is
+  consistent across the two databases the ingestion stage can consult.
+  The prose-vs-structured gap is not an artifact of one database's
+  annotation idiosyncrasies — the pipeline gets the same signal
+  regardless of source.
+- **Epistemic-level (not established)**: agreement is *not* independent
+  replication of the underlying vulnerability analysis. GitHub operates
+  as a CNA, and advisories are routinely shared or ingested between
+  databases — for CNA-authored records, NVD-GHSA agreement may hold
+  partly *by construction*, not by two analysts independently arriving
+  at the same conclusion. "NVD's assignments are correct" stays outside
+  this study's scope, exactly as before the cross-check.
+
+Report-ready sentence for the report's own methodology/limitations
+section:
+
+> Ground truth was taken from NVD's structured field; a cross-check
+> against GitHub Security Advisories found CWE agreement for all six
+> records (one record lists an additional CWE alongside NVD's),
+> indicating the structured signal is consistent across both databases
+> the ingestion stage consults. Because advisories are commonly shared
+> or ingested between databases, agreement does not constitute
+> independent replication of the underlying analysis, and the
+> correctness of NVD's assignments remains outside this study's scope.
+
+**Method provenance**, recorded so "why two different GitHub APIs?"
+isn't a surprise at examination: the pipeline's own GHSA resolution
+(`_resolve_ghsa_from_cve()`) uses GitHub's GraphQL API, which requires a
+`GITHUB_TOKEN` this environment doesn't have configured — confirmed by
+that path returning `null` for every catalog entry's `ghsa_id`. The
+cross-check above used GitHub's separate REST `/advisories` endpoint
+directly, which works unauthenticated for public records; it is not the
+pipeline's own code path, run ad hoc for this analysis only.
+
+**Multi-CWE scoring — pre-registered now, before the live-LLM session**:
+CVE-2026-46492's GHSA record shows ground truth can be set-valued. The
+frozen scoring rule: NVD's single CWE value remains the scoring ground
+truth for exact-CWE match (nothing in the current catalog requires
+set-valued scoring, and it was already frozen before this was noticed);
+GHSA agreement is reported as a validity check, never used for scoring.
+Contingency, pre-committed in case a future catalog entry's ground truth
+is genuinely set-valued: exact match := prediction is a member of the
+truth set, not equality against a single value.
 
 **Downstream consequence of each failure mode**, so the finding is
 concrete rather than academic: an UNKNOWN class-level miss cascades into
