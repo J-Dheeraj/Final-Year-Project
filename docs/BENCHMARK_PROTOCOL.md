@@ -130,27 +130,45 @@ advisory content at all). Metric: classification accuracy against
 ground-truth CWE/class, over the 6-entry main catalog. n=6 — report
 counts, not a generalization claim.
 
-**Existing data point**: `CVE-2026-42208` (litellm, SQL injection).
-NVD's `raw_description` never contains the tokens "SQL" or "injection" —
-it describes the bug mechanically ("mixed the caller-supplied key value
-into the query text instead of passing it as a separate parameter").
-S2-PROSE (keyword/text classification alone) fails on this record;
-S2-FULL succeeds only because `_classify_from_cwe()` reads NVD's
-structured `weaknesses` field (`CWE-89`) instead of relying on prose.
-This was found and fixed as a real pipeline bug earlier in this
-project's history (`reports/CVE_CATALOG.md`), not constructed after the
-fact for this ablation.
+**Full 6-CVE result** (2026-09-15, run by calling `_classify_from_text()`
+directly against each CVE's stored `advisory.raw_description`, and
+`_classify_from_cwe()` against the ground-truth CWE already on record —
+not estimated, not hand-simulated):
+
+| CVE | Ground truth (S2-FULL) | S2-PROSE result | Class match | CWE match |
+|---|---|---|---|---|
+| CVE-2026-42208 (litellm) | SQL Injection / CWE-89 | **UNKNOWN / N/A** | **No** | **No** |
+| CVE-2026-27602 (modoboa) | OS Command Injection / CWE-78 | OS Command Injection / CWE-78 | Yes | Yes |
+| CVE-2026-23949 (jaraco.context) | Path Traversal / CWE-22 | Path Traversal / CWE-22 | Yes | Yes |
+| CVE-2026-78683 (nltk) | Insecure Deserialization / CWE-502 | Insecure Deserialization / CWE-502 | Yes | Yes |
+| CVE-2026-54729 (dssrf) | SSRF / CWE-918 | SSRF / CWE-918 | Yes | Yes |
+| CVE-2026-46492 (md-fileserver) | XSS / CWE-80 | XSS / **CWE-79** | Yes | **No** |
+
+S2-ID (CVE ID only, no advisory content at all) was also run directly:
+`_classify_from_text("")` and `_classify_from_cwe([])` both return no
+classification for every entry — confirms the classifier has no
+memorization shortcut keyed on the ID string itself; it genuinely
+requires advisory content of some kind.
+
+**Result: 1/6 class-level failures (CVE-2026-42208), 2/6 CWE-level
+mismatches** (CVE-2026-42208 total failure, plus CVE-2026-46492 — prose
+matching correctly identifies the class as XSS but hardcodes CWE-79,
+while the real advisory's structured field says CWE-80; both are real
+XSS-family CWEs, but the specific ID differs). This is stronger than the
+original n=1 framing in two ways: it confirms the finding isn't a fluke
+(5/6 prose-only classifications would have been fine) while also
+surfacing a second, subtler failure mode (correct class, wrong CWE
+subtype) that the n=1 version didn't show.
 
 **Framing for the report**: Stage 2's dependence on structured advisory
-data is not incidental. For at least one catalog record, prose-only
-classification fails and structured-CWE lookup succeeds — pipelines that
-classify from description text alone will systematically miss such
-records. Consuming NVD's structured weakness field is load-bearing, not
-redundant. This is a stated finding with n=1 concrete evidence, not a
-generalized claim across the whole catalog — the other five entries
-weren't independently re-tested under S2-PROSE/S2-ID conditions; doing so
-for all six (a few minutes of deterministic reruns, no LLM needed) would
-strengthen this into a proper 6-row table before it goes in the report.
+data is real but narrow at this sample size — 1 of 6 catalog entries
+would have been misclassified entirely without it (CVE-2026-42208, whose
+NVD prose never uses the words "SQL" or "injection"), and a second entry
+would have had the right class but the wrong specific CWE. Consuming
+NVD's structured weakness field is not redundant with prose matching; it
+catches errors prose matching provably makes on this catalog. State the
+counts as counts (1/6, 2/6) — not as a general claim about advisory text
+quality, which this sample is too small to support.
 
 ## Change Log
 
