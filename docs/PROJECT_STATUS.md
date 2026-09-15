@@ -98,6 +98,17 @@ parallel system.
          during and after the transition.
       4. Re-run the catalog; at least one `llm-live` result closes the
          gap. Report degraded/failed generations honestly, don't cherry-pick.
+      5. **Before step 4**: fix the silent-fallback path in
+         `generate_exploit_artifacts()` (`if not poc_code or not
+         target_code: <template>` currently swallows a failed live
+         attempt with no distinct signal) — a parse failure must record
+         as a failed `llm-live` attempt, never silently relabel as
+         `template`. See `docs/BENCHMARK_PROTOCOL.md` §4's pre-registered
+         failure-handling rule.
+      6. Pre-write and version-pin the exact prompts for each advisory
+         condition (full/description-only/ID-only) before running any of
+         them live, so conditions differ only in advisory content, not
+         in prompt wording tuned mid-session.
 - [ ] **S1 fidelity stratum — real litellm, not a reproduction, for one
       CVE.** The single highest-value upgrade to Limitation 1
       (`docs/SCOPE_AND_LIMITATIONS.md`). Concrete plan:
