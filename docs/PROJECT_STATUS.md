@@ -125,6 +125,11 @@ parallel system.
       later: accept any member of the real CWE family per class,
       sourced from the official CWE site at implementation time, not
       from memory.
+- [ ] **LICENSE for this repo** — no LICENSE file exists yet. Explicitly
+      deferred: check the university's IP policy for FYP work before
+      publishing any license (some institutions claim rights over FYP
+      code or restrict public licensing until after grading). Do not add
+      a LICENSE file speculatively.
 - [ ] `docs/BENCHMARK_PROTOCOL.md`'s freeze date — not yet set; catalog
       is still open to additions
 - [ ] Second, independent CVE class for the free5GC reachability work
