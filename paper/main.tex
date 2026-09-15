@@ -97,11 +97,21 @@ than omit.
 
 \section{Background}
 
-\textbf{free5GC} is an open-source implementation of the 5G core
-network under the Linux Foundation, targeting 3GPP Release 15 and
-later~\cite{free5gc}. Its UDR component exposes the Nudr\_DataRepository
-service-based interface used by other network functions to read and
-write subscriber and policy data.
+\textbf{free5GC} is an open-source, Apache-2.0-licensed implementation
+of the 5G core network, built around a Service-Based Architecture
+(SBA) in which each network function is an independently versioned
+component communicating over defined service-based interfaces. Its
+goal is to implement the 5GC defined in 3GPP Release 15 and
+beyond~\cite{free5gc}, and it has been a Linux Foundation project since
+September 2024, governed by a Technical Steering Committee with major
+contributions from National Yang Ming Chiao Tung University. The UDR
+(Unified Data Repository) network function exposes the
+Nudr\_DataRepository service-based interface -- reflected in its
+source layout under \texttt{internal/sbi/} -- used by other network
+functions to read and write subscriber and policy data. Because SBA
+components are independently versioned, the vulnerability described
+below is scoped to the UDR module's own release history, not to a
+free5GC project-wide version number.
 
 \textbf{CVE-2026-40248} (GHSA-jgq2-qv8v-5cmj, CVSS 3.1 base score 7.5,
 CWE-285 Improper Authorization) affects free5GC/udr versions $\leq$
