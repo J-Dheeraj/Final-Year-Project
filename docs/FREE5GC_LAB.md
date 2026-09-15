@@ -8,7 +8,7 @@ this session — honestly scoped, not oversold.
 
 [CVE-2026-40246](https://advisories.gitlab.com/pkg/golang/github.com/free5gc/udr/CVE-2026-40246)
 / [GHSA-g9cw-qwhf-24jp](https://osv.dev/vulnerability/GHSA-g9cw-qwhf-24jp),
-CVSS 8.7, affects free5GC's UDR (Unified Data Repository) service, versions
+CVSS 7.5, affects free5GC's UDR (Unified Data Repository) service, versions
 ≤ 1.4.2. The `DeleteInfluenceSubscription` handler checks whether the
 `influenceId` path segment equals the literal string `"subs-to-notify"` and
 writes an HTTP 404 when it doesn't — but never `return`s after writing that
@@ -20,7 +20,7 @@ Found either way — the kind of bug that's specifically hard to notice in
 logs, since the response looks like a harmless "not found" in both the
 attack and the innocent case.
 
-This is a real, disclosed, CVSS-8.7 bug in a real 5G core network OSS
+This is a real, disclosed, CVSS-7.5 bug in a real 5G core network OSS
 project, not a synthetic example invented for this FYP.
 
 ## What was built (`free5gc_lab/`)
