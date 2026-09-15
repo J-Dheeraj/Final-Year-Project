@@ -87,6 +87,34 @@ reported as separate rows — never collapse to one "accuracy" number.
 This mirrors §7's 3-metric table below and must not be redefined once
 live results start coming in.
 
+**Pre-registered for the live-LLM session itself** (not just the metrics
+it will produce):
+
+- **Exit criterion**: the session succeeds if at least one CVE completes
+  the full chain live-generated PoC -> dynamically confirmed ->
+  patch_validated. Not "all six work" — one real, complete, `llm-live`
+  result is the bar.
+- **Failure handling — a real risk, confirmed in the current code, not
+  hypothetical**: `generate_exploit_artifacts()` currently does
+  `if not poc_code or not target_code: <fall back to template>` whenever
+  a live call returns unparseable output — with no distinct signal that
+  a live attempt was made and failed. Once a live adapter exists, this
+  exact branch would silently relabel a failed `llm-live` attempt as
+  `template`, corrupting the provenance table. Rule: **template fallback
+  is not allowed to happen silently during the live-LLM session.** A
+  parse failure must be recorded as an `llm-live` attempt that failed,
+  not quietly downgraded to `template` — this needs an actual code
+  change (a distinct failure state) before the session runs, not just a
+  protocol note.
+- **Refinement, not fallback, for execution failures**: a live-generated
+  PoC that compiles/parses but fails execution goes through the existing
+  `refine_and_reexecute` (Stage 3.7) path as normal; only a failure that
+  survives `max_iterations` counts as a failure for this exit criterion.
+- **Adapter integration failure is a result, not a blocker**: if the
+  Ollama/provider adapter itself fails to integrate, the session ends and
+  that failure is reported plainly — not worked around by improvising a
+  different backend mid-session.
+
 ## 4. Provenance / contamination controls
 
 Every LLM-dependent result in this catalog must record which of these it
