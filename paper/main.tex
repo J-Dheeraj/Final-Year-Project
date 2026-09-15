@@ -11,7 +11,7 @@
 %% own site) before this draft was finalized -- re-check the DOIs/URLs
 %% still resolve at submission time, since that's cheap insurance.
 
-\settopmatter{printacmref=false}
+\settopmatter{printacmref=true}
 \renewcommand\footnotetextcopyrightpermission[1]{}
 \acmConference[free5GC World Forum '26]{2nd free5GC World Forum, In-Cooperation with ACM SIGSAC}{December 17--18, 2026}{}
 
@@ -52,6 +52,10 @@ against the live network function would require.
 \keywords{5G core network security, vulnerability triage, reachability analysis, program repair, free5GC}
 
 \maketitle
+%% Narrow ACM two-column width overflows on a few long inline \texttt{}
+%% tokens (package/URL/file names) otherwise -- confirmed by a real
+%% compile (4 overfull \hbox warnings), not applied speculatively.
+\sloppy
 
 \section{Introduction}
 
@@ -170,7 +174,7 @@ packages -- rather than a synthetic stand-in.
 \section{Evaluation}
 
 \textbf{Reachability.} Parsing
-\texttt{internal/sbi/api\_datarepository.go} (a real, $\sim$86KB source
+\texttt{internal/sbi/\allowbreak api\_datarepository.go} (a real, $\sim$86KB source
 file) yields 102 top-level functions. Breadth-first traversal from the
 four real UDR entry points reaches exactly 4 of them -- a 96.1\%
 reduction in the functions a subsequent triage step must consider.
