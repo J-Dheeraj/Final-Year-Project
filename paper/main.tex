@@ -1,0 +1,265 @@
+\documentclass[sigconf]{acmart}
+
+%% NOTE TO AUTHOR: this draft targets the 2nd free5GC World Forum
+%% (In-Cooperation with ACM SIGSAC), short-paper track (4 pages,
+%% submission and camera-ready). Submissions are NOT double-blind, so
+%% author/affiliation fields below should be filled in with real values
+%% before compiling for submission. See paper/NOTES.md for a section-
+%% by-section provenance list and a citation-verification checklist --
+%% every reference below must be independently re-checked before
+%% submission; none should be trusted from this draft alone.
+
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\acmConference[free5GC World Forum '26]{2nd free5GC World Forum, In-Cooperation with ACM SIGSAC}{December 17--18, 2026}{}
+
+\begin{document}
+
+\title{Reachability-Guided Triage and Upstream-Verified Patching for a Real free5GC Vulnerability}
+
+%% TODO: replace with real name/affiliation/email before submission.
+\author{[Author Name]}
+\affiliation{%
+  \institution{[University / Department]}
+  \country{[Country]}
+}
+\email{[email@institution.edu]}
+
+\begin{abstract}
+Automated vulnerability analysis tools are frequently evaluated against
+synthetic reproductions of security bugs rather than the real upstream
+codebases those bugs were disclosed in, which limits confidence that
+results transfer to practice. We present a case study applying
+AST-based reachability filtering and rule-based patch generation to a
+real, disclosed vulnerability (CVE-2026-40248, CWE-285) in free5GC's
+Unified Data Repository (UDR), a component of a real, standards-compliant
+open-source 5G core network. Reachability analysis over the real
+$\sim$86KB source file reduces 102 parsed functions to the 4 that are
+actually reachable from the vulnerable HTTP entry points, a 96.1\%
+reduction in analysis scope. We generate a targeted patch for each
+reachable finding and, going beyond isolated-file compilation, verify
+the patch against a live clone of the actual \texttt{free5gc/udr}
+repository: applying all four generated patches preserves a clean build
+against the project's real dependency graph. We report this result
+alongside its honest limits -- compile verification is not runtime
+confirmation, and one of the four findings is only partially corrected
+by the rule-based patcher -- and discuss what further verification
+against the live network function would require.
+\end{abstract}
+
+\keywords{5G core network security, vulnerability triage, reachability analysis, program repair, free5GC}
+
+\maketitle
+
+\section{Introduction}
+
+Open-source 5G core network software is increasingly deployed in
+research testbeds, private networks, and production trials, yet
+security tooling aimed at such codebases is commonly validated against
+small synthetic examples rather than the real projects it is meant to
+help secure. This gap matters specifically for 5G/6G infrastructure:
+network functions such as free5GC's Unified Data Repository (UDR) are
+large, real-world Go codebases with external dependencies (HTTP
+routing, database drivers, and the project's own internal packages),
+and a technique that only ever compiles against an isolated copy of one
+file has not demonstrated it survives contact with the actual build.
+
+This paper presents a small, fully reproducible case study that closes
+part of that gap for one real, disclosed free5GC vulnerability. We
+combine two components: (1) reachability-filtered static
+analysis~\cite{openant}, which narrows a large codebase down to the
+functions an attacker can actually reach before any deeper analysis is
+spent on it, and (2) automated patch generation, verified not against a
+scratch copy of a single file but against a live clone of the actual
+upstream repository, confirming the patch compiles against the
+project's real dependency graph. To our knowledge this upstream-clone
+verification step is not standard practice in prior reachability-based
+triage work, which typically stops at scratch, single-file compilation
+checks.
+
+Our contributions are: (i) a reachability-filtered triage of a real
+free5GC source file against a real, disclosed CVE, with a 96.1\%
+reduction in the functions requiring further analysis; (ii)
+automatically generated patches for all four reachable findings,
+verified to preserve a clean build of the real, live-cloned upstream
+project; and (iii) an honest accounting of what this does and does not
+establish, including a partially-corrected finding we report rather
+than omit.
+
+\section{Background}
+
+\textbf{free5GC} is an open-source implementation of the 5G core
+network under the Linux Foundation, targeting 3GPP Release 15 and
+later~\cite{free5gc}. Its UDR component exposes the Nudr\_DataRepository
+service-based interface used by other network functions to read and
+write subscriber and policy data.
+
+\textbf{CVE-2026-40248} (GHSA-jgq2-qv8v-5cmj, CVSS 3.1 base score 7.5,
+CWE-285 Improper Authorization) affects free5GC/udr versions $\leq$
+1.4.2. The handler responsible for creating or updating a Traffic
+Influence Subscription checks whether the \texttt{influenceId} path
+segment equals the literal string \texttt{"subs-to-notify"} and writes
+an HTTP 404 response when it does not -- but the function does not
+\texttt{return} after writing that response, so execution falls through
+and the subscription is created or overwritten regardless of the
+check's outcome. An unauthenticated attacker on the 5G Service Based
+Interface can therefore create or overwrite arbitrary Traffic Influence
+Subscriptions, including attacker-controlled callback URIs, while the
+API misleadingly reports 404 Not Found in both the legitimate and the
+attack case. A sibling vulnerability in the same file and commit
+family, CVE-2026-40246 (GHSA-g9cw-qwhf-24jp, also CWE-285, CVSS 7.5),
+shows the identical missing-\texttt{return} pattern in the handler that
+deletes a subscription. The real fix for this vulnerability family
+(commit \texttt{8668627}\footnote{Full hash:
+\texttt{86686276a7e226183ee786e3dd6714ec56c78fda}} on
+\texttt{github.com/free5gc/udr}) inserts the missing \texttt{return}
+statement across four affected handlers in
+\texttt{internal/sbi/api\_datarepository.go}.
+
+\section{Approach}
+
+\subsection{Reachability filtering}
+
+We parse the target source with \texttt{tree-sitter}, a real
+grammar-based parser rather than a regex or brace-counting heuristic,
+build a call graph over all top-level function and method
+definitions, and perform a breadth-first traversal from a stated list
+of entry points -- here, the four real free5GC UDR HTTP handler
+functions that a service-based-interface client can invoke directly.
+Any function not reachable from those entry points is excluded from
+further analysis, on the premise that code an external attacker cannot
+reach through the declared interface does not need to be triaged with
+the same priority as code that is directly exposed.
+
+\subsection{Triage and patch generation}
+
+Each reachable function is checked against a small library of
+rule-based vulnerability patterns. The pattern relevant to this case,
+\texttt{find\_missing\_return\_after\_response}, flags a function that
+writes an HTTP error response inside a conditional block without a
+following \texttt{return} statement in that block -- exactly the
+control-flow defect described in Section 2. When the pattern matches,
+a patch is generated by inserting a \texttt{return} statement
+immediately after the flagged response write. This is a targeted,
+minimal-diff patch, not a full-function rewrite.
+
+\subsection{Upstream verification}
+
+Prior work verifying a generated patch typically applies it to an
+isolated copy of the single affected file and checks that the file
+alone still compiles. This does not establish that the patch is
+compatible with the project's actual build: a real Go module's
+compilation depends on its full dependency graph, declared in
+\texttt{go.mod}/\texttt{go.sum}, and on how the patched function
+interacts with the rest of the package. We instead clone the real
+\texttt{free5gc/udr} repository at the commit immediately preceding the
+disclosed fix, confirm the unmodified repository builds
+(\texttt{go build ./...}) as a baseline, apply all generated patches
+directly to the real \texttt{internal/sbi/api\_datarepository.go} file
+inside that clone, and rebuild. This exercises the project's actual
+dependency graph -- including \texttt{gin-gonic/gin},
+\texttt{go.mongodb.org/mongo-driver}, and free5GC's own internal
+packages -- rather than a synthetic stand-in.
+
+\section{Evaluation}
+
+\textbf{Reachability.} Parsing
+\texttt{internal/sbi/api\_datarepository.go} (a real, $\sim$86KB source
+file) yields 102 top-level functions. Breadth-first traversal from the
+four real UDR entry points reaches exactly 4 of them -- a 96.1\%
+reduction in the functions a subsequent triage step must consider.
+
+\textbf{Triage.} All 4 reachable functions are correctly flagged by the
+missing-\texttt{return} pattern and classified as CWE-285, matching the
+real vulnerability class disclosed for this CVE family.
+
+\textbf{Patch generation and upstream verification.} A patch is
+generated for all 4 flagged functions. The unmodified clone builds
+cleanly as a baseline. With all 4 generated patches applied directly to
+the real, live-cloned repository, \texttt{go build ./...} again
+succeeds against the project's actual dependency graph. This is, to
+our knowledge, the first time a patch produced by this reachability
+pipeline has been verified against a real upstream module's full
+dependency graph rather than an isolated single-file copy.
+
+\textbf{A limitation surfaced by measurement, not assumption.} One of
+the four flagged functions requires \emph{two} separate
+\texttt{return} insertions in the real, disclosed fix -- two
+independent conditional blocks in the same function body -- while our
+rule-based patcher returns only the first match per function. That
+function is therefore only partially corrected: the build still
+succeeds (a partial fix does not break compilation), but the
+vulnerability is not fully closed for that one handler. We report this
+rather than omit it, since it is a genuine, measured limitation of a
+single-finding-per-pattern-match design, not a flaw discovered after
+publication.
+
+\section{Discussion and Limitations}
+
+A clean build after patching establishes that a generated patch is
+syntactically valid and compatible with the real project's dependency
+graph -- it does not establish that the patch is correct at runtime.
+Confirming that the vulnerability is actually closed would require
+running the real free5GC UDR service and sending it a live HTTP
+request, which in turn requires the rest of the deployment this network
+function depends on: a MongoDB backend for its data store and
+registration with the free5GC NRF for service discovery. Standing up
+that deployment was outside the scope of this case study and is the
+most direct next step for this work. We also note this is a
+single-project, single-vulnerability-family case study (n=1); we do not
+claim the reachability reduction or patch-generation success rate
+observed here generalizes to free5GC broadly or to other 5G core
+implementations without further evaluation.
+
+\section{Related Work}
+
+DARPA's AI Cyber Challenge (AIxCC) produced seven open-sourced cyber
+reasoning systems combining fuzzing, static analysis, and LLM agents
+for autonomous vulnerability discovery and patching~\cite{aixcc}.
+OSS-CRS extends this line of work by porting AIxCC-era systems to real
+OSS-Fuzz projects under resource budgets~\cite{osscrs}. Our work is
+narrower in scope than either -- we do not attempt discovery of unknown
+vulnerabilities, only reachability-filtered triage and patching of an
+already-disclosed one -- but shares their emphasis on evaluating
+against real, not synthetic, targets, and extends the upstream-fidelity
+bar specifically to compile-time verification against a live project
+clone.
+
+\section{Conclusion}
+
+We presented a case study demonstrating that reachability-filtered
+static analysis and automated patch generation can be applied to a
+real, disclosed free5GC vulnerability with verification against the
+project's actual upstream repository, not a synthetic reproduction --
+reducing 102 real functions to the 4 that matter, and confirming
+generated patches for all 4 preserve a clean build of the live cloned
+project. We report this alongside its real limits: compile-time
+verification is not runtime confirmation, and one finding is only
+partially corrected by the current rule-based patcher. We see this as
+a concrete, if narrow, step toward evaluating automated vulnerability
+tooling against real 5G core network software rather than stand-ins
+built for the purpose.
+
+\begin{thebibliography}{9}
+
+\bibitem{openant}
+%% TODO: verify this citation (title, venue, arXiv id) before submission.
+OpenAnt: Reachability-Guided Static Analysis for Vulnerability
+Discovery. arXiv:2606.19149.
+
+\bibitem{free5gc}
+free5GC Project. \url{https://free5gc.org/}.
+
+\bibitem{aixcc}
+%% TODO: verify this citation before submission.
+DARPA. AI Cyber Challenge (AIxCC) Results, 2025.
+\url{https://www.darpa.mil/news/2025/aixcc-results}.
+
+\bibitem{osscrs}
+%% TODO: verify this citation (authors, venue, arXiv id) before submission.
+OSS-CRS: Liberating AIxCC Cyber Reasoning Systems for Real-World
+Open-Source Security. arXiv:2603.08566.
+
+\end{thebibliography}
+
+\end{document}
