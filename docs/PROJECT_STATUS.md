@@ -85,30 +85,38 @@ parallel system.
       fetch is an API call, classification is a lookup, generation was a
       hardcoded template, execution is LLM-independent, and patch
       generation was stubbed. That's a real gap for a project about
-      using LLMs to secure OSS, not just a caveat. Concrete plan:
-      1. Install Ollama; pull a small code model (`qwen2.5-coder:7b` or
-         similar) — CPU inference will be slow but workable for 6-8 CVEs.
-      2. Add a provider-agnostic adapter alongside the existing
-         `_call_claude()`/`_claude_available()` in `cve_pipeline.py`
-         (same call sites Stage 3.5/3.7/3.8 already use — no new
-         architecture, just a second real backend).
-      3. Record `generation_mode` (`live`/`template`), model ID, and
-         temperature in every report — this is what keeps the
-         provenance table in `docs/BENCHMARK_PROTOCOL.md` §4 honest
-         during and after the transition.
-      4. Re-run the catalog; at least one `llm-live` result closes the
-         gap. Report degraded/failed generations honestly, don't cherry-pick.
-      5. **Before step 4**: fix the silent-fallback path in
+      using LLMs to secure OSS, not just a caveat. Concrete plan, in
+      strict order — each step gates the next, not a checklist to
+      reorder for convenience:
+      1. **Gate**: fix the silent-fallback path in
          `generate_exploit_artifacts()` (`if not poc_code or not
          target_code: <template>` currently swallows a failed live
-         attempt with no distinct signal) — a parse failure must record
-         as a failed `llm-live` attempt, never silently relabel as
-         `template`. See `docs/BENCHMARK_PROTOCOL.md` §4's pre-registered
-         failure-handling rule.
-      6. Pre-write and version-pin the exact prompts for each advisory
-         condition (full/description-only/ID-only) before running any of
-         them live, so conditions differ only in advisory content, not
-         in prompt wording tuned mid-session.
+         attempt with no distinct signal). Add `generation_outcome`
+         (`llm_live_success` / `llm_live_failed` / `template`) to
+         `ExploitArtifacts`, surfaced through `compile_report()` into the
+         final report — the live-generation failure rate becomes a
+         measured result, not an invisible footnote. See
+         `docs/BENCHMARK_PROTOCOL.md` §4's pre-registered rule. Nothing
+         below runs until this gate clears.
+      2. Install Ollama; pull a small code model (`qwen2.5-coder:7b` or
+         similar). Add a provider-agnostic adapter alongside the existing
+         `_call_claude()`/`_claude_available()` (same call sites Stage
+         3.5/3.7/3.8 already use). Verify a single trivial call works
+         before doing anything else.
+      3. **Bounded prompt development**: draft prompts for each advisory
+         condition (full/description-only/ID-only) and test freely
+         against exactly ONE catalog CVE — iterate as much as needed here.
+         The moment any catalog-condition run starts on a second CVE, the
+         prompt set is **frozen** for the rest of the session. This is
+         the line between honest prompt development and post-hoc tuning;
+         don't let "draft inside the session" drift into "draft
+         interactively, mid-condition."
+      4. Run the catalog under the now-frozen conditions. Record
+         `generation_mode`/`generation_outcome`, model ID, and
+         temperature in every report. Exit criterion:  at least one CVE
+         completes the full chain (live-generated PoC -> dynamically
+         confirmed -> patch_validated) — not "all six work." Report
+         degraded/failed generations honestly, don't cherry-pick.
 - [ ] **S1 fidelity stratum — real litellm, not a reproduction, for one
       CVE.** The single highest-value upgrade to Limitation 1
       (`docs/SCOPE_AND_LIMITATIONS.md`). Concrete plan:

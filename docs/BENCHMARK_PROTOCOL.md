@@ -105,7 +105,13 @@ it will produce):
   parse failure must be recorded as an `llm-live` attempt that failed,
   not quietly downgraded to `template` — this needs an actual code
   change (a distinct failure state) before the session runs, not just a
-  protocol note.
+  protocol note. Concretely: add `generation_outcome` (values
+  `llm_live_success` / `llm_live_failed` / `template`) to
+  `ExploitArtifacts` and surface it through `compile_report()` into the
+  final report — not just an internal log line. This makes the live-
+  generation failure rate itself a measured, report-visible result
+  ("attempted live on N CVEs, succeeded on M") instead of an invisible
+  footnote, which is exactly the kind of thing an examiner asks about.
 - **Refinement, not fallback, for execution failures**: a live-generated
   PoC that compiles/parses but fails execution goes through the existing
   `refine_and_reexecute` (Stage 3.7) path as normal; only a failure that
