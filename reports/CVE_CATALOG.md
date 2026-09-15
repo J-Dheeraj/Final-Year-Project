@@ -140,7 +140,7 @@ same untested-in-this-environment caveat as Stage 3.7's LLM path.
 
 ## free5GC (network-OSS target)
 
-See `docs/FREE5GC_LAB.md` for a real, disclosed, CVSS-8.7 free5GC UDR bug
+See `docs/FREE5GC_LAB.md` for a real, disclosed, CVSS-7.5 free5GC UDR bug
 (CVE-2026-40246) reproduced in a minimal Go lab and dynamically demonstrated
 both exploited and patched - a genuine cross-language (Go, not Python) target
 outside the six CVEs in the table above, not wired into the generic Stage
