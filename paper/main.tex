@@ -4,10 +4,12 @@
 %% (In-Cooperation with ACM SIGSAC), short-paper track (4 pages,
 %% submission and camera-ready). Submissions are NOT double-blind, so
 %% author/affiliation fields below should be filled in with real values
-%% before compiling for submission. See paper/NOTES.md for a section-
-%% by-section provenance list and a citation-verification checklist --
-%% every reference below must be independently re-checked before
-%% submission; none should be trusted from this draft alone.
+%% before compiling for submission. See paper/NOTES.md for what's
+%% verified vs. still needs your action (author info, real compilation,
+%% CCS codes). The three bibliography entries below were independently
+%% verified against their primary sources (arXiv abstract pages, DARPA's
+%% own site) before this draft was finalized -- re-check the DOIs/URLs
+%% still resolve at submission time, since that's cheap insurance.
 
 \settopmatter{printacmref=false}
 \renewcommand\footnotetextcopyrightpermission[1]{}
@@ -66,20 +68,23 @@ file has not demonstrated it survives contact with the actual build.
 
 This paper presents a small, fully reproducible case study that closes
 part of that gap for one real, disclosed free5GC vulnerability. We
-combine two components: (1) reachability-filtered static
-analysis~\cite{openant}, which narrows a large codebase down to the
-functions an attacker can actually reach before any deeper analysis is
-spent on it, and (2) automated patch generation, verified not against a
-scratch copy of a single file but against a live clone of the actual
-upstream repository, confirming the patch compiles against the
-project's real dependency graph. To our knowledge this upstream-clone
-verification step is not standard practice in prior reachability-based
-triage work, which typically stops at scratch, single-file compilation
-checks.
+adopt the reachability-filtered code decomposition methodology of
+OpenAnt~\cite{openant} -- parse a codebase into functions, build a call
+graph, and perform breadth-first traversal from attacker-reachable
+entry points, which OpenAnt reports reduces analysis scope by up to
+97\% on real projects such as OpenSSL and WordPress -- and apply it to
+a single, real, disclosed free5GC vulnerability. Beyond OpenAnt's own
+evaluation, we add a verification step: rather than stopping at
+generating a patch, we apply it to a live clone of the actual upstream
+repository and confirm the result compiles against the project's real
+dependency graph, not a scratch copy of a single file. To our knowledge
+this upstream-clone compile verification is not part of OpenAnt's
+published evaluation or other prior reachability-based triage work.
 
-Our contributions are: (i) a reachability-filtered triage of a real
-free5GC source file against a real, disclosed CVE, with a 96.1\%
-reduction in the functions requiring further analysis; (ii)
+Our contributions are: (i) an application of OpenAnt's
+reachability-filtered decomposition methodology to a real free5GC
+source file against a real, disclosed CVE, with a 96.1\% reduction in
+the functions requiring further analysis; (ii)
 automatically generated patches for all four reachable findings,
 verified to preserve a clean build of the real, live-cloned upstream
 project; and (iii) an honest accounting of what this does and does not
@@ -120,12 +125,13 @@ statement across four affected handlers in
 
 \subsection{Reachability filtering}
 
-We parse the target source with \texttt{tree-sitter}, a real
-grammar-based parser rather than a regex or brace-counting heuristic,
-build a call graph over all top-level function and method
-definitions, and perform a breadth-first traversal from a stated list
-of entry points -- here, the four real free5GC UDR HTTP handler
-functions that a service-based-interface client can invoke directly.
+Following OpenAnt's decomposition methodology~\cite{openant}, we parse
+the target source with \texttt{tree-sitter}, a real grammar-based
+parser rather than a regex or brace-counting heuristic, build a call
+graph over all top-level function and method definitions, and perform
+a breadth-first traversal from a stated list of entry points -- here,
+the four real free5GC UDR HTTP handler functions that a
+service-based-interface client can invoke directly.
 Any function not reachable from those entry points is excluded from
 further analysis, on the premise that code an external attacker cannot
 reach through the declared interface does not need to be triaged with
@@ -213,6 +219,17 @@ implementations without further evaluation.
 
 \section{Related Work}
 
+Our reachability filtering directly follows OpenAnt~\cite{openant},
+which combines reachability-based code decomposition with LLM-driven
+adversarial verification and sandboxed dynamic testing to discover
+previously unknown vulnerabilities across projects including OpenSSL,
+WordPress, and Flowise, reporting up to 97\% reduction in analysis
+scope. We apply the same decomposition step to a single, real,
+disclosed CVE rather than searching for unknown bugs, and add a
+verification step OpenAnt's own evaluation does not report: confirming
+a generated patch against a live clone of the real upstream repository,
+not a sandboxed exploit environment discarded after use.
+
 DARPA's AI Cyber Challenge (AIxCC) produced seven open-sourced cyber
 reasoning systems combining fuzzing, static analysis, and LLM agents
 for autonomous vulnerability discovery and patching~\cite{aixcc}.
@@ -221,9 +238,7 @@ OSS-Fuzz projects under resource budgets~\cite{osscrs}. Our work is
 narrower in scope than either -- we do not attempt discovery of unknown
 vulnerabilities, only reachability-filtered triage and patching of an
 already-disclosed one -- but shares their emphasis on evaluating
-against real, not synthetic, targets, and extends the upstream-fidelity
-bar specifically to compile-time verification against a live project
-clone.
+against real, not synthetic, targets.
 
 \section{Conclusion}
 
@@ -243,22 +258,25 @@ built for the purpose.
 \begin{thebibliography}{9}
 
 \bibitem{openant}
-%% TODO: verify this citation (title, venue, arXiv id) before submission.
-OpenAnt: Reachability-Guided Static Analysis for Vulnerability
-Discovery. arXiv:2606.19149.
+Nahum Korda and Gadi Evron. 2026. OpenAnt: LLM-Powered Vulnerability
+Discovery Through Code Decomposition, Adversarial Verification, and
+Dynamic Testing. \textit{arXiv preprint arXiv:2606.19149} (2026).
+\url{https://arxiv.org/abs/2606.19149}
 
 \bibitem{free5gc}
 free5GC Project. \url{https://free5gc.org/}.
 
 \bibitem{aixcc}
-%% TODO: verify this citation before submission.
-DARPA. AI Cyber Challenge (AIxCC) Results, 2025.
-\url{https://www.darpa.mil/news/2025/aixcc-results}.
+DARPA. 2025. AI Cyber Challenge marks pivotal inflection point for
+cyber defense. (August 2025).
+\url{https://www.darpa.mil/news/2025/aixcc-results}
 
 \bibitem{osscrs}
-%% TODO: verify this citation (authors, venue, arXiv id) before submission.
-OSS-CRS: Liberating AIxCC Cyber Reasoning Systems for Real-World
-Open-Source Security. arXiv:2603.08566.
+Andrew Chin, Dongkwan Kim, Yu-Fu Fu, Fabian Fleischer, Youngjoon Kim,
+HyungSeok Han, Cen Zhang, Brian Junekyu Lee, Hanqing Zhao, and Taesoo
+Kim. 2026. OSS-CRS: Liberating AIxCC Cyber Reasoning Systems for
+Real-World Open-Source Security. \textit{arXiv preprint
+arXiv:2603.08566} (2026). \url{https://arxiv.org/abs/2603.08566}
 
 \end{thebibliography}
 

@@ -14,19 +14,25 @@ Every technical claim, number, and CVE/GHSA/commit-hash citation in
 | Patch applied to real upstream, `go build ./...` succeeds | `src/reachability/verify_against_real_upstream.py`, re-run end-to-end from a fresh clone before this session's commit `e03926d` |
 | Partial-fix limitation (1 of 4 handlers needs 2 returns) | Inherited from `reachcrs`'s own test suite (`tests/test_free5gc_case_study.py`), still true in the ported version here |
 
-**What is NOT verified and needs your action before submitting:**
+**Citations — now verified, with one correction made along the way:**
+all three bibliography entries (OpenAnt, AIxCC, OSS-CRS) were checked
+directly against their primary sources (arXiv abstract pages, DARPA's
+own site) via live fetch, not reconstructed from memory. Full author
+lists and exact titles are now in `main.tex`. One real issue this
+surfaced and fixed: the draft originally cited OpenAnt only in passing
+as "related work," but this project's reachability engine explicitly
+follows OpenAnt's decomposition methodology (per the original code's
+own docstring) — under-attributing that would have been a real problem
+in a submission, not a style nit. The Introduction, Approach, and
+Related Work sections now say so explicitly. Still worth a final
+independent check by you before submitting (arXiv IDs and DOIs can
+change; confirm they still resolve).
 
-1. **All four `%% TODO` citations in `main.tex`.** I reconstructed these
-   from an earlier research document pasted into this project's
-   conversation, not from a fresh, independent check this session. Do
-   not trust arXiv IDs, author lists, or venues from this draft —
-   pull each one up yourself (arXiv, Google Scholar, or the DARPA page
-   directly) and confirm it exists and says what the paper claims it
-   says. A fabricated or wrong citation in a real ACM submission is a
-   serious problem, not a formatting nit.
-2. **Author name, affiliation, email** — placeholders in `main.tex`,
+**What still needs your action before submitting:**
+
+1. **Author name, affiliation, email** — placeholders in `main.tex`,
    fill in before compiling for real.
-3. **Compile it.** No LaTeX toolchain is available in the environment
+2. **Compile it.** No LaTeX toolchain is available in the environment
    this draft was written in, so `main.tex` has not been test-compiled.
    Paste it into Overleaf's ACM `sigconf` template (search "ACM
    Conference Proceedings" in Overleaf's template gallery) or compile
@@ -35,12 +41,12 @@ Every technical claim, number, and CVE/GHSA/commit-hash citation in
    (4 pages including references) — the current draft is written to
    roughly that length but hasn't been measured against real compiled
    output.
-4. **CCS concepts / keywords formatting.** The CFP mentions CCS concept
+3. **CCS concepts / keywords formatting.** The CFP mentions CCS concept
    codes are required; `\keywords{}` is filled in but proper CCS
    concept codes (`\begin{CCSXML}...\end{CCSXML}` block, standard in
    `acmart`) are not yet added — look up the right codes at
    `dl.acm.org/ccs` for security/networking topics and add them.
-5. **HotCRP submission** — `https://free5gc-2026.hotcrp.com/`, PDF
+4. **HotCRP submission** — `https://free5gc-2026.hotcrp.com/`, PDF
    only, not anonymized (this CFP is not double-blind).
 
 ## What this paper deliberately does NOT claim
