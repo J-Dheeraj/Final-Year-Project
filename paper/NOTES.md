@@ -28,24 +28,32 @@ Related Work sections now say so explicitly. Still worth a final
 independent check by you before submitting (arXiv IDs and DOIs can
 change; confirm they still resolve).
 
+**Compiled and verified — real, not assumed.** TeX Live 2026
+(`scheme-basic` + `collection-latexextra` + `collection-fontsrecommended`
++ `acmart`) was installed in this environment and `main.tex` was
+compiled end to end with `pdflatex`. Real result: **3 pages**, clean
+compile, `main.pdf` committed alongside this file as evidence. Two real
+issues the compile itself surfaced and that are now fixed:
+`printacmref=false` was wrong — the class flags ACM reference format as
+mandatory for papers over one page, now `true`; and four inline
+`\texttt{}` tokens (long package/file paths) overflowed the narrow
+two-column width, fixed with `\sloppy` plus one targeted `\allowbreak`.
+
 **What still needs your action before submitting:**
 
-1. **Author name, affiliation, email** — placeholders in `main.tex`,
-   fill in before compiling for real.
-2. **Compile it.** No LaTeX toolchain is available in the environment
-   this draft was written in, so `main.tex` has not been test-compiled.
-   Paste it into Overleaf's ACM `sigconf` template (search "ACM
-   Conference Proceedings" in Overleaf's template gallery) or compile
-   locally with a full TeX Live/MiKTeX install that includes the
-   `acmart` package. Check the page count fits the short-paper limit
-   (4 pages including references) — the current draft is written to
-   roughly that length but hasn't been measured against real compiled
-   output.
-3. **CCS concepts / keywords formatting.** The CFP mentions CCS concept
-   codes are required; `\keywords{}` is filled in but proper CCS
-   concept codes (`\begin{CCSXML}...\end{CCSXML}` block, standard in
-   `acmart`) are not yet added — look up the right codes at
-   `dl.acm.org/ccs` for security/networking topics and add them.
+1. **Author name, affiliation, email** — placeholders in `main.tex`.
+   Recompile after filling these in — real names/affiliations may shift
+   the page count slightly, so re-check it's still $\le$ 4 pages.
+2. **CCS concepts.** The compiler itself confirms these are mandatory
+   ("CCS concepts are mandatory for papers over two pages") and still
+   missing. I deliberately did not fabricate concept ID numbers — ACM's
+   CCS generator at `dl.acm.org/ccs` is an interactive tool, not
+   something I could reliably fetch and verify from here, and a wrong
+   numeric ID would misclassify the paper. Takes about 2 minutes there:
+   search "vulnerability" / "software security engineering" / "program
+   repair", pick the closest 2-3 terms, and it generates the
+   `\begin{CCSXML}...\end{CCSXML}` block plus `\ccsdesc{}` lines to paste
+   in directly above `\keywords{}`.
 4. **HotCRP submission** — `https://free5gc-2026.hotcrp.com/`, PDF
    only, not anonymized (this CFP is not double-blind).
 
