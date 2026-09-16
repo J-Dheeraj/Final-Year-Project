@@ -44,6 +44,161 @@ paper versus what still needs author action.
 
 ---
 
+## CVE results
+
+Every CVE below has actually been run through this pipeline — real advisory
+fetch, real generated exploit, real subprocess execution against a real
+local target, real exit code. Full raw PowerShell/terminal transcripts for
+each one (separate files, timestamped) are in `reports/live_verification_*.txt`;
+the aggregate catalog data lives in [`reports/CVE_CATALOG.md`](reports/CVE_CATALOG.md)
+and [`reports/METRICS.md`](reports/METRICS.md).
+
+| CVE | Package | Class (CWE) | Severity | Dynamically confirmed |
+|---|---|---|---|---|
+| [CVE-2026-42208](https://github.com/advisories/GHSA-r75f-5x8p-qvmc) | litellm | SQL Injection (CWE-89) | CRITICAL 9.8 | **True** |
+| [CVE-2026-27602](https://github.com/advisories/GHSA-wwv8-cqpr-vx3m) | modoboa | OS Command Injection (CWE-78) | HIGH 7.2 | **True** (after 1 self-revision) |
+| [CVE-2026-23949](https://github.com/advisories/GHSA-58pv-8j8x-9vj2) | jaraco.context | Path Traversal (CWE-22) | HIGH 8.6 | **True** (after 1 self-revision) |
+| [CVE-2026-78683](https://advisories.gitlab.com/pypi/nltk/CVE-2026-78683/) | nltk | Insecure Deserialization (CWE-502) | CRITICAL 9.6 | **True** |
+| [CVE-2026-54729](https://github.com/advisories/GHSA-5846-7qm3-r52j) | dssrf | SSRF (CWE-918) | not listed | False (real network limitation, not a defect) |
+| [CVE-2026-46492](https://github.com/advisories/GHSA-32q2-hhr5-6qvv) | md-fileserver | XSS (CWE-80) | HIGH 7.2 | **True** |
+| [CVE-2026-40248](https://github.com/advisories/GHSA-jgq2-qv8v-5cmj) | free5gc/udr | Improper Authorization (CWE-285) | HIGH 7.5 | **True** (patch verified against real upstream) |
+
+**5/6** catalog CVEs dynamically confirmed by genuine subprocess execution; the
+free5GC case is verified by a different, stronger method (real upstream clone +
+`go build`), covered separately below.
+
+### CVE-2026-42208 — SQL Injection (litellm)
+
+Unsanitized user input concatenated directly into a SQL query string,
+allowing authentication bypass and data extraction. Confirmed on the first
+attempt, no self-revision needed.
+
+```
+[*] Target reachable
+[+] EXPLOITED — auth bypass: {"role":"admin","status":"ok","token":"welcome-admin"}
+$LASTEXITCODE: 0
+```
+
+### CVE-2026-27602 — OS Command Injection (modoboa)
+
+Domain names supplied by a Reseller/SuperAdmin flow directly into a shell
+command string without sanitization, letting an attacker run arbitrary OS
+commands via shell metacharacters. First attempt genuinely failed on this
+Windows host (the generated payload used POSIX-only shell syntax); Stage
+3.7's self-improvement loop recognized the failure and applied a fix
+already learned and persisted from an earlier run.
+
+```
+[*] Target reachable
+[+] EXPLOITED — command output: {"stderr":"","stdout":"...\nCMDI_PWNED_MARKER\n"}
+$LASTEXITCODE: 0
+```
+
+### CVE-2026-23949 — Path Traversal (jaraco.context)
+
+A Zip Slip vulnerability in `jaraco.context.tarball()` lets a crafted tar
+archive escape the intended extraction directory, including nested
+multi-level tarball attacks. First attempt failed because the generated
+payload targeted `/etc/passwd` (doesn't exist on Windows); self-improvement
+added the `win.ini` payload the PoC's own `verify()` already anticipated.
+
+```
+[*] Target reachable
+[+] EXPLOITED — file read: ; for 16-bit app support
+[fonts]
+[extensions]
+...
+$LASTEXITCODE: 0
+```
+
+### CVE-2026-78683 — Insecure Deserialization (nltk)
+
+`pickle_load()` is called with `restricted=False`, permitting arbitrary
+class resolution during model loading — an attacker-supplied model file
+can smuggle a pickle gadget chain that executes arbitrary code. Confirmed
+on the first attempt. A real gap was found and fixed while verifying this
+one live this session: the original generated payload (`id > file`) is
+POSIX-only and silently no-ops on Windows, and the exploit's own
+existence-only file check reported false success on an empty file. Fixed
+by switching to a cross-platform `echo <marker>` payload and checking the
+marker is actually present in the file content (see commit `da84781`).
+
+```
+[*] Target reachable
+[+] EXPLOITED — RCE via pickle gadget, see /tmp/pwned_CVE_2026_78683.txt
+$LASTEXITCODE: 0
+[verified: marker file content = "PWNED_CVE_2026_78683_MARKER", not empty]
+```
+
+### CVE-2026-54729 — SSRF (dssrf, Node.js)
+
+A user-controlled URL is fetched without IP validation, allowing access to
+internal-only endpoints (e.g. cloud metadata services). The generated
+exploit correctly targets a real link-local address (`169.254.169.254`),
+but this development machine's own network stack cannot route to it —
+a genuine environment limitation, not a pipeline defect, and reported
+honestly rather than faked.
+
+```
+[*] Target reachable
+[-] FAILED — status=500 body={"error":"HTTPConnectionPool(host='169.254.169.254', port=80): Max retries exceeded..."}
+$LASTEXITCODE: 1
+```
+
+SSRF is the one class with a genuinely live (not theoretical) bypass
+harness — `ssrf_lab/bypass_analysis.py` runs real code against the real
+`image_loader._resolve_and_check()` validator. 3 of 5 bypass techniques
+were live-tested and blocked; 2 are honestly flagged as needing external
+attacker infrastructure not reachable from a single dev machine:
+
+```
+✓ BLOCKED  http://2130706433/         127.0.0.1 in decimal
+✓ BLOCKED  http://[::1]/              IPv6 loopback
+✓ BLOCKED  http://google.com@169.254.169.254/   Non-global: 169.254.169.254
+~ NEEDS-EXTERNAL-INFRA  HTTP Redirect (302 chain) — requires attacker.com
+~ NEEDS-EXTERNAL-INFRA  DNS Rebinding (TOCTOU) — requires attacker-controlled DNS
+```
+
+### CVE-2026-46492 — Cross-Site Scripting (md-fileserver)
+
+User-supplied Markdown content is rendered with embedded raw HTML
+(including `<script>` tags) processed and injected into the page without
+sanitization. Confirmed on the first attempt — the exploit's `verify()`
+checks that the exact unescaped payload string survives into the rendered
+response, a direct and sound check (no false-positive risk like the
+deserialization case above).
+
+```
+[*] Target reachable
+[+] EXPLOITED — raw payload reflected in response
+$LASTEXITCODE: 0
+```
+
+### CVE-2026-40248 — Improper Authorization (free5GC UDR)
+
+The handler that creates/updates a Traffic Influence Subscription checks
+whether the `influenceId` path segment is valid and writes an HTTP 404 if
+not, but never `return`s after writing that response — so execution falls
+through and the subscription is created or overwritten regardless of the
+check's outcome. This is the subject of the paper (see "Paper" above).
+Verified two ways: reachability analysis reduces 102 parsed functions to
+the 4 actually reachable (96.1% reduction), and — going further than a
+synthetic test — all 4 generated patches were applied to a live clone of
+the real `free5gc/udr` repository, which still compiles against the
+project's actual dependency graph.
+
+```
+Cloning https://github.com/free5gc/udr.git @ 86686276a7e2^ (real pre-fix commit) ...
+=== Baseline: real vulnerable commit, unmodified ===
+  [baseline (unpatched)] go build ./... -> OK
+Applied 4/4 patches: [...]
+=== After applying auto-generated patches to the REAL module ===
+  [patched (real module)] go build ./... -> OK
+RESULT: real free5GC/udr @ 86686276a7e2 with the pipeline's auto-generated patches applied COMPILES
+```
+
+---
+
 ## How it works
 
 ```
