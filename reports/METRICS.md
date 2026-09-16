@@ -7,7 +7,7 @@ Computed by `python -m src.metrics` directly from `reports/*/report.json` alread
 - Self-improvement (Stage 3.7) invoked: **3**
 - Patch attempted (Stage 3.8): **0**
 - Patch validated: **0 (none attempted)**
-- Wall-clock per CVE: mean **1.21s**, median **0.97s**
+- Wall-clock per CVE: not available (older reports predate `elapsed_s`)
 - LLM calls per CVE (estimate, undercounts Stage 2/3.5): mean **0**, total **0**
 
 ## By vulnerability class
