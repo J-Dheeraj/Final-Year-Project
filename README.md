@@ -26,6 +26,24 @@ is the living done/open checklist.
 
 ---
 
+## Paper
+
+[`paper/main.tex`](paper/main.tex) is a short paper ("Reachability-Guided
+Triage and Upstream-Verified Patching for a Real free5GC Vulnerability")
+submitted to the **2nd free5GC World Forum, In-Cooperation with ACM
+SIGSAC** (December 17–18, 2026, NYCU, Hsinchu — CFP:
+[free5gc.org/forum/2026](https://free5gc.org/forum/2026/), submission
+deadline September 28, 2026). It reports the reachability + patch-generation
++ upstream-verification case study against CVE-2026-40248 in free5GC's UDR
+(see `docs/REACHABILITY.md`). Real ACM CCS concepts, verified citations,
+and a real author affiliation — no placeholders. Compiles cleanly to 3
+pages under the venue's 4-page short-paper cap. `paper/main.pdf` is the
+submission-ready file; `paper/main.docx` is a Word copy for editing;
+`paper/NOTES.md` tracks exactly what's independently verified in the
+paper versus what still needs author action.
+
+---
+
 ## How it works
 
 ```
@@ -176,6 +194,12 @@ AI CVE Exploit Automation/
 │   ├── CRS_MAPPING.md       # How this pipeline maps onto AIxCC/OSS-CRS concepts
 │   ├── REACHABILITY.md      # The reachability engine vs. a real free5GC CVE
 │   └── FREE5GC_LAB.md       # The free5GC-adjacent dynamic exploit lab
+│
+├── paper/                   # free5GC World Forum '26 submission (see "Paper" above)
+│   ├── main.tex             # ACM sigconf source, real CCS concepts + citations
+│   ├── main.pdf             # Submission-ready, 3 pages
+│   ├── main.docx            # Word copy for editing
+│   └── NOTES.md             # Verified-vs-needs-action checklist
 │
 ├── ssrf_lab/
 │   ├── server.py            # Dual-mode Flask lab (vulnerable / patched)
