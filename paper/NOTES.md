@@ -39,22 +39,24 @@ mandatory for papers over one page, now `true`; and four inline
 `\texttt{}` tokens (long package/file paths) overflowed the narrow
 two-column width, fixed with `\sloppy` plus one targeted `\allowbreak`.
 
+**CCS concepts — done, real, not fabricated.** Generated directly from
+ACM's own interactive tool at `dl.acm.org/ccs` (used live via browser,
+not guessed): **Security and privacy → Software and application
+security → Software security engineering** (concept ID
+`10002978.10003022.10003023`) and **Security and privacy → Systems
+security → Vulnerability management** (concept ID
+`10002978.10003006.10011634`), both marked High relevance. The
+`\begin{CCSXML}...\end{CCSXML}` + `\ccsdesc{}` block is now in
+`main.tex` above `\keywords{}`. Recompiled twice after adding it: the
+"CCS concepts are mandatory" warning is gone, page count holds at 3.
+
 **What still needs your action before submitting:**
 
-1. **Author name, affiliation, email** — placeholders in `main.tex`.
-   Recompile after filling these in — real names/affiliations may shift
+1. **Author name, affiliation, email** — name/affiliation are filled
+   in; email is still the placeholder `[email@institution.edu]` in
+   `main.tex`. Recompile after filling it in — real values may shift
    the page count slightly, so re-check it's still $\le$ 4 pages.
-2. **CCS concepts.** The compiler itself confirms these are mandatory
-   ("CCS concepts are mandatory for papers over two pages") and still
-   missing. I deliberately did not fabricate concept ID numbers — ACM's
-   CCS generator at `dl.acm.org/ccs` is an interactive tool, not
-   something I could reliably fetch and verify from here, and a wrong
-   numeric ID would misclassify the paper. Takes about 2 minutes there:
-   search "vulnerability" / "software security engineering" / "program
-   repair", pick the closest 2-3 terms, and it generates the
-   `\begin{CCSXML}...\end{CCSXML}` block plus `\ccsdesc{}` lines to paste
-   in directly above `\keywords{}`.
-4. **HotCRP submission** — `https://free5gc-2026.hotcrp.com/`, PDF
+2. **HotCRP submission** — `https://free5gc-2026.hotcrp.com/`, PDF
    only, not anonymized (this CFP is not double-blind).
 
 ## What this paper deliberately does NOT claim
