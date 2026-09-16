@@ -154,6 +154,59 @@ parallel system.
       One successful S1 result turns Limitation 1 from a blanket
       disclaimer into a disclosed stratum with one real data point — a
       genuine strengthening, reportable either way it turns out.
+- [ ] **ProvTrail integration — professor-suggested, 2026-09-16.** Combine
+      this project with a classmate's FYP tool, ProvTrail (a local CLI
+      that statically scans JS/TS codebases against a GHSA/OSV corpus and
+      flags likely clones of known-vulnerable code, exact/inferred/
+      needs-review, no runtime testing at all). Agreed shape: ProvTrail's
+      static findings feed this project's dynamic-confirmation pipeline
+      as a downstream stage — closing exactly the evidentiary gap
+      ProvTrail itself doesn't close (a static resemblance match is not
+      proof of exploitability). The other student is aware and has
+      explicitly said their own implementation approach isn't binding —
+      full freedom on how to build the integration.
+
+      **Real size of this, stated honestly**: not a wire-up. Every
+      existing exploit template (Stage 3.5) generates a Python Flask
+      target; there is currently zero JS/TS dynamic-execution capability
+      anywhere in this pipeline. Comparable in scope to when native-code
+      memory-safety support was added, not a small addition.
+
+      **Gated plan, in order — each step gates the next:**
+      1. **Gate**: get ProvTrail's actual source and a real sample JSON
+         report from the other student. The integration point (CVE ID
+         only? the flagged snippet? the file path? the vulnerable/patched
+         reference pair ProvTrail already retrieved?) cannot be designed
+         from a transcript description — needs the real schema.
+      2. Decide integration mode explicitly, don't default to the
+         harder one without weighing it:
+         - **(a) Class-level confirmation (recommended MVP)**: build
+           JS/TS exploit templates (Node/Express targets) mirroring the
+           existing 6-class Python template architecture, keyed off the
+           CVE's vulnerability class. Reuses Stage 3.5/3.6's already-
+           proven pattern; confirms the *class* of bug is dynamically
+           reachable, not literally the exact flagged line in the exact
+           scanned project.
+         - **(b) In-place confirmation (harder, more valuable, later)**:
+           actually exercise the specific flagged function inside the
+           real scanned codebase. Directly closes ProvTrail's evidentiary
+           gap, but arbitrary third-party JS/TS projects have wildly
+           inconsistent build/run requirements — closer in difficulty to
+           the memory-safety harness-generation work than to the existing
+           Python templates. Don't start here.
+      3. **Bounded validation**: pick exactly ONE ProvTrail-flagged CVE
+         (e.g. the Axios example from their demo), build ONE JS/TS
+         template for its class, confirm it dynamically executes end to
+         end before committing to building out more classes.
+      4. Exit criterion matches the live-LLM item's discipline above: one
+         real end-to-end case (ProvTrail flag -> dynamic confirmation)
+         is success, not "all classes work." Report what doesn't work
+         honestly rather than cherry-picking the class that does.
+
+      **Explicitly NOT started before the free5GC paper's September 28
+      deadline** — this needs the other student's actual code (not yet
+      in hand) and is real new-language engineering, not something to
+      rush alongside a submission. Revisit right after.
 - [ ] **(Optional, low priority) Family-tolerant CWE matching** in
       `_classify_from_text()` — currently hardcodes one representative
       CWE per class (e.g. always CWE-79 for any XSS keyword hit), which
