@@ -1,0 +1,34 @@
+﻿free5GC UDR Upstream Verification — Live Run Log
+==================================================
+Run timestamp: 2026-09-16 19:58:21 +08:00
+Host: LAPTOP-B1OVIPRN (Windows PowerShell)
+Command: python src\reachability\verify_against_real_upstream.py
+
+--- Raw output ---
+Cloning https://github.com/free5gc/udr.git @ 86686276a7e226183ee786e3dd6714ec56c78fda^ (real pre-fix commit) ...
+
+=== Baseline: real vulnerable commit, unmodified ===
+  [baseline (unpatched)] go build ./... -> OK
+
+Applied 4/4 patches: ['HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdPut', 'HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdGet', 'HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete', 'HandleApplicationDataInfluenceDataSubsToNotifyGet']
+
+=== After applying auto-generated patches to the REAL module ===
+  [patched (real module)] go build ./... -> OK
+
+RESULT: real free5GC/udr @ 86686276a7e2 with the pipeline's auto-generated patches applied COMPILES
+--- End of raw output ---
+
+What this proves:
+1. The real free5gc/udr repository was cloned live from GitHub at the
+   commit immediately preceding the disclosed fix for CVE-2026-40248 /
+   CVE-2026-40246.
+2. The unmodified (vulnerable) code was confirmed to build cleanly as a
+   baseline using the project's own real dependency graph (go build ./...).
+3. All 4 auto-generated patches (one per reachable, flagged handler) were
+   applied directly to the real source file inside the clone.
+4. The patched module was rebuilt and confirmed to still compile cleanly
+   against the same real dependency graph.
+
+This is not a simulated or templated result -- it is a real 'git clone'
+against github.com/free5gc/udr followed by a real 'go build ./...'
+invocation, re-executed on-demand in this PowerShell session.
