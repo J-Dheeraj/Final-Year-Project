@@ -79,7 +79,27 @@ parallel system.
 
 ## Phase 4 — Open, not started (top two elevated to priority — see plans below)
 
-- [ ] **Wire in a live LLM.** Per an external review of this project:
+- [ ] **Wire in a live LLM.** External supporting evidence this is worth
+      doing, not just internally motivated: a September 2026 industry
+      writeup (Val Marelox, ["Can AI weaponize new CVEs in under an
+      hour?"](https://valmarelox.substack.com/p/can-ai-weaponize-new-cves-in-under))
+      reports an independently-built pipeline with the same three-stage
+      shape this project already has (advisory analysis -> generate
+      vulnerable-app+exploit -> execute against vulnerable/patched
+      versions) running end-to-end on a live model (Claude Sonnet 4.0),
+      producing 10 working exploits across JS/Python/Ruby in ~10-15
+      minutes and ~$1 per CVE. Useful as a rough benchmark for what to
+      expect once this project's own live-LLM session runs — not
+      equivalent evidence, since it's a blog post, not peer-reviewed,
+      and the architecture match doesn't make its numbers this
+      project's numbers. Also worth noting: the author's own caveat —
+      "the refinement loop could generate exploits that worked but
+      weren't genuinely exploitative" — is the same class of false-
+      positive risk as the existence-only `verify()` bug found and
+      fixed in this project's CVE-2026-78683 case (commit `da84781`),
+      independently surfacing in someone else's pipeline too.
+
+      Per an external review of this project:
       the flagship worked example (`docs/CRS_MAPPING.md`,
       `materials_for_glm.md`) has zero live model calls end to end —
       fetch is an API call, classification is a lookup, generation was a
