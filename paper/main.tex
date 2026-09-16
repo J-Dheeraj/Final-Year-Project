@@ -1,4 +1,5 @@
 \documentclass[sigconf]{acmart}
+\usepackage{booktabs}
 
 %% NOTE TO AUTHOR: this draft targets the 2nd free5GC World Forum
 %% (In-Cooperation with ACM SIGSAC), short-paper track (4 pages,
@@ -211,7 +212,27 @@ reduction in the functions a subsequent triage step must consider.
 
 \textbf{Triage.} All 4 reachable functions are correctly flagged by the
 missing-\texttt{return} pattern and classified as CWE-285, matching the
-real vulnerability class disclosed for this CVE family.
+real vulnerability class disclosed for this CVE family. Table~\ref{tab:handlers}
+lists the four handlers by name; all share the common prefix
+\texttt{HandleApplicationDataInfluenceDataSubsToNotify}, omitted below for
+space.
+
+\begin{table}[t]
+\centering
+\caption{Reachable UDR handlers in \texttt{api\_datarepository.go} and their patch outcome.}
+\label{tab:handlers}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Handler suffix & HTTP verb & Missing \texttt{return}s & Patched \\
+\midrule
+\texttt{SubscriptionIdPut} & PUT & 1 & Full \\
+\texttt{SubscriptionIdGet} & GET & 1 & Full \\
+\texttt{SubscriptionIdDelete} & DELETE & 1 & Full \\
+\texttt{Get} (list) & GET & 2 & Partial (1/2) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \textbf{Patch generation and upstream verification.} A patch is
 generated for all 4 flagged functions. The unmodified clone builds
