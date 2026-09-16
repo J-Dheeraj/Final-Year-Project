@@ -172,12 +172,28 @@ parallel system.
       anywhere in this pipeline. Comparable in scope to when native-code
       memory-safety support was added, not a small addition.
 
+      **Update, 2026-09-16**: the other student (Elson) is adding SARIF
+      output to ProvTrail — a real OASIS-standardized, versioned JSON
+      format for static-analysis results, not a bespoke schema
+      (verified via sonarsource.com/resources/library/sarif, not taken
+      on faith). A SARIF result carries a rule ID, message, source
+      location, severity, and — directly relevant here — a CWE/CVE
+      security mapping field. This meaningfully de-risks Gate 1 below:
+      the integration parser can be designed against the public SARIF
+      spec now, not blocked entirely on Elson's source. What still
+      needs a real sample from him: exactly how ProvTrail populates the
+      CVE-mapping field in practice (SARIF's security-mapping fields are
+      somewhat tool-dependent in how strictly they're filled in), and
+      whether the flagged snippet/file location comes through in the
+      standard `physicalLocation` field or a custom `properties`
+      extension.
+
       **Gated plan, in order — each step gates the next:**
-      1. **Gate**: get ProvTrail's actual source and a real sample JSON
-         report from the other student. The integration point (CVE ID
-         only? the flagged snippet? the file path? the vulnerable/patched
-         reference pair ProvTrail already retrieved?) cannot be designed
-         from a transcript description — needs the real schema.
+      1. **Gate (reduced scope after the SARIF update above)**: get one
+         real sample SARIF report from ProvTrail once Elson's SARIF
+         output lands — specifically to confirm how the CVE ID and the
+         flagged code location are actually carried, not to reverse-
+         engineer an unknown bespoke format from scratch.
       2. Decide integration mode explicitly, don't default to the
          harder one without weighing it:
          - **(a) Class-level confirmation (recommended MVP)**: build
