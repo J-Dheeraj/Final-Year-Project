@@ -188,12 +188,34 @@ parallel system.
       standard `physicalLocation` field or a custom `properties`
       extension.
 
+      **Real SARIF field structure, verified against Microsoft's
+      sarif-tutorials (not the marketing page), 2026-09-16:**
+      - Base result shape (confirmed real ESLint example):
+        `runs[].results[].{ruleId, level, message.text,
+        locations[].physicalLocation.{artifactLocation.uri,
+        region.startLine}}` — this part is standard, adapter-safe now.
+      - CWE has a proper first-class path:
+        `runs[].tool.driver.supportedTaxonomies` + a `taxonomies[]`
+        block defining CWE as a taxonomy, and each `results[]` entry
+        can carry `taxa: [{id, toolComponent: {name: "CWE"}}]`.
+      - **CVE does not** — SARIF's taxonomy/`taxa` mechanism is built
+        for stable classification systems (CWE, OWASP), not point-in-
+        time identifiers like CVE numbers. ProvTrail's CVE ID will
+        almost certainly travel through the generic `properties` bag
+        (tool-specific, any name/value pairs) or be embedded in a
+        rule's `helpUri`/`fullDescription`, not a dedicated field.
+        This is the one thing genuinely still unknown without a real
+        sample — everything else above is now designable from the
+        public spec alone.
+
       **Gated plan, in order — each step gates the next:**
-      1. **Gate (reduced scope after the SARIF update above)**: get one
-         real sample SARIF report from ProvTrail once Elson's SARIF
-         output lands — specifically to confirm how the CVE ID and the
-         flagged code location are actually carried, not to reverse-
-         engineer an unknown bespoke format from scratch.
+      1. **Gate (narrowed further after the field-level check above)**:
+         get one real sample SARIF report from ProvTrail once Elson's
+         SARIF output lands — now specifically to see which
+         `properties` key (or `helpUri` pattern) carries the CVE ID,
+         since that's the one piece SARIF's standard doesn't fix. The
+         location and message fields are already known-good from the
+         public spec.
       2. Decide integration mode explicitly, don't default to the
          harder one without weighing it:
          - **(a) Class-level confirmation (recommended MVP)**: build
