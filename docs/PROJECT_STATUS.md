@@ -92,7 +92,13 @@ parallel system.
       expect once this project's own live-LLM session runs — not
       equivalent evidence, since it's a blog post, not peer-reviewed,
       and the architecture match doesn't make its numbers this
-      project's numbers. Also worth noting: the author's own caveat —
+      project's numbers. For contrast, Theori's own RoboDuck README
+      (a real AIxCC finalist, not a blog post) warns their
+      competition-tuned, multi-agent CRS "can easily spend $1,000 or
+      more in under an hour" -- the two real data points bound a huge
+      range (~$1/CVE vs. ~$1000/hour) depending entirely on model
+      choice and agent count, useful context for scoping the frozen
+      prompt set's cost before running it broadly. Also worth noting: the author's own caveat —
       "the refinement loop could generate exploits that worked but
       weren't genuinely exploitative" — is the same class of false-
       positive risk as the existence-only `verify()` bug found and
@@ -240,6 +246,27 @@ parallel system.
          real end-to-end case (ProvTrail flag -> dynamic confirmation)
          is success, not "all classes work." Report what doesn't work
          honestly rather than cherry-picking the class that does.
+
+      **Strong precedent found, 2026-09-17**: Team Atlanta's Atlantis —
+      the actual AIxCC Final Competition winner — has a real, working
+      module for exactly this shape of integration:
+      `example-crs-webservice/crs-sarif`. Verified against its own
+      README (not the source itself): it runs as
+      `python test_crs_sarif.py -s <sarif-report-path>`, taking a SARIF
+      report as input and running reachability analysis against it to
+      produce `sarif_analysis.json`. Sub-components: `sootup/`
+      (callgraph generation via the established Sootup framework for
+      Java), `tracer/` ("getting call traces from seed or pov" — a
+      dynamic complement to static reachability), and a genuine TP/FP
+      benchmark structure (SARIF reports from PoV-to-SARIF generation,
+      commercial SAST, and custom generation, scored against known
+      ground truth). This is real validation that "SARIF in ->
+      reachability analysis -> validated output" is a legitimate,
+      competition-winning architecture, not a shape this project
+      invented in isolation. Not a code-porting candidate — Sootup/SVF
+      are heavyweight academic frameworks, wrong scope for a student
+      FYP — but worth citing as precedent, and their TP/FP benchmark
+      methodology is worth a look for `docs/BENCHMARK_PROTOCOL.md`.
 
       **Explicitly NOT started before the free5GC paper's September 28
       deadline** — this needs the other student's actual code (not yet
