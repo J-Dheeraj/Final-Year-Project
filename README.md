@@ -11,8 +11,10 @@ exploit confirmation and patch validation for known CVEs**, plus **real
 reachability-filtered static analysis on real upstream source** (not
 fuzz-discovery of unknown bugs) — see
 [`docs/CRS_MAPPING.md`](docs/CRS_MAPPING.md) for the full framing, how the
-stages map onto DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts, and
-what's honestly still a gap. [`docs/REACHABILITY.md`](docs/REACHABILITY.md)
+stages map onto DARPA AIxCC / OSS-CRS cyber-reasoning-system concepts
+(including a verified architectural match against a real AIxCC finalist
+team's own README, not just a generic comparison), and what's honestly
+still a gap. [`docs/REACHABILITY.md`](docs/REACHABILITY.md)
 covers the reachability engine (ported from this FYP's earlier reachcrs
 prototype) against a real free5GC CVE; [`docs/FREE5GC_LAB.md`](docs/FREE5GC_LAB.md)
 covers the dynamic exploit lab for a related free5GC CVE.
