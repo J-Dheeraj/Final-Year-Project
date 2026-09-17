@@ -105,6 +105,39 @@ parallel system.
       fixed in this project's CVE-2026-78683 case (commit `da84781`),
       independently surfacing in someone else's pipeline too.
 
+      **More precise first-party number, 2026-09-17**: FuzzingBrain's
+      own README (correct current org is `fuzzingbrain`, not `o2lab` —
+      same project, renamed) states one example run measured at
+      **14.6 minutes and $2.14** against a $20 budget cap — a real,
+      specific number from the tool's own docs, not an estimate.
+
+      **Real citable paper found**: FuzzingBrain has an actual arXiv
+      paper, not just a competition repo — "All You Need Is A Fuzzing
+      Brain: An LLM-Powered System for Automated Vulnerability
+      Detection and Patching" (Sheng, Xu, Huang, Woodcock, Huang,
+      Donaldson, Gu, Huang, 2025), arXiv:2509.07225. Stronger and more
+      specific than the generic DARPA AIxCC results-page citation
+      already in the free5GC paper's Related Work — worth using in the
+      *thesis*'s Related Work chapter (not the locked paper). Also
+      genuinely runnable (`./FuzzingBrain.sh`, Docker mode, REST API,
+      MCP server, Apache-2.0, active commits) unlike Atlantis/Buttercup,
+      which need Kubernetes + Kythe/Sootup/SVF cloud infra to even start.
+
+      **Buttercup (Trail of Bits)**: also deployment-focused at the top
+      level, but confirms SARIF as a cross-team standard (`send_sarif.sh`
+      is a real script in their orchestrator, independent of Atlantis) —
+      further validating Elson's SARIF choice for ProvTrail against
+      actual competition practice, not just one team's convention. Their
+      `program-model/` (reachability-equivalent) uses Kythe + cscope +
+      JanusGraph — again heavyweight, cloud-scale (n2-highmem-8 instance,
+      70-minute Docker builds), not a porting candidate, same conclusion
+      as Atlantis's Sootup/SVF.
+
+      **Bug Buster (42-b3yond-6ug)**: README is deployment-only, no
+      architecture detail without digging into individual `components/`
+      subfolder READMEs, which the top-level README itself warns may be
+      outdated. Not pursued further — diminishing returns.
+
       Per an external review of this project:
       the flagship worked example (`docs/CRS_MAPPING.md`,
       `materials_for_glm.md`) has zero live model calls end to end —
