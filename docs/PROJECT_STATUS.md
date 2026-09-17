@@ -138,6 +138,42 @@ parallel system.
       subfolder READMEs, which the top-level README itself warns may be
       outdated. Not pursued further — diminishing returns.
 
+      **SHERPA — real results, but a genuine fuzzing-framing tension,
+      2026-09-17.** Checked the actual README, not just the one-line
+      description. It's a real, results-backed tool: 127+ raw crashes
+      across real OSS-Fuzz projects, auto-filtered by an LLM crash-triage
+      agent down to 18 validated CVE-class bugs (67% precision, CWE
+      breakdown published). Its core principle — prioritize
+      attacker-controlled entry points over low-level internal APIs —
+      is philosophically the same argument this project's reachability
+      filtering already makes. **But its mechanism is explicit,
+      proud, marketed fuzzing** ("Revolutionary LLM-powered fuzzing"),
+      built on libFuzzer coverage-guided campaigns. This project
+      deliberately dropped fuzzing framing this session, with the
+      professor's blessing (see "Project framing" in `CLAUDE.md`).
+      **Do not cite or adopt SHERPA's fuzzing mechanism without the
+      user explicitly asking** — same rule as fuzzing language
+      generally. The one separable, non-fuzzing part worth naming: its
+      Stage 1 "Intelligent Target Selection" (attacker-controlled
+      entry-point prioritization) is explicitly a distinct phase before
+      any fuzzing starts — confirms the entry-point-first principle is
+      sound industry practice, without requiring adoption of the
+      fuzzing stages that consume it.
+
+      **Repository Visualizer**: not a code-porting candidate (a
+      Three.js-style data viz frontend, "Created by Undaunted," a
+      contracted vendor). But it exposes real ground-truth data: the
+      actual AIxCC Final Competition task list — real production C/Java
+      projects (curl, wireshark, openssl, log4j2, xz, freerdp, poi,
+      pdfbox...) with real per-task vulnerability counts and codebase
+      scale (curl: ~4,000 files across many tasks; wireshark: ~7,000).
+      Useful as an honest scale comparison for the thesis — AIxCC
+      operates on huge, multi-thousand-file real projects at
+      competition-grade cloud infrastructure scale; this project
+      targets one CVE at a time with a lightweight, single-developer
+      pipeline. Worth naming that contrast explicitly rather than
+      letting page count silently imply equivalence.
+
       Per an external review of this project:
       the flagship worked example (`docs/CRS_MAPPING.md`,
       `materials_for_glm.md`) has zero live model calls end to end —
