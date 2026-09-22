@@ -327,6 +327,50 @@ python cve_watcher.py --interval 60 --workers 2
 
 ---
 
+## ProvTrail linkage (`provtrail_bridge.py`)
+
+[ProvTrail](https://github.com/ElsonNg/sc4079-fyp) is a companion FYP: a static
+scanner that finds JavaScript/TypeScript code cloned from known-vulnerable
+upstream functions and reports each hit as a **CVE/GHSA advisory ID + npm
+package + file:line**. Those advisory IDs are exactly this pipeline's input, so
+`provtrail_bridge.py` chains the two projects:
+
+```
+detect + locate (ProvTrail)  ->  confirm + patch (this pipeline)
+```
+
+The bridge reads a ProvTrail scan artifact and runs this pipeline for every
+advisory it flagged, then writes a combined report pairing ProvTrail's static
+locations with this pipeline's risk / probe / patch verdicts.
+
+```bash
+# Feed a ProvTrail SARIF or AI-text export straight in
+python provtrail_bridge.py --scan latest-scan.sarif
+python provtrail_bridge.py --scan latest-scan.ai.txt --format json
+
+# Raw provtrail_scan_v* JSON needs ProvTrail importable (it owns the advisory
+# selection); otherwise export SARIF/AI-text with `provtrail scan ... --sarif-output`.
+python provtrail_bridge.py --scan .provtrail/latest-scan.json
+```
+
+**Source with fallback.** If the ProvTrail source does not work — file
+missing/unreadable, unparseable, or zero advisories — the bridge falls back to
+this project's own NVD/GHSA feeds (reusing `cve_watcher`'s fetchers) so the
+pipeline still runs. `--source {auto,provtrail,feeds}` controls this
+(`auto` = ProvTrail-then-feeds, the default; `provtrail` = never fall back).
+
+**Auto by ecosystem.** ProvTrail flags npm advisories; this project's live labs
+are Python/Go. The live probe runs only when `package_labs.py` maps a finding's
+package to a real lab — otherwise the advisory gets advisory-fetch +
+classification + patch-diff only. No dynamic confirmation is ever claimed
+without a real target. `package_labs.PACKAGE_LABS` starts empty by design; add a
+`"package": "http://lab-url"` entry once a real lab exists.
+
+Outputs: one `reports/<CVE-ID>.{txt,json}` per advisory (the normal pipeline
+artifact) plus one combined `reports/provtrail_link_<timestamp>.{md,json}`.
+
+---
+
 ## Project structure
 
 ```
