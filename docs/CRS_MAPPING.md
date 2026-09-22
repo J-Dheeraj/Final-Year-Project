@@ -51,6 +51,27 @@ collapse onto that same three-phase shape:
 | Multi-agent orchestration (Fuzzing Brain, Bug Buster) | Single sequential pipeline, one CVE at a time | Absent. `cve_watcher.py` parallelizes *across* CVEs (2 workers by default) but each CVE's own pipeline run is strictly sequential, not a team of cooperating agents. |
 | Reachability-filtered analysis scope (reduce what an LLM must look at) | `src/reachability/` (ported from reachcrs) | Real — AST-based call graph + BFS from entry points, 96.1% reduction (102 -> 4 functions) on a real free5GC source file, not a regex heuristic. See `docs/REACHABILITY.md`. **Verified 2026-09-17 against o2lab's real 4th-place finalist README** (`o2lab/afc-crs-all-you-need-is-a-fuzzing-brain`, despite the name): their pipeline is `analyze -> direction planning -> sp-generate` — static reachability partitioning, then LLM "Suspicious-Point" triage, then fuzzing-driven verification. Same three-stage shape as this project (reachability filter -> triage -> dynamic confirmation), independently arrived at by a DARPA-funded finalist team, not just this project's own design choice. |
 
+## ProvTrail linkage (detection/localization front-end)
+
+The single biggest honest gap below is *discovery*: this pipeline confirms and
+patches a **known** advisory but does not, by itself, find where vulnerable code
+lives in a target project. [ProvTrail](https://github.com/ElsonNg/sc4079-fyp), a
+companion FYP, does exactly that for JavaScript/TypeScript — it statically
+matches project functions against known-vulnerable upstream code and emits each
+hit as a CVE/GHSA advisory ID + npm package + file:line. `provtrail_bridge.py`
+consumes ProvTrail's SARIF/AI-text export and drives this pipeline over every
+advisory it flagged, producing a combined `detect+locate -> confirm+patch`
+report. This is a *linkage of two separate projects*, not a claim that this
+pipeline gained a discovery stage; the bridge lives here and keeps ProvTrail
+unmodified. It also falls back to this project's own NVD/GHSA feeds when no
+ProvTrail scan is available, so the back-half still runs standalone.
+
+Honest scope of the linkage: ProvTrail flags npm advisories while this project's
+live labs are Python/Go, so for most linked advisories the pipeline runs
+advisory-fetch + classification + patch-diff only (no live probe) — the combined
+report labels each row accordingly, and dynamic confirmation is claimed only
+where `package_labs.py` maps the package to a real lab.
+
 ## What's genuinely real (evidence, not description)
 
 - **Dynamic confirmation (Stage 3.6/3.7)**: every `dynamically_confirmed: true`

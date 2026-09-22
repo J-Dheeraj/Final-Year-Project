@@ -1,0 +1,10 @@
+ProvTrail AI v1
+root: D:\GitHub\sc4079-fyp\examples\paired_demo\vulnerable
+src/
+  transport.js:1-10 VULN ids=CVE-2022-41919,GHSA-3fjj-p79j-c9hh pkg=fastify:unknown confidence=medium reason=Verification favours the vulnerable side of this specific upstream fix.
+  transport.js:12-12 VULN ids=CVE-2026-29057,GHSA-ggv3-7p47-pfv8 pkg=next:unknown confidence=high reason=Verification favours the vulnerable side of this specific upstream fix.
+  transport.js:14-16 REVIEW ids=CVE-2023-24807,GHSA-r6ch-mqf9-qc9w pkg=undici:unknown confidence=medium reason=Token correspondence did not pass. Generic structure alone does not establish this vulnerability.
+  utils.js:1-11 VULN ids=CVE-2024-48910,GHSA-p3vf-v8qc-cwcr pkg=dompurify:unknown confidence=high reason=Verification favours the vulnerable side of this specific upstream fix.
+  utils.js:13-15 REVIEW ids=CVE-2021-23369,CVE-2022-31129,CVE-2023-24807,CVE-2025-32442,CVE-2026-40175,GHSA-f2jv-r9rf-7988,GHSA-fvcv-3m26-pcqx,GHSA-mg2h-6x62-wpwc,GHSA-r6ch-mqf9-qc9w,GHSA-wc69-rhjr-hc9g pkg=axios:unknown,fastify:unknown,handlebars:unknown,moment:unknown,undici:unknown confidence=high reason=Token correspondence did not pass. Generic structure alone does not establish this vulnerability.
+  utils.js:17-23 REVIEW ids=CVE-2018-15685,CVE-2021-44906,CVE-2024-30261,CVE-2024-48910,CVE-2026-34573,GHSA-9qxr-qj54-h672,GHSA-hv9c-qwqg-qj3v,GHSA-mfj6-6p54-m98c,GHSA-p3vf-v8qc-cwcr,GHSA-xvch-5gv4-984h pkg=dompurify:unknown,electron:unknown,minimist:unknown,parse-server:unknown,undici:unknown confidence=medium reason=Patch correspondence is weak and does not clearly favour either side.
+total=6 vuln=3 review=3
