@@ -463,6 +463,22 @@ def _call_live_model(prompt: str, timeout: int = 180) -> LiveModelResult:
     return LiveModelResult("", "none", "", None, None, None, None)
 
 
+def _strip_code_fence(text: str) -> str:
+    """Some model responses wrap the extracted section in a markdown code
+    fence (```python ... ```) despite the prompt explicitly saying not to.
+    Strip a leading/trailing fence line if present, so the result is
+    always runnable Python rather than a file whose first line is a
+    literal ```python token - the round-3 catalog run bug that crashed
+    4/6 target_app.py files with SyntaxError at line 1 (see
+    reports/LIVE_LLM_CATALOG_RUN.md)."""
+    lines = text.splitlines()
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip().startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
 def _extract_marker(text: str, start: str, end: str) -> str:
     """Pull the text between two literal markers out of an LLM response -
     shared by Stage 3.5's generation prompt and Stage 3.7's revision
@@ -470,7 +486,7 @@ def _extract_marker(text: str, start: str, end: str) -> str:
     try:
         s = text.index(start) + len(start)
         e = text.index(end, s)
-        return text[s:e].strip()
+        return _strip_code_fence(text[s:e].strip())
     except ValueError:
         return ""
 
@@ -2391,6 +2407,14 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
             artifacts.execution_skip_reason = (
                 f"target_app.py never became healthy on :{port} "
                 f"(last error: {last_error})")
+            # Reset rather than leave stale: without this, a crash on a
+            # re-run after an earlier successful one left exit_code/
+            # dynamically_confirmed holding the PREVIOUS run's values, so
+            # refinement_history recorded a crashed revision as "ran and
+            # cleanly failed" instead of "never started" - the round-3
+            # catalog run bug documented in docs/SCOPE_AND_LIMITATIONS.md.
+            artifacts.exit_code = None
+            artifacts.dynamically_confirmed = False
             return artifacts
 
         try:
