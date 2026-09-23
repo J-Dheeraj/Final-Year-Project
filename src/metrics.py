@@ -65,6 +65,17 @@ def compute_metrics() -> dict:
     elapsed = [r.get("elapsed_s", 0.0) for r in reports if r.get("elapsed_s")]
     llm_calls = [_llm_call_estimate(r) for r in reports]
 
+    # Real (not estimated) totals from the live-LLM Gate-1/2 instrumentation
+    # (total_llm_* on PipelineReport). None-safe and reported separately from
+    # the llm_calls_*_estimate above rather than merged with it: older
+    # reports predate this field and simply don't contribute, which is
+    # honest under-reporting, not backfilled or guessed.
+    llm_duration = [r["total_llm_duration_s"] for r in reports if r.get("total_llm_duration_s") is not None]
+    llm_in_tok   = [r["total_llm_input_tokens"] for r in reports if r.get("total_llm_input_tokens") is not None]
+    llm_out_tok  = [r["total_llm_output_tokens"] for r in reports if r.get("total_llm_output_tokens") is not None]
+    llm_cost     = [r["total_llm_cost_usd"] for r in reports if r.get("total_llm_cost_usd") is not None]
+    n_with_real_llm_metrics = len(llm_duration)
+
     return {
         "n_cves": n,
         "n_confirmed": len(confirmed),
@@ -81,6 +92,11 @@ def compute_metrics() -> dict:
         "elapsed_s_median": round(statistics.median(elapsed), 2) if elapsed else None,
         "llm_calls_total_estimate": sum(llm_calls),
         "llm_calls_mean_estimate": round(statistics.mean(llm_calls), 2) if llm_calls else 0,
+        "n_with_real_llm_metrics": n_with_real_llm_metrics,
+        "llm_duration_s_total": round(sum(llm_duration), 2) if llm_duration else None,
+        "llm_input_tokens_total": sum(llm_in_tok) if llm_in_tok else None,
+        "llm_output_tokens_total": sum(llm_out_tok) if llm_out_tok else None,
+        "llm_cost_usd_total": round(sum(llm_cost), 4) if llm_cost else None,
     }
 
 
@@ -108,6 +124,13 @@ def render_markdown(m: dict) -> str:
          "- Wall-clock per CVE: not available (older reports predate `elapsed_s`)"),
         f"- LLM calls per CVE (estimate, undercounts Stage 2/3.5): "
         f"mean **{m['llm_calls_mean_estimate']}**, total **{m['llm_calls_total_estimate']}**",
+        (f"- Real live-model cost, {m['n_with_real_llm_metrics']}/{m['n_cves']} CVEs with "
+         f"the new instrumentation: **{m['llm_duration_s_total']}s** total run time, "
+         f"**{m['llm_input_tokens_total']}** input / **{m['llm_output_tokens_total']}** "
+         f"output tokens, **${m['llm_cost_usd_total']}** total cost"
+         if m['n_with_real_llm_metrics'] else
+         "- Real live-model cost: not available (no report yet carries total_llm_* — "
+         "run with the live-LLM Gate 1/2 instrumentation to populate this)"),
         "",
         "## By vulnerability class",
         "",
