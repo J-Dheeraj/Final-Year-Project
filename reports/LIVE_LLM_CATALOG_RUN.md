@@ -264,3 +264,80 @@ so the finding and the fix are separate, auditable steps rather than a
 silent correction folded into a number that's already been reported.
 
 Raw round-3 reports: `reports/llm_catalog_run_2026-09-23_round3/<CVE-ID>.json`.
+
+## Round 4 — both round-3 bugs fixed (commit `b05b45d`), same protocol re-run
+
+Fixed both bugs documented above: `_extract_marker` now strips a stray
+leading/trailing `` ``` `` fence (`_strip_code_fence`), and
+`execute_exploit_artifacts` now explicitly resets `exit_code`/
+`dynamically_confirmed` instead of leaving them stale when the target
+crashes before its health check. Verified independently before re-running
+the catalog: a unit test against the exact failure shape from round 3
+(response with an unstripped `` ```python `` fence) now parses as valid
+Python; a targeted test that runs a healthy target then swaps in a
+crashing one on the same `ExploitArtifacts` object now correctly shows
+`exit_code=None`/`dynamically_confirmed=False` instead of the previous
+run's stale `0`/`True`. Full test suite (7/7) still passes.
+
+Re-ran the identical protocol (one shot per CVE, `--no-cache`, sandboxed):
+
+| CVE | Class | Confirmed (r1) | Confirmed (r2) | Confirmed (r3) | Confirmed (r4) | Refine attempts | Patch attempted | Patch validated | Time (s) |
+|---|---|---|---|---|---|---|---|---|---|
+| CVE-2026-42208 | SQL Injection | **True** | False | False | False | 3 | False | — | 58.1 |
+| CVE-2026-27602 | OS Command Injection | False | False | False | **True** | 1 (`source=llm`) | **True** | False | 30.2 |
+| CVE-2026-23949 | Path Traversal | False | False | **True** | False | 3 | False | — | 55.0 |
+| CVE-2026-78683 | Insecure Deserialization | False | False | False | **True** | 0 | **True** | **True** | 17.7 |
+| CVE-2026-54729 | SSRF | False | **True** | False | **True** | 0 | **True** | False | 18.6 |
+| CVE-2026-46492 | XSS | False | **True** | False | **True** | 0 | **True** | False | 16.7 |
+| **Total** | | **1/6** | **2/6** | **1/6** | **4/6** | **7** | **4/6** | **1/6** | **196.4** |
+
+**This is a genuine jump, not noise dressed up as one:** 4/6 confirmed
+(vs. 1/6 in round 3, the previous best was round 2's 2/6), and zero of
+the six reports contain the markdown-fence `SyntaxError` crash signature
+anywhere in their `execution_log` (checked programmatically, not by
+spot-check) — the fence-stripping fix held across every CVE, not just
+the ones that ended up confirming. Three CVEs (`CVE-2026-78683`,
+`CVE-2026-54729`, `CVE-2026-46492`) confirmed on the **first** Stage 3.6
+attempt with zero refinement needed — in round 3 all three of these
+crashed on the fence bug and never got a real chance to succeed or fail
+on their own merits; this round shows what Stage 3.5's generation alone
+can do once its output isn't being silently mangled downstream.
+`CVE-2026-27602` is the more interesting case: it genuinely needed and
+got a working Stage 3.7 revision (`source=llm`, real diagnosis from a
+real failure log, not a lesson reuse) — the first time in this project's
+history a *live-generated-from-scratch* revision has fixed a failing
+exploit. That fix was also persisted to `.pipeline_lessons.json` as a new
+`OS Command Injection`/`generic_failure` lesson, available to any future
+CVE hitting the same signature.
+
+**First-ever validated patch: `CVE-2026-78683`.** Stage 3.8 generated a
+patch adding a class whitelist to the deserialization call; re-running
+the *original, unmodified* exploit against the patched target now gets a
+real `500` (`ValueError: Deserialization only allowed for safe classes`,
+visible verbatim in `patch_validation_log`) instead of the marker it got
+against the vulnerable version, while `/health` still returns `200`. Both
+required conditions hold for the first time across all four rounds.
+
+**Still open, honestly:** `CVE-2026-42208` (SQLi) and `CVE-2026-23949`
+(Path Traversal) did not confirm even with the fixes and 3 fresh
+LLM-diagnosed revision attempts each in *this* round — real, clean
+`[-] FAILED` results against a healthy target (not crashes), so the
+remaining gap here is prompt/diagnosis quality for these two specific
+classes on this run, not a plumbing bug. But counting per-class, not
+per-round: SQLi confirmed in round 1 and Path Traversal confirmed in
+round 3 — so **all 6 vulnerability classes in the catalog have now
+confirmed dynamically at least once across the four rounds combined**,
+none permanently stuck. What round 4 specifically adds is OS Command
+Injection's first-ever confirmation (via a genuine live-generated
+revision, not a template or a reused lesson) and Insecure
+Deserialization's first-ever confirmation *and* first-ever validated
+patch. The honest framing for the report: no class is unconfirmable, but
+no single round has confirmed all 6 at once, and a single-shot
+(non-fixed-seed) protocol means any one CVE's result can still flip
+between runs — see round 1 vs. round 2's SQLi flip, documented above.
+
+Total run cost: 196.4s, 16937 input tokens, 8783 output tokens,
+**$0.0000** (local Ollama).
+
+Raw round-4 reports: `reports/llm_catalog_run_2026-09-23_round4/<CVE-ID>.json`,
+full terminal transcript at `reports/llm_catalog_run_2026-09-23_round4/RAW_LOG.txt`.

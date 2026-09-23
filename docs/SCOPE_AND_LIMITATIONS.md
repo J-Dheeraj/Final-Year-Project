@@ -180,9 +180,24 @@ in the model's rewritten `target_app.py` (a parsing gap in
 was found to leave `exit_code`/`dynamically_confirmed` stale (carried over
 from the previous run) when the target crashes before its health check —
 meaning `refinement_history` entries for those crashes read as "ran and
-cleanly failed" when they actually never started. Neither is fixed as of
-this writing; both are documented in `reports/LIVE_LLM_CATALOG_RUN.md`
-before any code change, deliberately.
+cleanly failed" when they actually never started.
+
+**Update, round 4 (2026-09-23, commit `b05b45d`):** both bugs above are
+fixed (fence stripping via a new `_strip_code_fence` helper; explicit
+reset of `exit_code`/`dynamically_confirmed` on the crash path), each
+verified with a standalone targeted test before re-running the catalog.
+Zero of the six round-4 reports contain the fence-crash signature. This
+changes the "zero of 4 live-generated revisions produced a confirmed
+exploit" statement two paragraphs up: it no longer holds. Round 4
+confirmed `CVE-2026-27602` (OS Command Injection) via a genuine
+from-scratch Stage 3.7 revision (`source=llm`, not a reused lesson) — the
+first live-generated revision in this project's history to fix a failing
+exploit — and persisted it as a new lesson. Read this precisely: "the
+live-model plumbing runs" and "a live-generated revision successfully
+fixes a failing exploit" are now both Yes, but still only demonstrated
+once, for one class, in one run; it is not yet evidence the mechanism
+reliably works across classes or across repeated attempts at the same
+CVE.
 
 The report should state plainly that the live-model half of paths 1 and 2
 is untested in this environment, for the same reason `reachcrs`'s own
@@ -220,7 +235,7 @@ does not own or have permission to test.
 |---|---|---|
 | "The bug pattern described in CVE-X is exploitable" | Dynamic (real subprocess exit code) | Main pipeline, 5/6 confirmed CVEs |
 | "Package Y itself is exploitable" | Not demonstrated | — |
-| "A generated patch closes the known exploit without breaking the app" | Dynamic, two-check regression test | Stage 3.8 |
+| "A generated patch closes the known exploit without breaking the app" | Dynamic, two-check regression test; demonstrated once (2026-09-23 round 4, `CVE-2026-78683`) after 0/8 attempts across rounds 1-3 | Stage 3.8, `reports/LIVE_LLM_CATALOG_RUN.md` round 4 |
 | "Reachability analysis narrows 102 real functions to 4 relevant ones" | Real, AST-based | `src/reachability/`, free5GC |
 | "The generated free5GC patch compiles against the real project" | Real, compile-time | `verify_against_real_upstream.py` |
 | "The generated free5GC patch fixes the bug at runtime" | Not demonstrated | — |
