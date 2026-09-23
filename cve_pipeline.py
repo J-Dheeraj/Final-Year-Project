@@ -378,6 +378,13 @@ def _claude_available() -> bool:
 
 _OLLAMA_HOST  = os.environ.get("OLLAMA_HOST",  "http://localhost:11434")
 _OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
+# Pinned for reproducibility: round 1 vs round 2 of the live-LLM catalog run
+# (2026-09-23) were not a clean comparison because nothing fixed the model's
+# sampling - the same CVE, same prompt, flipped confirmed/unconfirmed between
+# runs. temperature=0 + a fixed seed makes repeat runs comparable; override
+# via env if a study specifically wants sampling variance.
+_OLLAMA_SEED        = int(os.environ.get("OLLAMA_SEED", "42"))
+_OLLAMA_TEMPERATURE = float(os.environ.get("OLLAMA_TEMPERATURE", "0"))
 
 
 @dataclass
@@ -424,7 +431,10 @@ def _call_ollama_metered(prompt: str, timeout: int = 180) -> LiveModelResult:
     try:
         r = requests.post(
             f"{_OLLAMA_HOST}/api/generate",
-            json={"model": _OLLAMA_MODEL, "prompt": prompt, "stream": False},
+            json={
+                "model": _OLLAMA_MODEL, "prompt": prompt, "stream": False,
+                "options": {"temperature": _OLLAMA_TEMPERATURE, "seed": _OLLAMA_SEED},
+            },
             timeout=timeout,
         )
         elapsed = round(time.monotonic() - t0, 3)
