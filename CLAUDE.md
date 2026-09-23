@@ -63,6 +63,41 @@ receives new commits: `git push fyp main:main`. Never `git push origin
 main`. This local checkout stays ahead of `origin` indefinitely — that's
 expected, not a problem to fix.
 
+## Multi-session coordination — mandatory, read before starting work
+
+This repo is regularly worked on from more than one Claude Code session at
+once (e.g. different local clones/paths on the same machine, or a review
+session running in parallel with a dev session). Native Claude Code
+auto-memory does NOT cover this: it's scoped per working-directory hash,
+so two sessions in two different clone paths have entirely separate,
+invisible-to-each-other memory stores. `docs/PROJECT_STATUS.md`'s session
+log is the one thing both sessions actually share (it's committed and
+pushed to the real GitHub repo), which makes it the de facto coordination
+mechanism — but only if every session actually uses it. This is not
+hypothetical: on 2026-09-23/24, two independent sessions each rediscovered
+and fixed the same Stage 3.7 bug, and one built real capability (multi-
+payload patch validation) the other never knew existed, purely because
+neither read the other's state before starting. **Concrete rule:**
+
+1. **Before starting any work**, `git fetch`/`git pull` and read
+   `docs/PROJECT_STATUS.md`'s session log — at minimum the newest 2-3
+   entries — so you know what another session may have already done,
+   in-flight, or found. If `main` has moved since your last known
+   commit, say so before proceeding, don't silently work from stale state.
+2. **Before ending a work session**, append a new dated entry to
+   `docs/PROJECT_STATUS.md`'s session log (newest-first, matching its
+   existing format) describing what was attempted and whether exit
+   criteria were met — even if the work isn't finished. An in-progress
+   or partially-done session still needs an entry; that's what lets the
+   next session (yours or another one) pick up accurately.
+3. **If you discover mid-session that another session is likely active
+   on this same repo right now** (e.g. `main` has commits you didn't
+   expect, a branch you're using already has unfamiliar commits), use
+   cross-session messaging (`ListAgents`/`SendMessage`, when available)
+   to flag it directly rather than silently reconciling or silently
+   proceeding — a live message is faster and more precise than either
+   session guessing from git state alone.
+
 ## Project framing (read before writing anything FYP-facing)
 
 This project's original pitch ("fuzzing LLMs to secure OSS") has been
