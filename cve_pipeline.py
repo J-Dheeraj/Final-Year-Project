@@ -217,6 +217,22 @@ class ExploitArtifacts(BaseModel):
     # the exact model tag. Empty when no live model was used.
     generation_backend: str = ""   # "claude" | "ollama" | "none"
     generation_model:   str = ""   # e.g. "qwen2.5-coder:7b" or "claude-cli"
+    # Real, measured cost of the generation call: run time, input/output
+    # tokens, and $ cost, per CVE, as requested — not an estimate.  Ollama
+    # supplies real token counts + duration from its own API response;
+    # Claude CLI text output exposes neither, so those fields stay None
+    # (unknown) rather than a fabricated number. cost_usd is 0.0 for local
+    # Ollama (real — no billing), None when unknown (Claude CLI) or unset.
+    generation_duration_s:    float | None = None
+    generation_input_tokens:  int   | None = None
+    generation_output_tokens: int   | None = None
+    generation_cost_usd:      float | None = None
+    # Same, for Stage 3.8's patch-generation call (a second, separate
+    # live-model call; not the same measurement as generation_* above).
+    patch_gen_duration_s:     float | None = None
+    patch_gen_input_tokens:   int   | None = None
+    patch_gen_output_tokens:  int   | None = None
+    patch_gen_cost_usd:       float | None = None
     # Stage 3.6 — did the generated artifact actually get RUN, and did it
     # actually reproduce the bug? Before this, an artifact could sit on disk
     # forever with nobody (human or pipeline) ever confirming it worked -
@@ -304,21 +320,31 @@ def _call_claude(prompt: str, timeout: int = 120) -> str:
     No ANTHROPIC_API_KEY required — works transparently inside Claude Code sessions.
     Falls back gracefully if claude CLI is not available.
     """
+    return _call_claude_metered(prompt, timeout).text
+
+
+def _call_claude_metered(prompt: str, timeout: int = 120) -> "LiveModelResult":
+    """Same as _call_claude, but also measures real wall-clock duration.
+    Token counts/cost are left None: `claude -p --output-format text` does not
+    expose usage data, and this pipeline does not guess a per-token price."""
+    t0 = time.monotonic()
     try:
         result = subprocess.run(
             ["claude", "-p", prompt, "--output-format", "text"],
             capture_output=True, text=True, timeout=timeout,
         )
+        elapsed = round(time.monotonic() - t0, 3)
         if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+            return LiveModelResult(result.stdout.strip(), "claude", "claude-cli", elapsed, None, None, None)
         log.debug("claude -p non-zero exit: %s", result.stderr[:200])
+        return LiveModelResult("", "claude", "claude-cli", elapsed, None, None, None)
     except FileNotFoundError:
         log.debug("claude CLI not found — AI enhancement skipped")
     except subprocess.TimeoutExpired:
         log.debug("claude -p timed out after %ds", timeout)
     except Exception as exc:
         log.debug("claude -p error: %s", exc)
-    return ""
+    return LiveModelResult("", "claude", "claude-cli", round(time.monotonic() - t0, 3), None, None, None)
 
 
 def _claude_available() -> bool:
@@ -343,6 +369,23 @@ _OLLAMA_HOST  = os.environ.get("OLLAMA_HOST",  "http://localhost:11434")
 _OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
 
 
+@dataclass
+class LiveModelResult:
+    """One live-model call's completion plus its real, measured cost —
+    per the benchmark protocol's ask to record run time / tokens / cost for
+    every CVE, not an estimate. Ollama's own API response carries exact
+    prompt_eval_count/eval_count/duration fields, used directly here, not
+    guessed. Claude CLI text output exposes no usage data, so its token/cost
+    fields are left None (genuinely unknown) rather than fabricated."""
+    text:           str
+    backend:        str            # "claude" | "ollama" | "none"
+    model:          str
+    duration_s:     float | None
+    input_tokens:   int   | None
+    output_tokens:  int   | None
+    cost_usd:       float | None   # 0.0 for local Ollama (real, no billing); None = unknown
+
+
 def _ollama_available() -> bool:
     """Return True if a local Ollama server is reachable and has the model."""
     try:
@@ -358,18 +401,37 @@ def _ollama_available() -> bool:
 
 def _call_ollama(prompt: str, timeout: int = 180) -> str:
     """Call the local Ollama server. Returns completion text, or '' on failure."""
+    return _call_ollama_metered(prompt, timeout).text
+
+
+def _call_ollama_metered(prompt: str, timeout: int = 180) -> LiveModelResult:
+    """Same as _call_ollama, but also captures Ollama's own real per-call
+    metrics (prompt_eval_count/eval_count/total_duration) straight from its
+    API response — not estimated. Local inference has no API bill, so
+    cost_usd is a real 0.0, not an unknown."""
+    t0 = time.monotonic()
     try:
         r = requests.post(
             f"{_OLLAMA_HOST}/api/generate",
             json={"model": _OLLAMA_MODEL, "prompt": prompt, "stream": False},
             timeout=timeout,
         )
+        elapsed = round(time.monotonic() - t0, 3)
         if r.status_code == 200:
-            return (r.json().get("response") or "").strip()
+            body = r.json()
+            text = (body.get("response") or "").strip()
+            # Ollama reports durations in nanoseconds; prefer its own
+            # total_duration over our wall-clock timer when present.
+            duration_s = round(body["total_duration"] / 1e9, 3) if "total_duration" in body else elapsed
+            return LiveModelResult(
+                text, "ollama", _OLLAMA_MODEL, duration_s,
+                body.get("prompt_eval_count"), body.get("eval_count"), 0.0,
+            )
         log.debug("ollama non-200: %s", r.status_code)
+        return LiveModelResult("", "ollama", _OLLAMA_MODEL, elapsed, None, None, 0.0)
     except Exception as exc:
         log.debug("ollama error: %s", exc)
-    return ""
+    return LiveModelResult("", "ollama", _OLLAMA_MODEL, round(time.monotonic() - t0, 3), None, None, 0.0)
 
 
 def _live_model_available() -> bool:
@@ -377,18 +439,17 @@ def _live_model_available() -> bool:
     return _claude_available() or _ollama_available()
 
 
-def _call_live_model(prompt: str, timeout: int = 180) -> tuple[str, str, str]:
-    """Call the best available live model. Returns (completion, backend, model);
-    backend is "claude", "ollama", or "none" when nothing produced output."""
+def _call_live_model(prompt: str, timeout: int = 180) -> LiveModelResult:
+    """Call the best available live model: Claude CLI first, then local Ollama.
+    Returns a LiveModelResult carrying the real duration/tokens/cost of
+    whichever backend actually answered."""
     if _claude_available():
-        out = _call_claude(prompt, timeout)
-        if out:
-            return out, "claude", "claude-cli"
+        result = _call_claude_metered(prompt, timeout)
+        if result.text:
+            return result
     if _ollama_available():
-        out = _call_ollama(prompt, timeout)
-        if out:
-            return out, "ollama", _OLLAMA_MODEL
-    return "", "none", ""
+        return _call_ollama_metered(prompt, timeout)
+    return LiveModelResult("", "none", "", None, None, None, None)
 
 
 def _extract_marker(text: str, start: str, end: str) -> str:
@@ -2055,8 +2116,7 @@ def generate_exploit_artifacts(
     # ── 1. Try Claude -p for AI-generated, CVE-specific code ─────────────────
     poc_code    = ""
     target_code = ""
-    gen_backend = "none"
-    gen_model   = ""
+    gen_call    = LiveModelResult("", "none", "", None, None, None, None)
     model_avail = _live_model_available()
 
     if model_avail:
@@ -2135,11 +2195,11 @@ Important rules:
   real backend to query, so nothing may depend on one existing.
 - No markdown fences, no explanations outside the markers.
 """
-        raw, gen_backend, gen_model = _call_live_model(prompt, timeout=180)
+        gen_call = _call_live_model(prompt, timeout=180)
 
-        if raw:
-            poc_code    = _extract_marker(raw, "===POC_START===",    "===POC_END===")
-            target_code = _extract_marker(raw, "===TARGET_START===", "===TARGET_END===")
+        if gen_call.text:
+            poc_code    = _extract_marker(gen_call.text, "===POC_START===",    "===POC_END===")
+            target_code = _extract_marker(gen_call.text, "===TARGET_START===", "===TARGET_END===")
 
             if poc_code and target_code:
                 log.info("[Stage 3.5] AI-generated artifacts for %s", cve_id)
@@ -2207,8 +2267,12 @@ Important rules:
             poc_summary        = poc_summary,
             iterations         = 1,
             generation_outcome = generation_outcome,
-            generation_backend = gen_backend,
-            generation_model   = gen_model,
+            generation_backend = gen_call.backend,
+            generation_model   = gen_call.model,
+            generation_duration_s    = gen_call.duration_s,
+            generation_input_tokens  = gen_call.input_tokens,
+            generation_output_tokens = gen_call.output_tokens,
+            generation_cost_usd      = gen_call.cost_usd,
         )
     except Exception as exc:
         log.warning("[Stage 3.5] Failed to write artifacts: %s", exc)
