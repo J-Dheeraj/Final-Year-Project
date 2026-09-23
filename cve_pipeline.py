@@ -511,6 +511,37 @@ def _strip_markdown_fence(code: str) -> str:
     return stripped.strip()
 
 
+def _clean_payload_variants(raw: str) -> list[str]:
+    """Parse the ===PAYLOADS=== section into real payload strings. Two real
+    extraction-quality bugs found live (2026-09-23) and fixed defensively
+    here rather than trusted away:
+    (1) a model echoing the prompt's own placeholder instruction back as a
+        "payload" instead of replacing it - dropped by rejecting any line
+        that is entirely wrapped in parentheses (the placeholder's own
+        format), since a real attack payload is never shaped that way;
+    (2) a model wrapping each payload in a single backtick per line
+        (`payload`) despite the prompt saying plain text - stripped."""
+    whole = raw.strip()
+    if whole.startswith("(") and whole.endswith(")"):
+        # The entire block is one parenthetical - almost certainly the
+        # model echoing the prompt's own multi-line placeholder text back
+        # verbatim rather than replacing it, not real payloads split across
+        # lines (found live: this specific shape, not a per-line case).
+        return []
+    variants = []
+    for ln in raw.splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        if ln.startswith("(") and ln.endswith(")"):
+            continue  # echoed placeholder instruction, not a real payload
+        if ln.startswith("`") and ln.endswith("`") and len(ln) >= 2:
+            ln = ln[1:-1].strip()
+        if ln:
+            variants.append(ln)
+    return variants
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # pydantic-ai agent
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2279,7 +2310,7 @@ Important rules:
             poc_code    = _extract_marker(gen_call.text, "===POC_START===",    "===POC_END===")
             target_code = _extract_marker(gen_call.text, "===TARGET_START===", "===TARGET_END===")
             payloads_raw = _extract_marker(gen_call.text, "===PAYLOADS_START===", "===PAYLOADS_END===")
-            payload_variants = [ln.strip() for ln in payloads_raw.splitlines() if ln.strip()]
+            payload_variants = _clean_payload_variants(payloads_raw)
 
             if poc_code and target_code:
                 log.info("[Stage 3.5] AI-generated artifacts for %s", cve_id)
