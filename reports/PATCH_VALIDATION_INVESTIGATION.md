@@ -122,6 +122,17 @@ data - both are shown exactly as extracted - but both mean the "payload"
 tested in those specific cases wasn't a real, well-formed exploit attempt.
 Not fixed here; noted as a further extraction-robustness gap.
 
+**Update, same day, after this report was written**: fixed in commit
+`7c7cfbe`. `_clean_payload_variants()` now drops a whole block that's a
+single parenthetical (the echoed-placeholder case) and strips a
+wrapping single backtick per line (the `CVE-2026-46492` case). Verified
+offline against both bad inputs found here, a clean case, and a
+mixed-line case, plus one live re-run (`qwen2.5-coder:1.5b` /
+`CVE-2026-46492`) confirming `payload_variants` now comes back clean or
+empty, never garbage. This paragraph is left as-written above (the
+honest record of what was true when this report was produced) — read
+this update alongside it, not as a silent replacement.
+
 ## Bottom line
 
 Four real bugs found and fixed (fence, missing run block, discarded
