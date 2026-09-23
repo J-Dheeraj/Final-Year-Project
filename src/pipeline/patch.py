@@ -19,14 +19,6 @@ direction would be circular.
 from pathlib import Path
 
 
-def _extract_marker(text: str, start: str, end: str) -> str:
-    i = text.find(start)
-    j = text.find(end)
-    if i == -1 or j == -1 or j < i:
-        return ""
-    return text[i + len(start):j].strip()
-
-
 def _llm_generate_patch(vuln_class: str, root_cause: str, fix_summary: str,
                          target_text: str):
     """Ask a live model to patch the vulnerable target's handler. Returns
@@ -35,7 +27,7 @@ def _llm_generate_patch(vuln_class: str, root_cause: str, fix_summary: str,
     path in this pipeline. Uses the same provider-agnostic backend as Stage
     3.5 (Claude CLI first, local Ollama fallback), not just the Claude CLI.
     The LiveModelResult carries this call's real duration/tokens/cost."""
-    from cve_pipeline import _call_live_model, _live_model_available
+    from cve_pipeline import _call_live_model, _live_model_available, _extract_marker
     if not _live_model_available():
         return None
     prompt = f"""\
