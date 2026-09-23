@@ -112,19 +112,22 @@ _BUILTIN_REVISIONS: dict[str, dict] = {
 
 
 def _llm_revise_artifacts(vuln_class: str, poc_text: str, target_text: str,
-                           execution_log: str) -> tuple[str, str] | None:
-    """Ask Claude to diagnose why the generated exploit failed and rewrite
-    both files to fix it. This is the path that lets Stage 3.7 handle a
-    failure NOBODY anticipated - not just the ones already recognized by
-    a failure-signature match and hand-coded into _BUILTIN_REVISIONS. The
-    other two paths (lessons store, built-in rules) can only ever cover
-    what a human already noticed and coded a fix for; this one can, in
-    principle, cover anything the log itself makes diagnosable. Returns
-    None (never raises) if no AI backend is available or the response
-    doesn't parse - the caller falls back to reporting "no known
-    revision" rather than pretending a fix was attempted."""
-    from cve_pipeline import _call_claude, _claude_available, _extract_marker
-    if not _claude_available():
+                           execution_log: str):
+    """Ask a live model to diagnose why the generated exploit failed and
+    rewrite both files to fix it. This is the path that lets Stage 3.7
+    handle a failure NOBODY anticipated - not just the ones already
+    recognized by a failure-signature match and hand-coded into
+    _BUILTIN_REVISIONS. The other two paths (lessons store, built-in
+    rules) can only ever cover what a human already noticed and coded a
+    fix for; this one can, in principle, cover anything the log itself
+    makes diagnosable. Uses the same provider-agnostic backend as Stage
+    3.5/3.8 (Claude CLI first, local Ollama fallback), not just the
+    Claude CLI. Returns (poc_code, target_code, LiveModelResult), or None
+    (never raises) if no AI backend is available or the response doesn't
+    parse - the caller falls back to reporting "no known revision" rather
+    than pretending a fix was attempted."""
+    from cve_pipeline import _call_live_model, _live_model_available, _extract_marker
+    if not _live_model_available():
         return None
     prompt = f"""\
 You previously wrote a proof-of-concept exploit (poc.py) and a minimal
@@ -161,14 +164,14 @@ Output EXACTLY two sections, no markdown fences, no commentary outside them:
 (complete corrected target_app.py)
 ===TARGET_END===
 """
-    raw = _call_claude(prompt, timeout=180)
-    if not raw:
+    gen_call = _call_live_model(prompt, timeout=180)
+    if not gen_call.text:
         return None
-    poc_code = _extract_marker(raw, "===POC_START===", "===POC_END===")
-    target_code = _extract_marker(raw, "===TARGET_START===", "===TARGET_END===")
+    poc_code = _extract_marker(gen_call.text, "===POC_START===", "===POC_END===")
+    target_code = _extract_marker(gen_call.text, "===TARGET_START===", "===TARGET_END===")
     if not poc_code or not target_code:
         return None
-    return poc_code, target_code
+    return poc_code, target_code, gen_call
 
 
 def refine_and_reexecute(artifacts: "ExploitArtifacts", vuln_class: str,
@@ -220,6 +223,7 @@ def refine_and_reexecute(artifacts: "ExploitArtifacts", vuln_class: str,
                 if changed:
                     new_poc_text, new_target_text = p, t
 
+        revision_call = None
         if new_poc_text is None:
             # No lesson, no built-in rule, or the rule didn't match this
             # source - the path that lets Stage 3.7 handle a failure
@@ -227,13 +231,26 @@ def refine_and_reexecute(artifacts: "ExploitArtifacts", vuln_class: str,
             llm_fix = _llm_revise_artifacts(vuln_class, poc_text, target_text,
                                              artifacts.execution_log)
             if llm_fix is not None:
-                new_poc_text, new_target_text = llm_fix
+                new_poc_text, new_target_text, revision_call = llm_fix
                 source = "llm"
                 rule = {"description": "LLM-diagnosed revision from the execution log",
                         "poc_full": new_poc_text, "target_full": new_target_text}
 
         entry = {"iteration": iteration, "signature": signature, "source": source,
                   "exit_code_before": artifacts.exit_code}
+        # Real, measured cost of this iteration's live-model call, per the
+        # benchmark protocol's "record time/tokens/cost for every call"
+        # rule - same shape as generation_*/patch_gen_* on ExploitArtifacts,
+        # but scoped per-attempt here since a single CVE can retry multiple
+        # times. None (not 0) when this iteration used a lesson/built-in
+        # rule instead of a live call, or when no revision was attempted.
+        if revision_call is not None:
+            entry["revision_backend"]       = revision_call.backend
+            entry["revision_model"]         = revision_call.model
+            entry["revision_duration_s"]    = revision_call.duration_s
+            entry["revision_input_tokens"]  = revision_call.input_tokens
+            entry["revision_output_tokens"] = revision_call.output_tokens
+            entry["revision_cost_usd"]      = revision_call.cost_usd
 
         if new_poc_text is None:
             entry["outcome"] = ("no known revision, and no AI backend available "
