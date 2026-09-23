@@ -13,6 +13,53 @@ PR history: an earlier session's testing on `CVE-2026-42208` briefly
 overwrote the real catalog files by accident and was restored before
 committing anything).
 
+## The 6 test cases — what is actually being tested
+
+Each "test case" is one real, disclosed CVE. Rounds 1–4 all run the
+*same* 6 CVEs, one per vulnerability class the pipeline classifies into,
+each verified against GitHub's advisory API before use (not a
+search-result summary). For each, the pipeline (a) fetches the real
+advisory, (b) generates a minimal Flask app that reproduces the
+vulnerable code pattern plus a PoC exploit script targeting it, then
+(c) actually runs the PoC against the app and checks the real HTTP
+response/exit code — not a description of what should happen.
+
+The exact payload and vulnerable route shown below are from round 4's
+generated artifacts (`/tmp` sandbox, not committed — regenerate with
+`--no-cache` to see a fresh pair; content varies shot-to-shot since
+nothing pins the model's sampling).
+
+| CVE | Package | CVSS | Class (CWE) | Real root cause |
+|---|---|---|---|---|
+| [CVE-2026-42208](https://github.com/advisories/GHSA-r75f-5x8p-qvmc) | litellm | 9.8 CRITICAL | SQL Injection (CWE-89) | A database query for proxy API-key checks mixes the caller-supplied key directly into the query text instead of passing it as a parameter |
+| [CVE-2026-27602](https://github.com/advisories/GHSA-wwv8-cqpr-vx3m) | modoboa | 7.2 HIGH | OS Command Injection (CWE-78) | Domain names flow into a shell command string with no sanitization; a Reseller/SuperAdmin can inject shell metacharacters |
+| [CVE-2026-23949](https://github.com/advisories/GHSA-58pv-8j8x-9vj2) | jaraco.context | 8.6 HIGH | Path Traversal (CWE-22) | Zip Slip vulnerability in `jaraco.context.tarball()`; a crafted (including nested) tarball can escape the extraction directory |
+| [CVE-2026-78683](https://advisories.gitlab.com/pypi/nltk/CVE-2026-78683/) | nltk | 9.6 CRITICAL | Insecure Deserialization (CWE-502) | `pickle_load()` called with `restricted=False`, permitting arbitrary class resolution — an attacker-supplied model file can smuggle a pickle gadget chain |
+| [CVE-2026-54729](https://github.com/advisories/GHSA-5846-7qm3-r52j) | dssrf (npm) | not listed | SSRF (CWE-918) | A user-controlled URL is fetched without IP validation, allowing access to internal-only endpoints (e.g. cloud metadata) |
+| [CVE-2026-46492](https://github.com/advisories/GHSA-32q2-hhr5-6qvv) | md-fileserver | 7.2 HIGH | XSS (CWE-80) | User-supplied Markdown is rendered with embedded raw HTML (including `<script>`) processed and injected without sanitization |
+
+**The concrete test each PoC actually runs** (round 4's generated pair;
+the simulated Flask target reproduces the pattern above without a real
+database/filesystem/subprocess — per the generation prompt's own rule,
+so nothing depends on external state):
+
+| CVE | Vulnerable route (simulated) | Exact attacker payload sent | Pass condition |
+|---|---|---|---|
+| CVE-2026-42208 | `POST /chat/completions`, checks `Authorization` header | `Authorization: Bearer ' OR '1'='1'` | Handler's string check for the injected SQLi-shaped auth bypass succeeds, response returns the success marker |
+| CVE-2026-27602 | `POST /vulnerable`, `domain` form field concatenated into a shell command string | `domain=test; echo <marker>` | Injected `; echo <marker>` payload reaches the command output |
+| CVE-2026-23949 | `POST /extract`, `file` form field (blocks literal `..`) | `file=/../../config/.env` | Traversal payload reads outside the intended directory despite the naive `..` filter |
+| CVE-2026-78683 | `POST /vulnerable`, raw body passed to `pickle.loads()` | `pickle.dumps({"__class__": "os", "__init__": ("system", ("echo <marker>",))})` | Deserializing the crafted payload executes the embedded command |
+| CVE-2026-54729 | `GET /vulnerable?url=...` | `url=http://127.0.0.1:8080/Marker` | The internal-looking URL is "fetched" (no IP validation), response returns the marker |
+| CVE-2026-46492 | `POST /render`, `markdown` form field returned unsanitized | `markdown=<script>alert('XSS')</script>` | Raw `<script>` payload is reflected unescaped in the response body |
+
+For every case, `verify()` in the generated `poc.py` checks for exactly
+one marker string appearing in the response — not status codes, not
+loosely-related substrings — and a request with an ordinary,
+non-malicious value for the same parameter must NOT return that marker
+(a rule stated explicitly in the Stage 3.5 generation prompt, to keep
+"confirmed" meaning "the specific malicious input caused the extra
+behavior," not "the endpoint responded at all").
+
 ## Setup
 
 - **Model**: `qwen2.5-coder:7b` via local Ollama (`OLLAMA_HOST=http://localhost:11434`).
