@@ -6,6 +6,29 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-23** — Built the *ingestion + orchestration* half of the
+  Phase 4 ProvTrail item (`provtrail_bridge.py`, `package_labs.py`,
+  `tests/test_provtrail_bridge.py` + SARIF/AI-text fixtures; pushed to
+  `fyp` as `2e7a6b4`). The bridge reads a ProvTrail SARIF / AI-text / raw
+  `provtrail_scan_v*` JSON scan, dedupes advisories, runs the existing
+  `cve_pipeline` per advisory, and writes a combined detect+locate ->
+  confirm+patch report; falls back to this project's own NVD/GHSA feeds
+  when no scan is usable. **Gate 1 cleared** (see the ProvTrail item):
+  a real sample from Elson confirms the CVE ID travels in
+  `properties.provtrail.advisoryIds` (the generic properties bag, exactly
+  as predicted), location in the standard `physicalLocation`,
+  priority/confidence alongside; all three export formats resolve to the
+  identical 6 advisories, verified by an offline test. **Exit criterion
+  for the FULL item NOT met and not claimed**: the pipeline still
+  generates only Python Flask targets, so every JS/npm advisory the bridge
+  runs is honestly reported "static+patch only (no matching lab)" — zero
+  dynamic confirmation of a ProvTrail finding yet. Steps 2-4 (JS/TS
+  dynamic execution) remain; `package_labs.py` is the seam where a future
+  Node/Express lab registers. JS/TS build still deferred per the Sept 28
+  note in that item. Done this session at the user's direction, ahead of
+  the item's original "revisit after Sept 28" framing — a deliberate
+  divergence, not a silent one.
+
 - **2026-09-15** — Extended the Stage 2 classification ablation from
   n=1 to the full 6-CVE catalog (`docs/BENCHMARK_PROTOCOL.md` §7), run
   directly against the real `_classify_from_text`/`_classify_from_cwe`
@@ -283,14 +306,31 @@ parallel system.
         sample — everything else above is now designable from the
         public spec alone.
 
+      **Progress, 2026-09-23**: the ingestion + orchestration layer is
+      built and pushed (`provtrail_bridge.py`, `package_labs.py`, tests;
+      commit `2e7a6b4`) — parses ProvTrail SARIF/AI-text/raw JSON, feeds
+      each advisory to the existing `cve_pipeline`, writes a combined
+      report, and falls back to NVD/GHSA feeds when no scan is usable.
+      This is the wire-up the note above said is *not* the hard part; the
+      hard part (steps 2-4, JS/TS dynamic execution) is untouched. Run
+      today it dynamically confirms nothing — every JS advisory is
+      "static+patch only (no matching lab)" — so the item stays open.
+
       **Gated plan, in order — each step gates the next:**
-      1. **Gate (narrowed further after the field-level check above)**:
-         get one real sample SARIF report from ProvTrail once Elson's
-         SARIF output lands — now specifically to see which
-         `properties` key (or `helpUri` pattern) carries the CVE ID,
-         since that's the one piece SARIF's standard doesn't fix. The
-         location and message fields are already known-good from the
-         public spec.
+      1. **Gate — CLEARED 2026-09-23.** Real ProvTrail SARIF/AI-text
+         samples are now in hand (`tests/fixtures/provtrail/`). The CVE ID
+         travels in `properties.provtrail.advisoryIds` (the generic
+         `properties` bag, exactly as predicted above — not a taxonomy),
+         with `packages`, `confidence`, and `priority` alongside it, and
+         the location in the standard `physicalLocation`. The raw
+         `provtrail_scan_v*` scan JSON is ProvTrail's internal state, not a
+         consumer contract — its advisory *selection* needs ProvTrail's own
+         `finding_exports.project_findings`, so the bridge uses that when
+         ProvTrail is importable and otherwise asks for the SARIF/AI-text
+         export. Original gate text (kept for context): get one real sample
+         SARIF report to see which `properties` key carries the CVE ID,
+         since that's the one piece SARIF's standard doesn't fix; location
+         and message fields were already known-good from the public spec.
       2. Decide integration mode explicitly, don't default to the
          harder one without weighing it:
          - **(a) Class-level confirmation (recommended MVP)**: build
