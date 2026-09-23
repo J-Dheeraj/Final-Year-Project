@@ -29,11 +29,13 @@ def _extract_marker(text: str, start: str, end: str) -> str:
 
 def _llm_generate_patch(vuln_class: str, root_cause: str, fix_summary: str,
                          target_text: str) -> tuple[str, str] | None:
-    """Ask Claude to patch the vulnerable target's handler. Returns
+    """Ask a live model to patch the vulnerable target's handler. Returns
     (patched_source, one_line_summary) or None if unavailable/unparseable -
-    never raises, mirroring every other AI-optional path in this pipeline."""
-    from cve_pipeline import _call_claude, _claude_available
-    if not _claude_available():
+    never raises, mirroring every other AI-optional path in this pipeline.
+    Uses the same provider-agnostic backend as Stage 3.5 (Claude CLI first,
+    local Ollama fallback), not just the Claude CLI."""
+    from cve_pipeline import _call_live_model, _live_model_available
+    if not _live_model_available():
         return None
     prompt = f"""\
 Below is a minimal Flask app that deliberately reproduces a real
@@ -63,7 +65,7 @@ Output EXACTLY two sections, no markdown fences, no commentary outside them:
 (one sentence describing the fix)
 ===SUMMARY_END===
 """
-    raw = _call_claude(prompt, timeout=180)
+    raw, _backend, _model = _call_live_model(prompt, timeout=180)
     if not raw:
         return None
     patched = _extract_marker(raw, "===PATCHED_TARGET_START===", "===PATCHED_TARGET_END===")
