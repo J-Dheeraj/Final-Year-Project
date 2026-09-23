@@ -146,3 +146,76 @@ for SQLi in step 3 is the working hypothesis, not yet confirmed for
 these two.
 
 Raw round-2 reports: `reports/llm_catalog_run_2026-09-23_round2/<CVE-ID>.json`.
+
+## Round 3 — Stage 3.7 self-improvement wired to the live-model backend
+
+Before this round, `src/pipeline/self_improve.py`'s `_llm_revise_artifacts`
+(Stage 3.7's LLM-diagnosis path) still called `_call_claude`/
+`_claude_available` directly — the one call site the live-model backend
+work (`_call_live_model`/`_live_model_available`, used by Stage 3.5 and
+3.8 above) never reached. Under Ollama-only conditions (no `claude` CLI on
+this machine — `claude_available: False`, confirmed live), Stage 3.7
+silently never ran: `_claude_available()` returned `False` and every
+refinement attempt exited immediately with no retry, no diagnosis, and no
+log line explaining why. Fixed in commit `e344966` by mirroring the exact
+pattern already proven for Stage 3.5/3.8: swap in `_call_live_model`/
+`_live_model_available`, and record `revision_backend`/`revision_model`/
+`revision_duration_s`/`revision_input_tokens`/`revision_output_tokens`/
+`revision_cost_usd` on each `refinement_history` entry, matching the
+`generation_*`/`patch_gen_*` metrics convention already on
+`ExploitArtifacts`.
+
+Re-ran the same protocol (one shot per CVE, `--no-cache`, sandboxed the
+same way) with the fix in place:
+
+| CVE | Class | Confirmed (r1) | Confirmed (r2) | Confirmed (r3) | Refine attempts | Patch attempted | Patch validated | Time (s) | Tokens in/out |
+|---|---|---|---|---|---|---|---|---|---|
+| CVE-2026-42208 | SQL Injection | **True** | False | False | 3 | False | — | 49.8 | 4356 / 2327 |
+| CVE-2026-27602 | OS Command Injection | False | False | False | 2 | False | — | 24.2 | 2255 / 1122 |
+| CVE-2026-23949 | Path Traversal | False | False | **True** | 1 | True | False | 22.3 | 2028 / 1017 |
+| CVE-2026-78683 | Insecure Deserialization | False | False | False | 3 | False | — | 48.8 | 4727 / 2257 |
+| CVE-2026-54729 | SSRF | False | **True** | False | 3 | False | — | 50.1 | 3996 / 2348 |
+| CVE-2026-46492 | Cross-Site Scripting | False | **True** | False | 2 | False | — | 22.9 | 2243 / 1064 |
+| **Total** | | **1/6** | **2/6** | **1/6** | **14** | **1/6** | **0/6** | **218.1** | **19605 / 10135** |
+
+**Read honestly, not as "the fix raised the confirmation rate":** round 3's
+raw count (1/6) is not higher than round 2's (2/6) — a working retry
+mechanism is not the same thing as a mechanism that always finds the
+right fix. What changed is real: `CVE-2026-23949` confirmed specifically
+because Stage 3.7's cross-CVE lesson reuse fired for the first time in
+this pipeline's history — `source=lesson`, reusing a "Path
+Traversal/endpoint_not_found" fix already persisted in
+`.pipeline_lessons.json` from an earlier session, applied on the very
+first refinement attempt with zero extra diagnosis needed. Under the old
+(broken) code this code path was never even reached: `_claude_available()`
+short-circuited to `False` before the lessons-store lookup could run.
+
+The other 5 CVEs got genuine LLM-diagnosed retries this round (visible in
+the raw logs as `[Stage 3.7] Applying revision ... source=llm`, 2–3
+iterations each) but none of the revisions fixed the underlying issue —
+`CVE-2026-27602` and `CVE-2026-46492` hit `signature=generic_failure` with
+"no usable revision" logged after their attempts; the other three
+exhausted `max_iterations=3`. This is informative, not a null result: it
+confirms the wiring works end-to-end (live model actually called,
+diagnosis actually attempted, re-execution actually happens), and
+localizes the remaining gap to diagnosis *quality* from a 7B local model
+on `generic_failure` signatures, not backend availability.
+
+Stage 3.8 (patch generation) was attempted once, for the one confirmed
+case (`CVE-2026-23949`), and rejected: `patch REJECTED (health check
+failed): target_app.py never became healthy on :5000` — the
+LLM-generated patch broke the app rather than just closing the
+vulnerability, the same class of failure documented for round 2's two
+patch attempts above, not yet root-caused.
+
+**Combined across all three rounds**, 4 distinct classes have now been
+confirmed at least once (SQLi round 1, SSRF + XSS round 2, Path Traversal
+round 3) out of 6; OS Command Injection and Insecure Deserialization have
+never confirmed in any round. `.pipeline_lessons.json` was unchanged by
+this run — the one success reused an existing lesson rather than learning
+a new one, so nothing new was persisted.
+
+Total run cost: 218.1s, 19605 input tokens, 10135 output tokens,
+**$0.0000** (local Ollama).
+
+Raw round-3 reports: `reports/llm_catalog_run_2026-09-23_round3/<CVE-ID>.json`.

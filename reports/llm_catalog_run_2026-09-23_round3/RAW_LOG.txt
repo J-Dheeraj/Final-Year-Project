@@ -1,0 +1,328 @@
+=== START CVE-2026-42208 15:06:28 ===
+23:06:30  INFO     cve_pipeline — Pipeline 2803b490  cve=CVE-2026-42208  mode=text-only  (no ANTHROPIC_API_KEY needed)
+23:06:30  INFO     cve_pipeline — [Stage 1] Fetching advisory for CVE-2026-42208 …
+23:06:30  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): api.github.com:443
+23:06:31  DEBUG    urllib3.connectionpool — https://api.github.com:443 "POST /graphql HTTP/1.1" 401 None
+[*] Fetching NVD JSON: https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2026-42208
+23:06:31  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): services.nvd.nist.gov:443
+23:06:32  DEBUG    urllib3.connectionpool — https://services.nvd.nist.gov:443 "GET /rest/json/cves/2.0?cveId=CVE-2026-42208 HTTP/1.1" 200 None
+23:06:32  INFO     cve_pipeline — [Stage 1] Advisory fetched — pkg=litellm  severity=CRITICAL
+23:06:32  INFO     cve_pipeline — [Stage 2] Analysing vulnerability patterns …
+23:06:32  INFO     cve_pipeline — [Stage 2] Class=SQL Injection  CWE=CWE-89  confidence=MEDIUM
+23:06:32  INFO     cve_pipeline — [Stage 3] Running SQL Injection probe …
+23:06:32  INFO     cve_pipeline — [Stage 3] probe_type=SQL Injection  confirmed=False  elapsed=0.0s
+23:06:32  INFO     cve_pipeline — [Stage 3.5] Generating exploit artifacts for CVE-2026-42208 (SQL Injection) …
+23:06:32  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:32  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:06:32  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:32  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:06:32  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:44  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:06:44  INFO     cve_pipeline — [Stage 3.5] AI-generated artifacts for CVE-2026-42208
+23:06:44  INFO     cve_pipeline — [Stage 3.5] Artifacts written \u2192 CVE-2026-42208/
+23:06:44  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for SQL Injection on :5000 …
+23:06:44  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:06:45  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:06:45  INFO     cve_pipeline — [Stage 3.6] exit_code=1  dynamically_confirmed=False
+23:06:45  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:45  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:06:45  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:45  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:06:45  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:58  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:06:58  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 2, source=llm): LLM-diagnosed revision from the execution log
+23:06:58  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for SQL Injection on :5000 …
+23:06:58  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:06:58  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:06:58  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:58  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:06:58  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:06:59  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:06:59  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:11  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:07:11  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 3, source=llm): LLM-diagnosed revision from the execution log
+23:07:11  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for SQL Injection on :5000 …
+23:07:11  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:07:11  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:07:12  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:12  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:12  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:12  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:12  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:24  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:07:24  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 4, source=llm): LLM-diagnosed revision from the execution log
+23:07:24  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for SQL Injection on :5000 …
+23:07:24  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:07:26  INFO     cve_pipeline — [Stage 3.7] 3 refinement attempt(s), final dynamically_confirmed=False
+23:07:26  INFO     cve_pipeline — [Stage 4] Report compiled — risk=CRITICAL  stages=['1_advisory', '2_analysis', '3_vuln_probe', '3.5_artifacts', '3.6_execution', '3.7_refine']
+23:07:26  DEBUG    cve_pipeline — claude CLI not found — AI enhancement skipped
+23:07:26  INFO     cve_pipeline.obsidian — [obsidian] CVE-2026-42208 filed \u2192 CVE-2026-42208.md
+23:07:26  INFO     cve_pipeline — Report written to reports/llm_catalog_run_2026-09-23_round3/CVE-2026-42208.json
+=== END CVE-2026-42208 15:07:26 exit=0 ===
+=== START CVE-2026-27602 15:07:27 ===
+23:07:28  INFO     cve_pipeline — Pipeline d5465b23  cve=CVE-2026-27602  mode=text-only  (no ANTHROPIC_API_KEY needed)
+23:07:28  INFO     cve_pipeline — [Stage 1] Fetching advisory for CVE-2026-27602 …
+23:07:28  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): api.github.com:443
+23:07:28  DEBUG    urllib3.connectionpool — https://api.github.com:443 "POST /graphql HTTP/1.1" 401 None
+[*] Fetching NVD JSON: https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2026-27602
+23:07:28  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): services.nvd.nist.gov:443
+23:07:29  DEBUG    urllib3.connectionpool — https://services.nvd.nist.gov:443 "GET /rest/json/cves/2.0?cveId=CVE-2026-27602 HTTP/1.1" 200 None
+23:07:29  INFO     cve_pipeline — [Stage 1] Advisory fetched — pkg=modoboa  severity=HIGH
+23:07:29  INFO     cve_pipeline — [Stage 2] Analysing vulnerability patterns …
+23:07:29  INFO     cve_pipeline — [Stage 2] Class=OS Command Injection  CWE=CWE-78  confidence=MEDIUM
+23:07:29  INFO     cve_pipeline — [Stage 3] Running OS Command Injection probe …
+23:07:29  INFO     cve_pipeline — [Stage 3] probe_type=OS Command Injection  confirmed=False  elapsed=0.0s
+23:07:29  INFO     cve_pipeline — [Stage 3.5] Generating exploit artifacts for CVE-2026-27602 (OS Command Injection) …
+23:07:29  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:29  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:29  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:29  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:29  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:41  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:07:41  INFO     cve_pipeline — [Stage 3.5] AI-generated artifacts for CVE-2026-27602
+23:07:41  INFO     cve_pipeline — [Stage 3.5] Artifacts written \u2192 CVE-2026-27602/
+23:07:41  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for OS Command Injection on :5000 …
+23:07:42  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:07:42  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:07:42  INFO     cve_pipeline — [Stage 3.6] exit_code=1  dynamically_confirmed=False
+23:07:42  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:42  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:42  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:42  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:42  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:54  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:07:54  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 2, source=llm): LLM-diagnosed revision from the execution log
+23:07:54  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for OS Command Injection on :5000 …
+23:07:54  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:07:56  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:56  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:57  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:07:57  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:07:57  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:08  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:08:08  INFO     cve_pipeline — [Stage 3.7] No usable revision for signature=generic_failure - stopping
+23:08:08  INFO     cve_pipeline — [Stage 3.7] 2 refinement attempt(s), final dynamically_confirmed=False
+23:08:08  INFO     cve_pipeline — [Stage 4] Report compiled — risk=HIGH  stages=['1_advisory', '2_analysis', '3_vuln_probe', '3.5_artifacts', '3.6_execution', '3.7_refine']
+23:08:09  DEBUG    cve_pipeline — claude CLI not found — AI enhancement skipped
+23:08:09  INFO     cve_pipeline.obsidian — [obsidian] CVE-2026-27602 filed \u2192 CVE-2026-27602.md
+23:08:09  INFO     cve_pipeline — Report written to reports/llm_catalog_run_2026-09-23_round3/CVE-2026-27602.json
+=== END CVE-2026-27602 15:08:09 exit=0 ===
+=== START CVE-2026-23949 15:08:09 ===
+23:08:10  INFO     cve_pipeline — Pipeline 6ad0ccd6  cve=CVE-2026-23949  mode=text-only  (no ANTHROPIC_API_KEY needed)
+23:08:10  INFO     cve_pipeline — [Stage 1] Fetching advisory for CVE-2026-23949 …
+23:08:10  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): api.github.com:443
+23:08:10  DEBUG    urllib3.connectionpool — https://api.github.com:443 "POST /graphql HTTP/1.1" 401 None
+[*] Fetching NVD JSON: https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2026-23949
+23:08:10  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): services.nvd.nist.gov:443
+23:08:11  DEBUG    urllib3.connectionpool — https://services.nvd.nist.gov:443 "GET /rest/json/cves/2.0?cveId=CVE-2026-23949 HTTP/1.1" 200 None
+23:08:11  INFO     cve_pipeline — [Stage 1] Advisory fetched — pkg=jaraco.context  severity=HIGH
+23:08:11  INFO     cve_pipeline — [Stage 2] Analysing vulnerability patterns …
+23:08:11  INFO     cve_pipeline — [Stage 2] Class=Path Traversal  CWE=CWE-22  confidence=MEDIUM
+23:08:11  INFO     cve_pipeline — [Stage 3] Running Path Traversal probe …
+23:08:11  INFO     cve_pipeline — [Stage 3] probe_type=Path Traversal  confirmed=True  elapsed=0.0s
+23:08:11  INFO     cve_pipeline — [Stage 3.5] Generating exploit artifacts for CVE-2026-23949 (Path Traversal) …
+23:08:11  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:11  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:11  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:11  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:11  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:25  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:08:25  INFO     cve_pipeline — [Stage 3.5] AI-generated artifacts for CVE-2026-23949
+23:08:25  INFO     cve_pipeline — [Stage 3.5] Artifacts written \u2192 CVE-2026-23949/
+23:08:25  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Path Traversal on :5000 …
+23:08:25  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:08:25  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:08:26  INFO     cve_pipeline — [Stage 3.6] exit_code=1  dynamically_confirmed=False
+23:08:26  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 2, source=lesson): LLM-diagnosed revision from the execution log
+23:08:26  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Path Traversal on :5000 …
+23:08:26  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:08:26  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 39
+23:08:26  INFO     cve_pipeline — [Stage 3.7] Revision succeeded on iteration 2 (source=lesson)
+23:08:26  INFO     cve_pipeline — [Stage 3.7] 1 refinement attempt(s), final dynamically_confirmed=True
+23:08:26  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:26  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:26  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:26  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:26  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:36  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:08:36  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Path Traversal on :5000 …
+23:08:36  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:08:38  INFO     cve_pipeline — [Stage 3.8] Patch REJECTED (health check failed): patched target failed the /health regression check: target_app.py never became healthy on :5000 (last error: target_app.py exited before becoming healthy)
+23:08:38  INFO     cve_pipeline — [Stage 3.8] patch_validated=False
+23:08:38  INFO     cve_pipeline — [Stage 4] Report compiled — risk=HIGH  stages=['1_advisory', '2_analysis', '3_vuln_probe', '3.5_artifacts', '3.6_execution', '3.7_refine', '3.8_patch']
+23:08:38  DEBUG    cve_pipeline — claude CLI not found — AI enhancement skipped
+23:08:38  INFO     cve_pipeline.obsidian — [obsidian] CVE-2026-23949 filed \u2192 CVE-2026-23949.md
+23:08:38  INFO     cve_pipeline — Report written to reports/llm_catalog_run_2026-09-23_round3/CVE-2026-23949.json
+=== END CVE-2026-23949 15:08:38 exit=0 ===
+=== START CVE-2026-78683 15:08:38 ===
+23:08:39  INFO     cve_pipeline — Pipeline 2c801ecc  cve=CVE-2026-78683  mode=text-only  (no ANTHROPIC_API_KEY needed)
+23:08:39  INFO     cve_pipeline — [Stage 1] Fetching advisory for CVE-2026-78683 …
+23:08:39  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): api.github.com:443
+23:08:39  DEBUG    urllib3.connectionpool — https://api.github.com:443 "POST /graphql HTTP/1.1" 401 None
+[*] Fetching NVD JSON: https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2026-78683
+23:08:39  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): services.nvd.nist.gov:443
+23:08:41  DEBUG    urllib3.connectionpool — https://services.nvd.nist.gov:443 "GET /rest/json/cves/2.0?cveId=CVE-2026-78683 HTTP/1.1" 200 None
+23:08:41  INFO     cve_pipeline — [Stage 1] Advisory fetched — pkg=nltk  severity=CRITICAL
+23:08:41  INFO     cve_pipeline — [Stage 2] Analysing vulnerability patterns …
+23:08:41  INFO     cve_pipeline — [Stage 2] Class=Insecure Deserialization  CWE=CWE-502  confidence=MEDIUM
+23:08:41  INFO     cve_pipeline — [Stage 3] Running Insecure Deserialization probe …
+23:08:41  INFO     cve_pipeline — [Stage 3] probe_type=Insecure Deserialization  confirmed=False  elapsed=0.0s
+23:08:41  INFO     cve_pipeline — [Stage 3.5] Generating exploit artifacts for CVE-2026-78683 (Insecure Deserialization) …
+23:08:41  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:41  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:41  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:41  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:41  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:53  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:08:53  INFO     cve_pipeline — [Stage 3.5] AI-generated artifacts for CVE-2026-78683
+23:08:53  INFO     cve_pipeline — [Stage 3.5] Artifacts written \u2192 CVE-2026-78683/
+23:08:53  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Insecure Deserialization on :5000 …
+23:08:54  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:08:54  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:08:54  INFO     cve_pipeline — [Stage 3.6] exit_code=1  dynamically_confirmed=False
+23:08:54  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:54  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:54  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:08:54  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:08:54  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:06  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:09:06  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 2, source=llm): LLM-diagnosed revision from the execution log
+23:09:06  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Insecure Deserialization on :5000 …
+23:09:06  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:09:07  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:09:07  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:07  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:07  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:07  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:07  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:19  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:09:19  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 3, source=llm): LLM-diagnosed revision from the execution log
+23:09:19  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Insecure Deserialization on :5000 …
+23:09:20  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:09:20  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:09:20  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:20  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:20  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:20  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:20  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:32  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:09:32  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 4, source=llm): LLM-diagnosed revision from the execution log
+23:09:32  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Insecure Deserialization on :5000 …
+23:09:32  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:09:33  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:09:33  INFO     cve_pipeline — [Stage 3.7] 3 refinement attempt(s), final dynamically_confirmed=False
+23:09:33  INFO     cve_pipeline — [Stage 4] Report compiled — risk=CRITICAL  stages=['1_advisory', '2_analysis', '3_vuln_probe', '3.5_artifacts', '3.6_execution', '3.7_refine']
+23:09:33  DEBUG    cve_pipeline — claude CLI not found — AI enhancement skipped
+23:09:33  INFO     cve_pipeline.obsidian — [obsidian] CVE-2026-78683 filed \u2192 CVE-2026-78683.md
+23:09:33  INFO     cve_pipeline — Report written to reports/llm_catalog_run_2026-09-23_round3/CVE-2026-78683.json
+=== END CVE-2026-78683 15:09:33 exit=0 ===
+=== START CVE-2026-54729 15:09:33 ===
+23:09:34  INFO     cve_pipeline — Pipeline 812f60e3  cve=CVE-2026-54729  mode=text-only  (no ANTHROPIC_API_KEY needed)
+23:09:34  INFO     cve_pipeline — [Stage 1] Fetching advisory for CVE-2026-54729 …
+23:09:34  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): api.github.com:443
+23:09:35  DEBUG    urllib3.connectionpool — https://api.github.com:443 "POST /graphql HTTP/1.1" 401 None
+[*] Fetching NVD JSON: https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2026-54729
+23:09:35  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): services.nvd.nist.gov:443
+23:09:36  DEBUG    urllib3.connectionpool — https://services.nvd.nist.gov:443 "GET /rest/json/cves/2.0?cveId=CVE-2026-54729 HTTP/1.1" 200 None
+23:09:36  INFO     cve_pipeline — [Stage 1] Advisory fetched — pkg=None  severity=None
+23:09:36  INFO     cve_pipeline — [Stage 2] Analysing vulnerability patterns …
+23:09:36  INFO     cve_pipeline — [Stage 2] Class=Server-Side Request Forgery (SSRF)  CWE=CWE-918  confidence=MEDIUM
+23:09:36  INFO     cve_pipeline — [Stage 3] Running Server-Side Request Forgery (SSRF) probe …
+23:09:36  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:8000
+23:09:36  DEBUG    urllib3.connectionpool — http://127.0.0.1:8000 "GET /mode HTTP/1.1" 404 22
+23:09:36  INFO     cve_pipeline — [Stage 3] probe_type=Server-Side Request Forgery (SSRF)  confirmed=None  elapsed=0.1s
+23:09:36  INFO     cve_pipeline — [Stage 3.5] Generating exploit artifacts for CVE-2026-54729 (Server-Side Request Forgery (SSRF)) …
+23:09:36  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:36  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:36  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:36  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:36  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:49  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:09:49  INFO     cve_pipeline — [Stage 3.5] AI-generated artifacts for CVE-2026-54729
+23:09:49  INFO     cve_pipeline — [Stage 3.5] Artifacts written \u2192 CVE-2026-54729/
+23:09:49  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Server-Side Request Forgery (SSRF) on :5000 …
+23:09:49  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:09:49  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:09:50  INFO     cve_pipeline — [Stage 3.6] exit_code=1  dynamically_confirmed=False
+23:09:50  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:50  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:50  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:09:50  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:09:50  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:02  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:10:02  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 2, source=llm): LLM-diagnosed revision from the execution log
+23:10:02  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Server-Side Request Forgery (SSRF) on :5000 …
+23:10:02  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:10:04  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:04  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:04  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:04  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:04  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:17  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:10:17  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 3, source=llm): LLM-diagnosed revision from the execution log
+23:10:17  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Server-Side Request Forgery (SSRF) on :5000 …
+23:10:17  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:10:19  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:19  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:19  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:19  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:19  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:32  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:10:32  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 4, source=llm): LLM-diagnosed revision from the execution log
+23:10:32  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Server-Side Request Forgery (SSRF) on :5000 …
+23:10:32  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:10:34  INFO     cve_pipeline — [Stage 3.7] 3 refinement attempt(s), final dynamically_confirmed=False
+23:10:34  INFO     cve_pipeline — [Stage 4] Report compiled — risk=UNKNOWN  stages=['1_advisory', '2_analysis', '3_vuln_probe', '3.5_artifacts', '3.6_execution', '3.7_refine']
+23:10:34  DEBUG    cve_pipeline — claude CLI not found — AI enhancement skipped
+23:10:34  INFO     cve_pipeline.obsidian — [obsidian] CVE-2026-54729 filed \u2192 CVE-2026-54729.md
+23:10:34  INFO     cve_pipeline — Report written to reports/llm_catalog_run_2026-09-23_round3/CVE-2026-54729.json
+=== END CVE-2026-54729 15:10:34 exit=0 ===
+=== START CVE-2026-46492 15:10:34 ===
+23:10:35  INFO     cve_pipeline — Pipeline 28323ae9  cve=CVE-2026-46492  mode=text-only  (no ANTHROPIC_API_KEY needed)
+23:10:35  INFO     cve_pipeline — [Stage 1] Fetching advisory for CVE-2026-46492 …
+23:10:35  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): api.github.com:443
+23:10:36  DEBUG    urllib3.connectionpool — https://api.github.com:443 "POST /graphql HTTP/1.1" 401 None
+[*] Fetching NVD JSON: https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2026-46492
+23:10:36  DEBUG    urllib3.connectionpool — Starting new HTTPS connection (1): services.nvd.nist.gov:443
+23:10:37  DEBUG    urllib3.connectionpool — https://services.nvd.nist.gov:443 "GET /rest/json/cves/2.0?cveId=CVE-2026-46492 HTTP/1.1" 200 None
+23:10:37  INFO     cve_pipeline — [Stage 1] Advisory fetched — pkg=md-fileserver  severity=HIGH
+23:10:37  INFO     cve_pipeline — [Stage 2] Analysing vulnerability patterns …
+23:10:37  INFO     cve_pipeline — [Stage 2] Class=Cross-Site Scripting (XSS)  CWE=CWE-80  confidence=MEDIUM
+23:10:37  INFO     cve_pipeline — [Stage 3] Running Cross-Site Scripting (XSS) probe …
+23:10:37  INFO     cve_pipeline — [Stage 3] probe_type=Cross-Site Scripting (XSS)  confirmed=False  elapsed=0.0s
+23:10:37  INFO     cve_pipeline — [Stage 3.5] Generating exploit artifacts for CVE-2026-46492 (Cross-Site Scripting (XSS)) …
+23:10:37  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:37  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:37  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:37  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:37  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:48  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:10:48  INFO     cve_pipeline — [Stage 3.5] AI-generated artifacts for CVE-2026-46492
+23:10:48  INFO     cve_pipeline — [Stage 3.5] Artifacts written \u2192 CVE-2026-46492/
+23:10:48  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Cross-Site Scripting (XSS) on :5000 …
+23:10:48  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:10:49  DEBUG    urllib3.connectionpool — http://127.0.0.1:5000 "GET /health HTTP/1.1" 200 16
+23:10:49  INFO     cve_pipeline — [Stage 3.6] exit_code=1  dynamically_confirmed=False
+23:10:49  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:49  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:49  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:10:49  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:10:49  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:11:01  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:11:01  INFO     cve_pipeline — [Stage 3.7] Applying revision (iteration 2, source=llm): LLM-diagnosed revision from the execution log
+23:11:01  INFO     cve_pipeline — [Stage 3.6] Executing generated artifacts for Cross-Site Scripting (XSS) on :5000 …
+23:11:01  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:5000
+23:11:03  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:11:03  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:11:03  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:11:03  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "GET /api/tags HTTP/1.1" 200 None
+23:11:03  DEBUG    urllib3.connectionpool — Starting new HTTP connection (1): 127.0.0.1:11434
+23:11:14  DEBUG    urllib3.connectionpool — http://127.0.0.1:11434 "POST /api/generate HTTP/1.1" 200 None
+23:11:14  INFO     cve_pipeline — [Stage 3.7] No usable revision for signature=generic_failure - stopping
+23:11:14  INFO     cve_pipeline — [Stage 3.7] 2 refinement attempt(s), final dynamically_confirmed=False
+23:11:14  INFO     cve_pipeline — [Stage 4] Report compiled — risk=HIGH  stages=['1_advisory', '2_analysis', '3_vuln_probe', '3.5_artifacts', '3.6_execution', '3.7_refine']
+23:11:14  DEBUG    cve_pipeline — claude CLI not found — AI enhancement skipped
+23:11:14  INFO     cve_pipeline.obsidian — [obsidian] CVE-2026-46492 filed \u2192 CVE-2026-46492.md
+23:11:14  INFO     cve_pipeline — Report written to reports/llm_catalog_run_2026-09-23_round3/CVE-2026-46492.json
+=== END CVE-2026-46492 15:11:15 exit=0 ===
+=== ALL DONE ===
