@@ -233,6 +233,13 @@ class ExploitArtifacts(BaseModel):
     patch_gen_input_tokens:   int   | None = None
     patch_gen_output_tokens:  int   | None = None
     patch_gen_cost_usd:       float | None = None
+    # Alternate attack payloads for the same vulnerability class (distinct
+    # from the one baked into exploit()'s default), so Stage 3.8 can test a
+    # patch against more than the single payload the original PoC happens
+    # to use. A patch that only blocklists that one literal payload would
+    # otherwise pass validation while remaining trivially bypassable by any
+    # other payload for the same flaw - this is the check that catches that.
+    payload_variants: list[str] = Field(default_factory=list)
     # Stage 3.6 — did the generated artifact actually get RUN, and did it
     # actually reproduce the bug? Before this, an artifact could sit on disk
     # forever with nobody (human or pipeline) ever confirming it worked -
@@ -376,7 +383,15 @@ def _claude_available() -> bool:
 # key. Configure with OLLAMA_HOST / OLLAMA_MODEL; if neither backend is present
 # the pipeline still falls back to templates (recorded via generation_outcome).
 
-_OLLAMA_HOST  = os.environ.get("OLLAMA_HOST",  "http://localhost:11434")
+_OLLAMA_HOST  = os.environ.get("OLLAMA_HOST",  "http://127.0.0.1:11434")
+# "localhost" is deliberately NOT the default: this machine has two separate
+# services listening on port 11434 - the real ollama.exe on IPv4
+# 127.0.0.1:11434 (this project's pulled models) and an unrelated process on
+# IPv6 [::1]:11434 with a completely different model set. "localhost"
+# resolves ambiguously between the two depending on the resolver, which
+# silently made _ollama_available() flip True/False call to call - found
+# live via `netstat -ano | grep 11434` after inconsistent results, not
+# guessed. Always hit 127.0.0.1 explicitly.
 _OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
 # Pinned for reproducibility: round 1 vs round 2 of the live-LLM catalog run
 # (2026-09-23) were not a clean comparison because nothing fixed the model's
@@ -480,9 +495,20 @@ def _extract_marker(text: str, start: str, end: str) -> str:
     try:
         s = text.index(start) + len(start)
         e = text.index(end, s)
-        return text[s:e].strip()
+        return _strip_markdown_fence(text[s:e].strip())
     except ValueError:
         return ""
+
+
+def _strip_markdown_fence(code: str) -> str:
+    """Defensively strip a wrapping ```lang ... ``` fence a model puts inside
+    the markers despite being told not to (found live: Stage 3.8's patch
+    prompt shows the original code AS a fenced block for context, which
+    primes some models to fence their own output the same way - "no
+    markdown fences" in the prompt alone isn't reliably followed)."""
+    stripped = re.sub(r"^```[a-zA-Z0-9]*\n", "", code)
+    stripped = re.sub(r"\n```$", "", stripped)
+    return stripped.strip()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2138,6 +2164,7 @@ def generate_exploit_artifacts(
     poc_code    = ""
     target_code = ""
     gen_call    = LiveModelResult("", "none", "", None, None, None, None)
+    payload_variants: list[str] = []
     model_avail = _live_model_available()
 
     if model_avail:
@@ -2177,6 +2204,14 @@ Then: python poc.py 127.0.0.1:5000
 # Must have: GET /health -> {{"status":"ok"}}
 # Must have: at least one endpoint that replicates the vulnerable pattern
 ===TARGET_END===
+
+===PAYLOADS_START===
+(2 more distinct, plain-text attack payloads for the SAME {vuln_class}
+vulnerability — structurally different from the payload you use inside
+exploit() itself, e.g. a different SQLi syntax, a different shell
+metacharacter, a different traversal depth. One payload per line, no
+numbering, no quotes around the line.)
+===PAYLOADS_END===
 
 Important rules:
 - Both files must be runnable with only stdlib + requests/flask/werkzeug.
@@ -2222,6 +2257,20 @@ Important rules:
   path STRING as the vulnerable code would, then check with `in`/`==` whether
   the malicious payload appears unescaped in that built string) — there is no
   real backend to query, so nothing may depend on one existing.
+- exploit(host, port) MUST accept an optional third parameter
+  `exploit(host, port, payload=None)`: when `payload` is given, use it
+  INSTEAD of your built-in default payload; when it is None, fall back to
+  your built-in default. main() MUST read an optional
+  `sys.argv[2]` and pass it as `payload` to exploit() if present. This lets
+  the same exploit() be re-run with a different attack string later without
+  regenerating the file — required, not optional, even though the default
+  run with no argv[2] must behave exactly as before.
+- The 2 payloads in ===PAYLOADS_START===/END are for that same re-run
+  mechanism (`python poc.py host:port "<payload>"`) - they must be
+  independently capable of triggering verify()'s marker check against the
+  ORIGINAL vulnerable target (i.e. real alternative exploits of the same
+  flaw), not variations that only work if the vulnerable code happened to
+  special-case them.
 - No markdown fences, no explanations outside the markers.
 """
         gen_call = _call_live_model(prompt, timeout=180)
@@ -2229,6 +2278,8 @@ Important rules:
         if gen_call.text:
             poc_code    = _extract_marker(gen_call.text, "===POC_START===",    "===POC_END===")
             target_code = _extract_marker(gen_call.text, "===TARGET_START===", "===TARGET_END===")
+            payloads_raw = _extract_marker(gen_call.text, "===PAYLOADS_START===", "===PAYLOADS_END===")
+            payload_variants = [ln.strip() for ln in payloads_raw.splitlines() if ln.strip()]
 
             if poc_code and target_code:
                 log.info("[Stage 3.5] AI-generated artifacts for %s", cve_id)
@@ -2302,6 +2353,7 @@ Important rules:
             generation_input_tokens  = gen_call.input_tokens,
             generation_output_tokens = gen_call.output_tokens,
             generation_cost_usd      = gen_call.cost_usd,
+            payload_variants         = payload_variants,
         )
     except Exception as exc:
         log.warning("[Stage 3.5] Failed to write artifacts: %s", exc)
@@ -2343,7 +2395,8 @@ def _extract_target_port(target_app_path: Path, default: int = 5000) -> int:
 
 def execute_exploit_artifacts(artifacts: ExploitArtifacts,
                                health_timeout: float = 10.0,
-                               poc_timeout: float = 20.0) -> ExploitArtifacts:
+                               poc_timeout: float = 20.0,
+                               extra_arg: str | None = None) -> ExploitArtifacts:
     """Start the generated target_app.py, run poc.py against it, and record
     whether the exploit actually fired - turning Stage 3.5's "generated" into
     a real "confirmed" or "not confirmed", for whatever vulnerability class
@@ -2404,8 +2457,16 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
             return artifacts
 
         try:
+            poc_argv = [python, str(poc_path), f"127.0.0.1:{port}"]
+            if extra_arg is not None:
+                # sys.argv[2] override, per the generation prompt's contract:
+                # exploit(host, port, payload=None) uses this instead of its
+                # built-in default when present - lets Stage 3.8 re-probe a
+                # patch with a different payload for the same vulnerability
+                # class without regenerating poc.py.
+                poc_argv.append(extra_arg)
             poc = subprocess.run(
-                [python, str(poc_path), f"127.0.0.1:{port}"],
+                poc_argv,
                 cwd=str(poc_path.parent), capture_output=True, text=True,
                 timeout=poc_timeout,
             )
