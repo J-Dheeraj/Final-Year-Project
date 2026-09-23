@@ -151,9 +151,38 @@ verification status:
 
 | Mechanism | Verified via stub | Verified live (real model generating from scratch) |
 |---|---|---|
-| Stage 3.7 LLM-revision (self-improvement) | Yes (Path Traversal CVE) | No |
+| Stage 3.7 LLM-revision (self-improvement) | Yes (Path Traversal CVE) | **Yes, as of round 3 (2026-09-23)** — see below |
 | Stage 3.8 patch generation | Yes (SQLi CVE) | No |
 | `reachcrs`/`src/reachability` LLM-based triage/patch fallback | N/A — the free5GC case study used the rule-based path (`find_missing_return_after_response`), not the LLM fallback | No |
+
+**Update, round 3 (2026-09-23, commit `e344966`):** Stage 3.7's LLM-revision
+path was calling the Claude-CLI-only helpers directly, a bug that made it
+silently never run at all under this environment's Ollama-only
+conditions — not "unverified live," actually dead code here. Fixed and
+re-run against the full 6-CVE catalog
+(`reports/LIVE_LLM_CATALOG_RUN.md`'s "Round 3" section has the full
+per-CVE breakdown). Read the result precisely: the mechanism now *runs*
+live (4/6 CVEs genuinely called Ollama to generate a from-scratch
+revision, confirmed via `source=llm`/`revision_backend=ollama` in each
+report's `refinement_history`), but **zero of those 4 live-generated
+revisions produced a confirmed exploit** — the one confirmation that
+round (`CVE-2026-23949`) came from *reusing* an already-persisted lesson
+(`source=lesson`), not from a fresh live generation. So: "the plumbing
+runs live" is now Yes; "a live-generated revision successfully fixes a
+failing exploit" is still No, not yet demonstrated. Do not conflate the
+two in the report.
+
+Two of that same run's failures were also traced to a specific, real bug
+rather than generic "model wasn't good enough": 4 of the 5 unconfirmed
+CVEs crashed on a literal, unstripped `` ```python `` markdown fence left
+in the model's rewritten `target_app.py` (a parsing gap in
+`_extract_marker`, not a reasoning failure), and `execute_exploit_artifacts`
+was found to leave `exit_code`/`dynamically_confirmed` stale (carried over
+from the previous run) when the target crashes before its health check —
+meaning `refinement_history` entries for those crashes read as "ran and
+cleanly failed" when they actually never started. Neither is fixed as of
+this writing; both are documented in `reports/LIVE_LLM_CATALOG_RUN.md`
+before any code change, deliberately.
 
 The report should state plainly that the live-model half of paths 1 and 2
 is untested in this environment, for the same reason `reachcrs`'s own
