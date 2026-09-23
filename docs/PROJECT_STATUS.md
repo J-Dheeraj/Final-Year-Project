@@ -6,6 +6,84 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-23 (later same day)** — Found and fixed a real dead-code bug
+  in Stage 3.7, then used the fix to run two more full catalog rounds
+  (3 and 4), finding and fixing two more bugs along the way. Full detail
+  in `reports/LIVE_LLM_CATALOG_RUN.md` and `docs/DEFENSE_PREP.md`; this
+  entry is the index.
+
+  1. **Stage 3.7 dead-code bug (commit `e344966`)**: `src/pipeline/
+     self_improve.py`'s `_llm_revise_artifacts` called
+     `_call_claude`/`_claude_available` directly instead of the
+     provider-agnostic `_call_live_model`/`_live_model_available` helper
+     Stage 3.5/3.8 already used. Under this machine's real conditions (no
+     `claude` CLI, local Ollama only), that meant Stage 3.7 silently
+     never ran at all — not "stub-tested," genuinely dead. Fixed by
+     mirroring the proven Stage 3.5/3.8 pattern; also added
+     `revision_backend`/`model`/`duration_s`/`input_tokens`/
+     `output_tokens`/`cost_usd` per `refinement_history` entry. Verified
+     live against a synthetic failing fixture before touching the real
+     catalog: the fix correctly fell through to Ollama and confirmed a
+     real revision.
+
+  2. **Round 3 catalog run (commits `5ecd4d0`, `6f932b4`)**: re-ran the
+     frozen 6-CVE catalog with the Stage 3.7 fix live. Only 1/6 confirmed
+     (`CVE-2026-23949`, via genuine cross-CVE lesson reuse — the first
+     time that code path ever fired) — not better than round 2's 2/6,
+     but the *mechanism* now demonstrably runs. Digging into the raw
+     `execution_log` (not just the summary numbers) to write an honest
+     per-CVE pass/fail table surfaced two previously-undocumented bugs,
+     deliberately documented in a separate commit *before* fixing them:
+     (a) `_extract_marker` didn't strip a stray `` ``` `` markdown fence
+     from the model's response, so 4/5 failures crashed with
+     `SyntaxError` on `target_app.py`'s first line; (b)
+     `execute_exploit_artifacts` left `exit_code`/`dynamically_confirmed`
+     stale on a crash instead of resetting them, so `refinement_history`
+     could misleadingly read a crash as "ran and cleanly failed."
+
+  3. **Bug fixes (commit `b05b45d`)**: added `_strip_code_fence`; reset
+     `exit_code`/`dynamically_confirmed` explicitly on the crash path;
+     removed `src/pipeline/patch.py`'s duplicate `_extract_marker` in
+     favor of importing the shared, now-fixed one. Each fix verified with
+     a standalone targeted test before re-running anything: one against
+     the exact round-3 failure shape (now parses as valid Python), one
+     that runs a healthy target then swaps in a crashing one on the same
+     artifacts object (now correctly resets instead of staying stale).
+
+  4. **Round 4 catalog run (commit `9711fe5`)**: same protocol, both
+     fixes live. **4/6 confirmed** (up from 1/6), and zero of the six
+     reports contain the `SyntaxError` crash signature anywhere,
+     confirmed programmatically. Two firsts for the project: `CVE-2026-27602`
+     confirmed via a genuine from-scratch Stage 3.7 revision (not a
+     reused lesson) — the first live-generated revision to ever fix a
+     failing exploit; `CVE-2026-78683` got its Stage 3.8 patch
+     **validated** — the first validated patch across all four rounds
+     (0/8 prior attempts). `CVE-2026-42208` (SQLi) and `CVE-2026-23949`
+     (Path Traversal) still didn't confirm — real clean failures, not
+     crashes, so a diagnosis-quality gap for those two classes on this
+     run, not a plumbing bug. Counting per-class across all 4 rounds
+     combined (not per-round): **all 6 vulnerability classes in the
+     catalog have now confirmed dynamically at least once.**
+
+  5. **Documentation (commits `c7cfb19`, `39f0dc4`)**: added an explicit
+     "what is a test case" section to `reports/LIVE_LLM_CATALOG_RUN.md`
+     (real advisory data + the exact simulated route/payload/pass-condition
+     each generated PoC uses, pulled from round 4's actual generated
+     artifacts, not paraphrased); updated `docs/SCOPE_AND_LIMITATIONS.md`'s
+     Limitation 6 (the "zero live-generated revisions succeeded" caveat
+     no longer holds) and its summary table (patch validation now
+     demonstrated once); updated `docs/DEFENSE_PREP.md`'s "weakest
+     evidence" answer (no longer "LLM paths are stub-only") and added
+     three new Q&A entries for this session's findings.
+
+  **Exit criterion**: not formally re-stated here (see the live-LLM item
+  below for the item's own framing) — but concretely, generation,
+  dynamic confirmation, self-improvement, AND patch validation all
+  succeeded together for the same CVE (`CVE-2026-78683`) in the same run
+  for the first time. All 6 commits pushed to `fyp` only, per this
+  project's git-remote convention; `git diff HEAD fyp/main --stat`
+  verified empty (local and remote identical) as of `39f0dc4`.
+
 - **2026-09-23** — Built the *ingestion + orchestration* half of the
   Phase 4 ProvTrail item (`provtrail_bridge.py`, `package_labs.py`,
   `tests/test_provtrail_bridge.py` + SARIF/AI-text fixtures; pushed to
