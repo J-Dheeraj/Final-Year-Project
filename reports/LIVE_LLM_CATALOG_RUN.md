@@ -218,4 +218,49 @@ a new one, so nothing new was persisted.
 Total run cost: 218.1s, 19605 input tokens, 10135 output tokens,
 **$0.0000** (local Ollama).
 
+### Per-CVE pass/fail detail, with exact root cause
+
+The summary table above answers "did it confirm." This table answers
+"why, specifically" — pulled directly from each report's `execution_log`
+and `refinement_history`, not paraphrased:
+
+| CVE | Class | Stage 3.6 (1st try) | Stage 3.7 attempts | Final | Root cause (verbatim from `execution_log`) |
+|---|---|---|---|---|---|
+| CVE-2026-42208 | SQL Injection | exit_code=1, FAIL | 3, all `source=llm` | **FAIL** | Final revision's `target_app.py` crashed on startup: `SyntaxError: invalid syntax` at line 1, the literal text `` ```python `` |
+| CVE-2026-27602 | OS Command Injection | exit_code=1, FAIL | 2 (1 `llm`, then "no known revision") | **FAIL** | Same markdown-fence `SyntaxError` on the revised `target_app.py` |
+| CVE-2026-23949 | Path Traversal | exit_code=1, FAIL | 1, `source=lesson` | **PASS** | `poc.py` exited 0; read `C:\Windows\win.ini` via the traversal payload (Stage 3.8 patch attempt then rejected — see above) |
+| CVE-2026-78683 | Insecure Deserialization | exit_code=1, FAIL | 3, all `source=llm` | **FAIL** | Target app stayed healthy the whole time; `poc.py` ran and printed `[-] FAILED` cleanly — the payload itself never triggered the vulnerable code path (not a crash) |
+| CVE-2026-54729 | SSRF | exit_code=1, FAIL | 3, all `source=llm` | **FAIL** | Same markdown-fence `SyntaxError` on the revised `target_app.py` |
+| CVE-2026-46492 | XSS | exit_code=1, FAIL | 2 (1 `llm`, then "no known revision") | **FAIL** | Same markdown-fence `SyntaxError` on the revised `target_app.py` |
+
+**4 of the 5 failures share one root cause**, not five independent ones:
+the LLM revision response's `poc.py`/`target_app.py` sections still
+contained a literal `` ```python `` markdown fence that `_extract_marker`
+did not strip, so the rewritten `target_app.py` was syntactically invalid
+and crashed immediately on `python target_app.py`. Only
+`CVE-2026-78683`'s failure is a distinct case — a clean, non-crashing
+"payload didn't work" outcome.
+
+### A second, previously-undocumented bug found while producing this table
+
+Reading `cve_pipeline.py:2389-2394` (`execute_exploit_artifacts`) against
+the data above surfaced a real gap: when the target process crashes
+before its `/health` check ever succeeds, the function returns early and
+**does not update `artifacts.exit_code` or `artifacts.dynamically_confirmed`**
+— both keep whatever value was left over from the previous successful
+execution. Concretely, `CVE-2026-27602` and `CVE-2026-46492`'s iteration-1
+`refinement_history` entries record `"exit_code_after": 1,
+"confirmed_after": False`, which reads as "the revision ran and the
+exploit cleanly failed" — but the revision actually **crashed with a
+SyntaxError and never ran at all**. The only place this is visible is the
+top-level `execution_log` field (`=== target_app.py ===` followed by the
+traceback), not the per-iteration `refinement_history` entry itself.
+
+This matters for any claim built on `refinement_history` alone: right now
+it cannot distinguish "the model tried a fix and it didn't work" from
+"the model's output was broken and nothing ran." Not fixed in this
+session — documented here first, deliberately, before any code change,
+so the finding and the fix are separate, auditable steps rather than a
+silent correction folded into a number that's already been reported.
+
 Raw round-3 reports: `reports/llm_catalog_run_2026-09-23_round3/<CVE-ID>.json`.
