@@ -43,6 +43,10 @@ def render_text(report: PipelineReport) -> str:
         f"  Generated    : {report.generated_at}",
         f"  Stages done  : {', '.join(report.stages_completed)}",
         f"  Stages failed: {', '.join(report.stages_failed) or 'none'}",
+        f"  Total run time (entire pipeline) : {report.elapsed_s}s",
+        f"  Total LLM cost (all live calls)  : " + _fmt_llm_cost(
+            report.total_llm_duration_s, report.total_llm_input_tokens,
+            report.total_llm_output_tokens, report.total_llm_cost_usd),
         "",
         sep2,
         "  ADVISORY",

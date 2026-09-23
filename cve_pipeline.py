@@ -281,6 +281,17 @@ class PipelineReport(BaseModel):
     # tracked via elapsed() but never surfaced on the report until now -
     # src/metrics.py reads this for its per-CVE timing numbers).
     elapsed_s:         float = 0.0
+    # Real, measured totals across every live-model call this run made
+    # (currently Stage 3.5 generation + Stage 3.8 patch generation - the sum
+    # of ExploitArtifacts' generation_*/patch_gen_* fields), kept as a stored
+    # field rather than something every report reader must re-derive.
+    # duration/token totals are None only when NO live-model call happened
+    # at all (pure template run); a 0.0 cost is real (local Ollama), not
+    # "unknown".
+    total_llm_duration_s:     float | None = None
+    total_llm_input_tokens:   int   | None = None
+    total_llm_output_tokens:  int   | None = None
+    total_llm_cost_usd:       float | None = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2747,6 +2758,26 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
     analysis_obj  = _sub(VulnAnalysisResult, analysis)  if analysis  else None
     probe_obj     = _sub(SSRFProbeResult,    probe)      if probe     else None
 
+    # Real totals across every live-model call this run made (generation +
+    # patch generation). None-safe: a stage that never ran a live model
+    # contributes nothing; the *_duration_s/tokens totals stay None only if
+    # NEITHER stage ran one (pure template run) - matches how the pipeline
+    # already treats "unset" vs "measured zero" everywhere else.
+    _llm_parts = [
+        (artifacts.generation_duration_s, artifacts.generation_input_tokens,
+         artifacts.generation_output_tokens, artifacts.generation_cost_usd),
+        (artifacts.patch_gen_duration_s, artifacts.patch_gen_input_tokens,
+         artifacts.patch_gen_output_tokens, artifacts.patch_gen_cost_usd),
+    ]
+    _ran = [p for p in _llm_parts if p[0] is not None]
+    total_llm_duration_s    = round(sum(p[0] for p in _ran), 3) if _ran else None
+    total_llm_input_tokens  = (sum(p[1] for p in _ran if p[1] is not None)
+                               if any(p[1] is not None for p in _ran) else None)
+    total_llm_output_tokens = (sum(p[2] for p in _ran if p[2] is not None)
+                               if any(p[2] is not None for p in _ran) else None)
+    total_llm_cost_usd      = (round(sum(p[3] for p in _ran if p[3] is not None), 4)
+                               if any(p[3] is not None for p in _ran) else None)
+
     _final_report = PipelineReport(
         pipeline_id      = report_dict.get("pipeline_id",      deps.pipeline_id),
         cve_id           = report_dict.get("cve_id",           deps.cve_id),
@@ -2763,6 +2794,10 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
         recommendations  = report_dict.get("recommendations",  []),
         errors           = report_dict.get("errors",           deps.errors),
         elapsed_s        = report_dict.get("elapsed_s",         deps.elapsed()),
+        total_llm_duration_s    = total_llm_duration_s,
+        total_llm_input_tokens  = total_llm_input_tokens,
+        total_llm_output_tokens = total_llm_output_tokens,
+        total_llm_cost_usd      = total_llm_cost_usd,
     )
     # Auto-ingest into Obsidian vault (silent on failure)
     obsidian_ingest(_final_report.cve_id, _final_report)
