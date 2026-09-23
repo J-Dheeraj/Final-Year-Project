@@ -255,6 +255,20 @@ parallel system.
          class) is the natural next step to raise the confirmation rate,
          not attempted here to keep this run an honest single-frozen-
          prompt baseline.
+
+         **Round 2, same day:** found a real, shared bug in 3/5 failures
+         (PoC used the schemeless `host:port` argv directly as a URL,
+         silently swallowed by a broad `except`) and fixed it with one
+         generalizable prompt rule. Re-ran the full catalog: 2/6 confirmed
+         this round (SSRF, XSS — both new), but CVE-2026-42208 (SQLi,
+         confirmed in round 1) did NOT confirm in round 2 with the
+         identical wording — real model-sampling variance, not a
+         regression. Correct combined statement: **3 distinct classes
+         confirmed at least once across the two rounds (SQLi, SSRF, XSS),
+         not "2/6."** Full honest comparison, including the fix's own
+         first-attempt bug (an f-string escaping mistake that broke all 6
+         re-runs identically before being caught and fixed), in
+         `reports/LIVE_LLM_CATALOG_RUN.md`.
 - [ ] **S1 fidelity stratum — real litellm, not a reproduction, for one
       CVE.** The single highest-value upgrade to Limitation 1
       (`docs/SCOPE_AND_LIMITATIONS.md`). Concrete plan:
