@@ -92,3 +92,57 @@ since the SQLi contract already proved a 7B model *can* satisfy it when
 the prompt is specific enough. Not attempted here to keep this run's
 result an honest, single-frozen-prompt baseline rather than a moving
 target.
+
+## Round 2 — a diagnosed, generalizable bug fix, and honest variance
+
+Inspecting the 5 unconfirmed CVEs' generated PoCs found a real, shared bug
+in 3 of them (CVE-2026-23949, CVE-2026-54729, CVE-2026-46492): the PoC
+receives `argv[1]` as a bare `host:port` string and used it directly in an
+f-string URL with no `http://` prefix. `requests` raises
+`MissingSchema` on that, which a broad `except requests.RequestException`
+silently swallows as "target unreachable" — `health()` returns `False`
+before the exploit is ever attempted. This is a generic PoC-construction
+gap, not specific to any one vulnerability class: the prompt never
+mandated a scheme, and the one round-1 success (SQLi) happened to include
+it by chance, not by instruction.
+
+**Fix**: one explicit rule added to the shared generation prompt —
+`argv[1]` is schemeless; every request URL must be built as
+`f"http://{host}:{port}/..."`. (First attempt at wiring this had a real
+bug of its own: writing the example as `{host}`/`{port}` inside the
+prompt's own Python f-string caused a `NameError` in `cve_pipeline.py`
+itself, since those aren't Python variables in that scope — caught
+immediately when all 6 re-runs errored out identically; fixed by escaping
+to `{{host}}`/`{{port}}` so the literal text reaches the model instead of
+being evaluated. Verified with a standalone f-string check before
+re-running the catalog.)
+
+Re-ran the same protocol (one shot per CVE, `--no-cache`, sandboxed the
+same way) with the corrected prompt:
+
+| CVE | Class | Confirmed (round 1) | Confirmed (round 2) | Patch attempted | Patch validated | Time (s) | Tokens in/out |
+|---|---|---|---|---|---|---|---|
+| CVE-2026-42208 | SQL Injection | **True** | False | False | — | 17.06 | 1291 / 551 |
+| CVE-2026-27602 | OS Command Injection | False | False | False | — | 11.62 | 1254 / 526 |
+| CVE-2026-23949 | Path Traversal | False | False | False | — | 13.88 | 1350 / 631 |
+| CVE-2026-78683 | Insecure Deserialization | False | False | False | — | 12.13 | 1293 / 550 |
+| CVE-2026-54729 | SSRF | False | **True** | True | False | 18.96 | 1722 / 863 |
+| CVE-2026-46492 | Cross-Site Scripting | False | **True** | True | False | 16.49 | 1745 / 745 |
+| **Total** | | **1/6** | **2/6** | **2/6** | **0/6** | **90.14** | **8655 / 3866** |
+
+**Read this honestly, not as "round 2 is strictly better":** the fix
+newly confirmed 2 previously-failing classes (SSRF, XSS) — real evidence
+it addressed a genuine, shared bug — but **CVE-2026-42208 (SQLi), which
+confirmed in round 1, did not confirm in round 2 with the identical
+success-contract wording.** Neither run pins the model's sampling
+(no fixed seed/temperature=0), so a single-shot result for the *same*
+CVE can flip between runs. Both rounds are single frozen-prompt shots
+per CVE, and the correct combined statement is: **across the two rounds,
+3 distinct classes have been confirmed at least once (SQLi, SSRF, XSS)
+out of 6**, not "2/6 is the new number." Patch generation was attempted
+for both round-2 confirmations and validated False in both cases —
+not yet inspected in detail; the same generic-patch failure mode found
+for SQLi in step 3 is the working hypothesis, not yet confirmed for
+these two.
+
+Raw round-2 reports: `reports/llm_catalog_run_2026-09-23_round2/<CVE-ID>.json`.

@@ -2171,6 +2171,14 @@ Then: python poc.py 127.0.0.1:5000
 Important rules:
 - Both files must be runnable with only stdlib + requests/flask/werkzeug.
 - The PoC must exit 0 on success, 1 on failure.
+- The PoC's sys.argv[1] is a bare `host:port` string with NO scheme (e.g.
+  "127.0.0.1:5000"). You MUST build every request URL as
+  `f"http://{{host}}:{{port}}/..."` — never pass the raw argv[1] string directly
+  into a request call or an f-string as if it already had "http://" on it.
+  Using it unprefixed raises requests.exceptions.MissingSchema, which a
+  broad `except requests.RequestException` will silently swallow as "target
+  unreachable" and the exploit will never even be attempted — a failure
+  that looks like the target is down, not like a scheme bug.
 - Target app must listen on port 5000, and the ONLY `port=` assignment in the
   file must be the one inside `app.run(...)` - the pipeline auto-detects the
   port by scanning for that pattern, so any other `port=`-shaped variable
