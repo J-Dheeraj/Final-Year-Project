@@ -100,11 +100,86 @@ reality rather than the implementation being built out to match the pitch.
 ## "What's the weakest evidence in this whole project?"
 
 Have an honest answer ready rather than getting caught by the question.
-Candidates, ranked: self-improvement's and patch generation's LLM paths
-are only stub-tested in this environment (no live API key/CLI — see
-`docs/BENCHMARK_PROTOCOL.md` §4, every LLM-shaped result here is
-`llm-stub` or `lesson-reuse`, never `llm-live`); the free5GC compile
-verification proves compile-compatibility, not runtime correctness; and
-five of six main-pipeline vulnerability classes rely on static
+**This changed on 2026-09-23** — the old answer below ("LLM paths are
+only stub-tested") is now out of date and would be an overclaim in the
+other direction if repeated unchanged. Current candidates, ranked: the
+free5GC compile verification still only proves compile-compatibility,
+not runtime correctness (unchanged, see the free5GC question above);
+five of six main-pipeline vulnerability classes still rely on static
 pattern-matching in Stage 3 rather than live testing (though Stage 3.6
-covers all six with real dynamic execution regardless).
+covers all six with real dynamic execution regardless); and the
+live-model catalog runs are still single-shot per CVE with no fixed
+seed/temperature=0, so any one CVE's confirmed/not-confirmed result can
+flip between runs (see round 1 vs. round 2's SQLi flip, and round 3 vs.
+round 4's OS-CMDi/Deserialization/SSRF/XSS flips, all in
+`reports/LIVE_LLM_CATALOG_RUN.md`) — a single round's number is not a
+stable measurement, only the *union* across rounds ("has this class ever
+confirmed") is currently defensible.
+
+(Historical, kept for context: before 2026-09-23, self-improvement's and
+patch generation's LLM paths were only stub-tested in this environment
+— no live API key/CLI. That gap is closed; see the next question.)
+
+## "Are Stage 3.7 (self-improvement) and Stage 3.8 (patch generation) actually verified live now?"
+
+Yes, as of commit `e344966` (2026-09-23) and the round-3/round-4 catalog
+runs that followed it. Before that commit, `src/pipeline/self_improve.py`
+called `_call_claude`/`_claude_available` directly instead of the
+provider-agnostic `_call_live_model`/`_live_model_available` helper
+Stage 3.5/3.8 already used — under this machine's actual conditions (no
+`claude` CLI, local Ollama only), that meant Stage 3.7 silently never ran
+at all, not "ran via stub." Fixed by mirroring the exact pattern already
+proven for Stage 3.5/3.8. Round 4 (`reports/LIVE_LLM_CATALOG_RUN.md`)
+shows the result: `CVE-2026-27602` confirmed via a genuine
+from-scratch Stage 3.7 revision (`source=llm`, `revision_backend=ollama`
+in the raw report, not a reused lesson), and `CVE-2026-78683` got its
+Stage 3.8 patch validated for the first time across all four rounds — a
+real `500`/`ValueError` from re-running the *original, unmodified*
+exploit against the patched target. Both are independently reproducible:
+`git show e344966`, and the raw JSON reports under
+`reports/llm_catalog_run_2026-09-23_round4/`.
+
+## "You found bugs in your own pipeline while producing these results — what were they, and how do you know they're fixed?"
+
+Two, both found by reading round 3's raw `execution_log` output closely
+rather than trusting the summary numbers, and both documented in
+`reports/LIVE_LLM_CATALOG_RUN.md` *before* being fixed (commit `6f932b4`
+documents them; `b05b45d` fixes them — deliberately two separate,
+auditable commits, not one commit that quietly corrects a number already
+reported). (1) `_extract_marker` didn't strip a stray leading/trailing
+`` ``` `` markdown fence from the model's response, so 4 of 5 round-3
+failures crashed with a literal `SyntaxError` on the rewritten
+`target_app.py`'s first line — not a reasoning failure, a parsing gap.
+(2) `execute_exploit_artifacts` left `exit_code`/`dynamically_confirmed`
+stale (carried over from the previous run) when the target crashed
+before its health check, so a crash could misleadingly read as "ran and
+cleanly failed" in `refinement_history`. Verified fixed three ways, not
+just asserted: a standalone unit test against the exact failure shape
+(now parses as valid Python), a standalone test that runs a healthy
+target then swaps in a crashing one on the same artifacts object (now
+correctly resets to `None`/`False` instead of staying stale), and a full
+catalog re-run (round 4) checked programmatically for the crash signature
+— `grep`/`Select-String` for `SyntaxError` across all 6 round-4 reports
+returns zero matches, independently reproducible in a terminal with:
+```
+git show b05b45d
+```
+and the per-CVE loop documented in `reports/LIVE_LLM_CATALOG_RUN.md`'s
+round 4 section.
+
+## "What's your single strongest piece of dynamic evidence?"
+
+`CVE-2026-78683` (Insecure Deserialization) in round 4:
+live-generated exploit (Stage 3.5, `qwen2.5-coder:7b` via Ollama, no
+template) → dynamically confirmed on the first try, zero refinement
+needed (`poc.py` exit 0, `[+] EXPLOITED`) → live-generated patch (Stage
+3.8) → the *same, unmodified* exploit script re-run against the patched
+target now genuinely fails (`poc.py` exit 1, `[-] FAILED`, the target
+raises `ValueError: Deserialization only allowed for safe classes` and
+returns HTTP 500) → `/health` still returns 200, so the patch didn't just
+break the app. Every step is a real subprocess exit code or a real HTTP
+response, not a description of what should happen, and every step is in
+`reports/llm_catalog_run_2026-09-23_round4/CVE-2026-78683.json`. This is
+the first time in the project's history all of generation, dynamic
+confirmation, AND patch validation succeeded for the same CVE in the
+same run — cite this one first if asked for a concrete example.
