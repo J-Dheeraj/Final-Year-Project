@@ -205,6 +205,18 @@ class ExploitArtifacts(BaseModel):
     vuln_class:      str  = ""
     poc_summary:     str  = ""   # one-line description of what the PoC does
     iterations:      int  = 1    # generation attempt number (v0, v1, …)
+    # Gate 1 of the live-LLM plan: record how poc.py/target_app.py were actually
+    # produced, so a template fallback that silently masked a failed live attempt
+    # becomes a measured outcome instead of an invisible footnote. One of:
+    # "llm_live_success" (both files from a live model), "llm_live_failed" (a
+    # model was available but did not produce both — templates filled in),
+    # "template" (no model available), or "" when generation did not run.
+    generation_outcome: str = ""
+    # Provenance of the live-model attempt, required by the benchmark protocol
+    # ("record ... model ID ... in every report"): which backend answered and
+    # the exact model tag. Empty when no live model was used.
+    generation_backend: str = ""   # "claude" | "ollama" | "none"
+    generation_model:   str = ""   # e.g. "qwen2.5-coder:7b" or "claude-cli"
     # Stage 3.6 — did the generated artifact actually get RUN, and did it
     # actually reproduce the bug? Before this, an artifact could sit on disk
     # forever with nobody (human or pipeline) ever confirming it worked -
@@ -317,6 +329,66 @@ def _claude_available() -> bool:
         return r.returncode == 0
     except Exception:
         return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Local model adapter (Ollama)  — provider-agnostic live-model path
+# ─────────────────────────────────────────────────────────────────────────────
+# Live-LLM plan step 2: a second backend alongside the Claude CLI, so the live
+# generation path (Stage 3.5/3.7/3.8) also works with a local model and no API
+# key. Configure with OLLAMA_HOST / OLLAMA_MODEL; if neither backend is present
+# the pipeline still falls back to templates (recorded via generation_outcome).
+
+_OLLAMA_HOST  = os.environ.get("OLLAMA_HOST",  "http://localhost:11434")
+_OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
+
+
+def _ollama_available() -> bool:
+    """Return True if a local Ollama server is reachable and has the model."""
+    try:
+        r = requests.get(f"{_OLLAMA_HOST}/api/tags", timeout=3)
+        if r.status_code != 200:
+            return False
+        want = _OLLAMA_MODEL.split(":")[0]
+        return any((m.get("name") or "").split(":")[0] == want
+                   for m in r.json().get("models", []))
+    except Exception:
+        return False
+
+
+def _call_ollama(prompt: str, timeout: int = 180) -> str:
+    """Call the local Ollama server. Returns completion text, or '' on failure."""
+    try:
+        r = requests.post(
+            f"{_OLLAMA_HOST}/api/generate",
+            json={"model": _OLLAMA_MODEL, "prompt": prompt, "stream": False},
+            timeout=timeout,
+        )
+        if r.status_code == 200:
+            return (r.json().get("response") or "").strip()
+        log.debug("ollama non-200: %s", r.status_code)
+    except Exception as exc:
+        log.debug("ollama error: %s", exc)
+    return ""
+
+
+def _live_model_available() -> bool:
+    """True if any live code-model backend is usable (Claude CLI or local Ollama)."""
+    return _claude_available() or _ollama_available()
+
+
+def _call_live_model(prompt: str, timeout: int = 180) -> tuple[str, str, str]:
+    """Call the best available live model. Returns (completion, backend, model);
+    backend is "claude", "ollama", or "none" when nothing produced output."""
+    if _claude_available():
+        out = _call_claude(prompt, timeout)
+        if out:
+            return out, "claude", "claude-cli"
+    if _ollama_available():
+        out = _call_ollama(prompt, timeout)
+        if out:
+            return out, "ollama", _OLLAMA_MODEL
+    return "", "none", ""
 
 
 def _extract_marker(text: str, start: str, end: str) -> str:
@@ -1983,8 +2055,11 @@ def generate_exploit_artifacts(
     # ── 1. Try Claude -p for AI-generated, CVE-specific code ─────────────────
     poc_code    = ""
     target_code = ""
+    gen_backend = "none"
+    gen_model   = ""
+    model_avail = _live_model_available()
 
-    if _claude_available():
+    if model_avail:
         prompt = f"""\
 You are a security researcher writing a PoC exploit and a minimal vulnerable target \
 app for a specific CVE. Follow the EXACT output format below — no preamble, no markdown.
@@ -2035,7 +2110,7 @@ Important rules:
 - Tailor the exploit to the SPECIFIC vulnerability class and root cause above.
 - No markdown fences, no explanations outside the markers.
 """
-        raw = _call_claude(prompt, timeout=180)
+        raw, gen_backend, gen_model = _call_live_model(prompt, timeout=180)
 
         if raw:
             poc_code    = _extract_marker(raw, "===POC_START===",    "===POC_END===")
@@ -2043,6 +2118,15 @@ Important rules:
 
             if poc_code and target_code:
                 log.info("[Stage 3.5] AI-generated artifacts for %s", cve_id)
+
+    # Record generation provenance BEFORE the template fallback overwrites any
+    # empty slot, so a failed live attempt is not masked by the template fill-in.
+    if not model_avail:
+        generation_outcome = "template"
+    elif poc_code and target_code:
+        generation_outcome = "llm_live_success"
+    else:
+        generation_outcome = "llm_live_failed"
 
     # ── 2. Fallback: class-specific template ──────────────────────────────────
     # Map long-form class names (returned by the analysis stage) to _POC_TEMPLATE keys.
@@ -2091,12 +2175,15 @@ Important rules:
         poc_summary = f"{vuln_class} exploit against {package} ({ecosystem})"
 
         return ExploitArtifacts(
-            generated       = True,
-            poc_path        = str(poc_path),
-            target_app_path = str(target_path),
-            vuln_class      = vuln_class,
-            poc_summary     = poc_summary,
-            iterations      = 1,
+            generated          = True,
+            poc_path           = str(poc_path),
+            target_app_path    = str(target_path),
+            vuln_class         = vuln_class,
+            poc_summary        = poc_summary,
+            iterations         = 1,
+            generation_outcome = generation_outcome,
+            generation_backend = gen_backend,
+            generation_model   = gen_model,
         )
     except Exception as exc:
         log.warning("[Stage 3.5] Failed to write artifacts: %s", exc)

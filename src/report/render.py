@@ -141,6 +141,9 @@ def render_text(report: PipelineReport) -> str:
         if art.generated:
             lines += [
                 f"  Status      : GENERATED (iter 1, v0)",
+                f"  Generation  : {art.generation_outcome or 'n/a'}"
+                + (f" [{art.generation_backend}:{art.generation_model}]"
+                   if art.generation_backend and art.generation_backend != 'none' else ''),
                 f"  PoC         : {art.poc_path}",
                 f"  Target app  : {art.target_app_path}",
                 f"  Summary     : {art.poc_summary}",
