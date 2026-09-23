@@ -11,6 +11,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+
+def _fmt_llm_cost(duration_s, input_tokens, output_tokens, cost_usd) -> str:
+    """One line of real, measured run time / tokens / cost for a single live-
+    model call — per-CVE benchmark-protocol ask. Any field left None (e.g.
+    Claude CLI's unexposed token counts) prints as 'n/a', never a guess."""
+    d = f"{duration_s:.2f}s" if duration_s is not None else "n/a"
+    i = str(input_tokens)  if input_tokens  is not None else "n/a"
+    o = str(output_tokens) if output_tokens is not None else "n/a"
+    c = f"${cost_usd:.4f}" if cost_usd is not None else "n/a"
+    return f"time={d}  tokens_in={i}  tokens_out={o}  cost={c}"
+
+
 def render_text(report: PipelineReport) -> str:
     import textwrap
     sep  = "=" * 70
@@ -144,6 +156,9 @@ def render_text(report: PipelineReport) -> str:
                 f"  Generation  : {art.generation_outcome or 'n/a'}"
                 + (f" [{art.generation_backend}:{art.generation_model}]"
                    if art.generation_backend and art.generation_backend != 'none' else ''),
+                f"  Gen. cost   : " + _fmt_llm_cost(
+                    art.generation_duration_s, art.generation_input_tokens,
+                    art.generation_output_tokens, art.generation_cost_usd),
                 f"  PoC         : {art.poc_path}",
                 f"  Target app  : {art.target_app_path}",
                 f"  Summary     : {art.poc_summary}",
@@ -162,6 +177,9 @@ def render_text(report: PipelineReport) -> str:
                 lines += [
                     "",
                     f"  Patch (Stage 3.8)      : {art.patch_summary}",
+                    f"  Patch gen. cost        : " + _fmt_llm_cost(
+                        art.patch_gen_duration_s, art.patch_gen_input_tokens,
+                        art.patch_gen_output_tokens, art.patch_gen_cost_usd),
                     f"  Patched target         : {art.patched_target_path}",
                     f"  Patch validated        : {art.patch_validated}",
                 ]
