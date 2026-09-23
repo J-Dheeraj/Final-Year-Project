@@ -6,6 +6,134 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-23 (live-LLM Gate 1/2, full session, branch
+  `feat/live-llm-gate1`)** — Closed out the "wire in a live LLM" Phase 4
+  item end to end across all three LLM-touching stages (3.5 generation,
+  3.7 self-improve, 3.8 patch), with real per-call cost/time/token
+  metrics throughout — not estimated, read directly from the Claude CLI
+  or Ollama's own `prompt_eval_count`/`eval_count`/`total_duration`
+  fields. Full commit sequence: `a6aec31` (Stage 3.5 + local Ollama
+  backend) → `a3d802d` (Stage 3.8 wired) → `0eb4a29`/`25c2699` (per-call
+  and per-pipeline metrics) → `390c316` (first full catalog run) →
+  `4c1a386` (schemeless-URL bug fix, round 2) → `b0b3377` (pinned
+  sampling: `temperature=0`, fixed seed) → `c2d76a5` (8-model comparison)
+  → `ba24163` (2 patch-gen bugs + multi-payload validation) →
+  `276f62f` (patch-validation investigation write-up + clean 48-run
+  re-test) → `7c7cfbe` (2 payload-extraction bugs, found *after* that
+  write-up — see correction below) → `3f21eda` (Stage 3.7 wired to the
+  same backend, closing the one remaining unwired call site).
+
+  **What exists now**: `_call_live_model`/`_live_model_available` in
+  `cve_pipeline.py` — Claude CLI first, local Ollama fallback
+  (`OLLAMA_HOST` defaults to explicit `http://127.0.0.1:11434` after a
+  real IPv4/IPv6 localhost-ambiguity bug was found via `netstat`, see
+  below) — is now the single call path for all three stages. Every call
+  returns a `LiveModelResult` (`text, backend, model, duration_s,
+  input_tokens, output_tokens, cost_usd`) that gets recorded on
+  `ExploitArtifacts`/`PipelineReport` (`generation_*`, `patch_gen_*`,
+  and now `revision_*` on `refinement_history` entries) and rolled up
+  into `total_llm_*` in every report and `src/metrics.py`'s
+  `METRICS.md`.
+
+  **Full model catalog run**: 8 local Ollama models (qwen2.5-coder at
+  1.5b/3b/7b, llama3.1:8b, mistral:7b, gemma2:9b, codellama:13b,
+  deepseek-coder-v2:16b) × the 6-CVE frozen catalog, run twice (an
+  initial comparison in `reports/MULTI_MODEL_COMPARISON.md`, then a
+  clean re-test after the patch-gen bugs below were fixed, in
+  `reports/PATCH_VALIDATION_INVESTIGATION.md`). Claude/OpenAI explicitly
+  **dropped** for this round per direct instruction ("drop Claude for
+  this round, Ollama only") — no CLI/API key available in this
+  environment, never silently worked around. Headline, stated plainly
+  rather than as a leaderboard: confirmation rate does not track model
+  size (7B beat both 9B and 13B); qwen2.5-coder:7b is the strongest
+  confirmer but also has the most prior prompt-tuning exposure (a real
+  confound); patch generation does not reliably work with any of these
+  8 models on a single deterministic shot even after the bugs below were
+  fixed (3/48 "validated," and see the caveat on what that number
+  actually means below).
+
+  **Real bugs found by direct challenge, not by process** — the user's
+  own words drove this: *"to validate a patch you have to try and probe
+  the patch"*, then *"if you can potentially bypass them, that means the
+  patch is not good"*. Investigating that surfaced four real bugs (all
+  in `reports/PATCH_VALIDATION_INVESTIGATION.md`, commit `ba24163`):
+  (1) all 17 patch attempts in the first comparison crashed on a
+  markdown-fence artifact the model wrapped its output in; (2) once
+  fixed, patches sometimes omitted the Flask `app.run()` startup block
+  entirely, exiting silently with no traceback; (3) the patched
+  process's real stdout/stderr was captured internally then discarded,
+  which is why bugs 1–2 were invisible until fixed; (4) `localhost`
+  resolved to two different services on this machine (`ollama.exe` on
+  IPv4, an unrelated process on IPv6), silently flipping
+  `_ollama_available()`'s answer call to call — found via `netstat
+  -ano`, not guessed.
+
+  **Built in direct response to that same challenge**: single-payload
+  patch validation is not proof a vulnerability class is closed — a
+  patch that blocklists one literal string would pass. Stage 3.5 now
+  also asks for 2 structurally distinct alternate payloads
+  (`ExploitArtifacts.payload_variants`); `poc.py`'s generated contract
+  now accepts a payload override (`exploit(host, port, payload=None)`,
+  `sys.argv[2]`); Stage 3.8 re-probes every would-be-validated patch
+  with each alternate payload and overrides `patch_validated` back to
+  `False` on the first one that still succeeds. Verified correct on a
+  controlled synthetic case (a deliberately narrow blocklist patch
+  passed the old single-payload check, then was correctly caught and
+  rejected once a structurally different payload was tried) — no Ollama
+  call needed for that proof.
+
+  **Correction to `reports/PATCH_VALIDATION_INVESTIGATION.md`**: that
+  report's "Bottom line" section states the payload-extraction quality
+  gap (echoed placeholder text, unstripped backticks) was "not fixed
+  here." That was true when written; it no longer is. Commit `7c7cfbe`
+  (same day, after that report) fixed both: `_clean_payload_variants()`
+  now drops a whole block that's a single parenthetical (the model
+  echoing the prompt's own placeholder instructions back verbatim
+  instead of real payloads) and strips a wrapping single backtick per
+  line. Verified offline against the two real bad inputs that were
+  found, plus a clean case and a mixed-line case, and with one live
+  re-run (`qwen2.5-coder:1.5b` / `CVE-2026-46492`) confirming
+  `payload_variants` now comes back clean or empty, never garbage. The
+  report file itself was intentionally left as the honest record of
+  what was true at the time it was written rather than rewritten after
+  the fact — this entry is the correction, read both together.
+
+  **Stage 3.7 wiring (`3f21eda`, last commit of the session)**: Stage
+  3.7 (`src/pipeline/self_improve.py`) was the one remaining call site
+  still checking `_claude_available()` only — under this session's
+  Ollama-only conditions it silently never ran, the exact class of
+  "silent fallback" gap Gate 1 was built to expose everywhere else.
+  Mirrors the identical pattern already proven for Stage 3.5/3.8.
+  Verified live: `CVE-2026-23949` / `qwen2.5-coder:7b` produced 3
+  refinement attempts, each showing `revision_backend=ollama` with real
+  duration/token counts — previously this returned `None` every time.
+
+  **Exit criteria met**: all three LLM call sites use the unified
+  backend with real recorded metrics (not estimated); multi-payload
+  patch validation is built and proven correct; 4 real bugs found and
+  fixed with direct evidence (not assumed).
+  **Exit criteria explicitly NOT met / left open** (per
+  `reports/PATCH_VALIDATION_INVESTIGATION.md`'s own honest framing —
+  read that file for the full numbers): mistral:7b's patch responses
+  fail to parse for a reason distinct from the `localhost` bug, not
+  diagnosed; qwen2.5-coder:1.5b had one 1636.5s generation outlier,
+  flagged not investigated; getting models to reliably produce
+  well-formed alternate payloads in practice is still the real gap —
+  the honest headline is **not** "3/48 patches validated," it's
+  "0/48 patches have been tested against more than their original
+  payload" (all 3 "validated" cases had `payload_variants: []`).
+  ProvTrail's JS/TS dynamic-execution work (below) and further
+  root-causing were both deliberately deferred given context budget,
+  not silently dropped — see the plan file this session executed
+  against for the explicit scope cut.
+
+  **Also this session, but tooling, not project substance** (kept out
+  of this project's own doc, noted here only for continuity): installed
+  and started `claude-mem` (a separate, local, Claude-Code-native
+  observation memory tool) at the user's explicit request, kept
+  deliberately distinct from this project's own documentation/memory
+  system — it does not replace or touch anything in this repo.
+
 - **2026-09-23** — Built the *ingestion + orchestration* half of the
   Phase 4 ProvTrail item (`provtrail_bridge.py`, `package_labs.py`,
   `tests/test_provtrail_bridge.py` + SARIF/AI-text fixtures; pushed to
@@ -269,6 +397,18 @@ parallel system.
          first-attempt bug (an f-string escaping mistake that broke all 6
          re-runs identically before being caught and fixed), in
          `reports/LIVE_LLM_CATALOG_RUN.md`.
+
+         **Done, same day (see the full session-log entry above)**: all
+         three LLM call sites (Stage 3.5, 3.7, 3.8) wired to a single
+         provider-agnostic backend with real per-call metrics; 8-model
+         Ollama comparison run; multi-payload patch validation built and
+         proven correct; 4 real bugs found and fixed (markdown fence,
+         missing `app.run()`, discarded diagnostic, `localhost`
+         ambiguity) plus 2 payload-extraction bugs. This Phase 4 item is
+         now substantially closed — what remains open (mistral:7b parse
+         failures, the 1.5b timing outlier, and reliably producing
+         well-formed alternate payloads in practice) is tracked in
+         `reports/PATCH_VALIDATION_INVESTIGATION.md`, not re-listed here.
 - [ ] **S1 fidelity stratum — real litellm, not a reproduction, for one
       CVE.** The single highest-value upgrade to Limitation 1
       (`docs/SCOPE_AND_LIMITATIONS.md`). Concrete plan:
