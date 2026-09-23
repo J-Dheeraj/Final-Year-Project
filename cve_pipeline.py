@@ -2108,6 +2108,31 @@ Important rules:
   (Werkzeug's reloader forks a second process that a supervising script
   cannot reliably terminate).
 - Tailor the exploit to the SPECIFIC vulnerability class and root cause above.
+- Use this EXACT success contract, concretely, not just in spirit: the target
+  app must define a constant marker string, e.g. MARKER = "PWNED_<random-looking-suffix>".
+  The vulnerable endpoint must return that marker in its response body ONLY when
+  the attacker-controlled input, when substituted unsafely into the vulnerable
+  operation (SQL query / shell command / file path / template / etc.), causes an
+  EXTRA action beyond what the input alone should trigger (e.g. a SQL payload
+  like `' OR '1'='1` or `'; SELECT ... --` makes a query that was built by naive
+  string concatenation return the marker row; a shell metacharacter like `; echo
+  MARKER` causes the marker to appear in command output; a `../` sequence reads
+  a file containing the marker). A request with an ordinary, non-malicious value
+  for the same parameter must NOT return the marker.
+- verify(r) MUST check for exactly that same marker string appearing in the
+  response body, and nothing else. Do not check status codes, unrelated
+  substrings, or any condition true for a normal, non-malicious request.
+- CRITICAL: if you define a MARKER constant, you MUST actually return it
+  inside the response body (e.g. `return jsonify({{"data": MARKER}})`) on the
+  branch that fires when the malicious input is detected/used unsafely.
+  Defining MARKER but never including it in any returned response is wrong
+  and will make the PoC fail even though the logic looks right.
+- Do NOT use a real database (sqlite3, an actual file on disk, an ORM) or any
+  external file/service the app must set up first. Simulate the vulnerable
+  operation with plain Python string handling only (e.g. build the SQL/command/
+  path STRING as the vulnerable code would, then check with `in`/`==` whether
+  the malicious payload appears unescaped in that built string) — there is no
+  real backend to query, so nothing may depend on one existing.
 - No markdown fences, no explanations outside the markers.
 """
         raw, gen_backend, gen_model = _call_live_model(prompt, timeout=180)
