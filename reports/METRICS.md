@@ -9,6 +9,7 @@ Computed by `python -m src.metrics` directly from `reports/*/report.json` alread
 - Patch validated: **0 (none attempted)**
 - Wall-clock per CVE: not available (older reports predate `elapsed_s`)
 - LLM calls per CVE (estimate, undercounts Stage 2/3.5): mean **0**, total **0**
+- Real live-model cost: not available (no report yet carries total_llm_* — run with the live-LLM Gate 1/2 instrumentation to populate this)
 
 ## By vulnerability class
 

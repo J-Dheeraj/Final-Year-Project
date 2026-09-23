@@ -28,12 +28,15 @@ def _extract_marker(text: str, start: str, end: str) -> str:
 
 
 def _llm_generate_patch(vuln_class: str, root_cause: str, fix_summary: str,
-                         target_text: str) -> tuple[str, str] | None:
-    """Ask Claude to patch the vulnerable target's handler. Returns
-    (patched_source, one_line_summary) or None if unavailable/unparseable -
-    never raises, mirroring every other AI-optional path in this pipeline."""
-    from cve_pipeline import _call_claude, _claude_available
-    if not _claude_available():
+                         target_text: str):
+    """Ask a live model to patch the vulnerable target's handler. Returns
+    (patched_source, one_line_summary, LiveModelResult) or None if
+    unavailable/unparseable - never raises, mirroring every other AI-optional
+    path in this pipeline. Uses the same provider-agnostic backend as Stage
+    3.5 (Claude CLI first, local Ollama fallback), not just the Claude CLI.
+    The LiveModelResult carries this call's real duration/tokens/cost."""
+    from cve_pipeline import _call_live_model, _live_model_available
+    if not _live_model_available():
         return None
     prompt = f"""\
 Below is a minimal Flask app that deliberately reproduces a real
@@ -63,14 +66,14 @@ Output EXACTLY two sections, no markdown fences, no commentary outside them:
 (one sentence describing the fix)
 ===SUMMARY_END===
 """
-    raw = _call_claude(prompt, timeout=180)
-    if not raw:
+    gen_call = _call_live_model(prompt, timeout=180)
+    if not gen_call.text:
         return None
-    patched = _extract_marker(raw, "===PATCHED_TARGET_START===", "===PATCHED_TARGET_END===")
-    summary = _extract_marker(raw, "===SUMMARY_START===", "===SUMMARY_END===")
+    patched = _extract_marker(gen_call.text, "===PATCHED_TARGET_START===", "===PATCHED_TARGET_END===")
+    summary = _extract_marker(gen_call.text, "===SUMMARY_START===", "===SUMMARY_END===")
     if not patched:
         return None
-    return patched, (summary or "LLM-generated patch (no summary returned)")
+    return patched, (summary or "LLM-generated patch (no summary returned)"), gen_call
 
 
 def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
@@ -99,13 +102,17 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
         )
         return artifacts
 
-    patched_source, summary = result
+    patched_source, summary, gen_call = result
     patched_path = target_path.with_name(target_path.stem + ".patched.py")
     patched_path.write_text(patched_source, encoding="utf-8")
 
     artifacts.patch_attempted = True
     artifacts.patched_target_path = str(patched_path)
     artifacts.patch_summary = summary
+    artifacts.patch_gen_duration_s    = gen_call.duration_s
+    artifacts.patch_gen_input_tokens  = gen_call.input_tokens
+    artifacts.patch_gen_output_tokens = gen_call.output_tokens
+    artifacts.patch_gen_cost_usd      = gen_call.cost_usd
 
     # Reuse Stage 3.6's own execution logic against a throwaway artifacts
     # object: same poc.py (unmodified - it must now FAIL), pointed at the

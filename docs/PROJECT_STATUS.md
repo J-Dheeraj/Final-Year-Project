@@ -235,6 +235,40 @@ parallel system.
          completes the full chain (live-generated PoC -> dynamically
          confirmed -> patch_validated) — not "all six work." Report
          degraded/failed generations honestly, don't cherry-pick.
+
+         **Done, 2026-09-23 (branch `feat/live-llm-gate1`):** ran all 6
+         catalog CVEs, one shot each, frozen prompt, real
+         `qwen2.5-coder:7b` via local Ollama, real time/token/cost per
+         report (see the live-LLM Gate-1/2 instrumentation above) — full
+         results in `reports/LIVE_LLM_CATALOG_RUN.md`. **Exit criterion
+         partially met**: CVE-2026-42208 reaches live-generation ->
+         dynamic-confirmation (both True); patch was attempted but
+         `patch_validated=False` (the model's patch used generic
+         auth-format validation the injected payload still passes — a
+         real, explained patch-quality failure). 5/6 other CVEs did not
+         dynamically confirm on their single frozen shot (`exit_code=1`
+         each) — reported honestly, not cherry-picked, not retried. Root
+         cause: the prompt's success contract was iterated and converged
+         against SQL Injection only (step 3); it does not reliably
+         zero-shot transfer to the other 5 classes with a 7B model.
+         Per-class prompt tuning (repeating step 3's bounded process per
+         class) is the natural next step to raise the confirmation rate,
+         not attempted here to keep this run an honest single-frozen-
+         prompt baseline.
+
+         **Round 2, same day:** found a real, shared bug in 3/5 failures
+         (PoC used the schemeless `host:port` argv directly as a URL,
+         silently swallowed by a broad `except`) and fixed it with one
+         generalizable prompt rule. Re-ran the full catalog: 2/6 confirmed
+         this round (SSRF, XSS — both new), but CVE-2026-42208 (SQLi,
+         confirmed in round 1) did NOT confirm in round 2 with the
+         identical wording — real model-sampling variance, not a
+         regression. Correct combined statement: **3 distinct classes
+         confirmed at least once across the two rounds (SQLi, SSRF, XSS),
+         not "2/6."** Full honest comparison, including the fix's own
+         first-attempt bug (an f-string escaping mistake that broke all 6
+         re-runs identically before being caught and fixed), in
+         `reports/LIVE_LLM_CATALOG_RUN.md`.
 - [ ] **S1 fidelity stratum — real litellm, not a reproduction, for one
       CVE.** The single highest-value upgrade to Limitation 1
       (`docs/SCOPE_AND_LIMITATIONS.md`). Concrete plan:

@@ -205,6 +205,34 @@ class ExploitArtifacts(BaseModel):
     vuln_class:      str  = ""
     poc_summary:     str  = ""   # one-line description of what the PoC does
     iterations:      int  = 1    # generation attempt number (v0, v1, …)
+    # Gate 1 of the live-LLM plan: record how poc.py/target_app.py were actually
+    # produced, so a template fallback that silently masked a failed live attempt
+    # becomes a measured outcome instead of an invisible footnote. One of:
+    # "llm_live_success" (both files from a live model), "llm_live_failed" (a
+    # model was available but did not produce both — templates filled in),
+    # "template" (no model available), or "" when generation did not run.
+    generation_outcome: str = ""
+    # Provenance of the live-model attempt, required by the benchmark protocol
+    # ("record ... model ID ... in every report"): which backend answered and
+    # the exact model tag. Empty when no live model was used.
+    generation_backend: str = ""   # "claude" | "ollama" | "none"
+    generation_model:   str = ""   # e.g. "qwen2.5-coder:7b" or "claude-cli"
+    # Real, measured cost of the generation call: run time, input/output
+    # tokens, and $ cost, per CVE, as requested — not an estimate.  Ollama
+    # supplies real token counts + duration from its own API response;
+    # Claude CLI text output exposes neither, so those fields stay None
+    # (unknown) rather than a fabricated number. cost_usd is 0.0 for local
+    # Ollama (real — no billing), None when unknown (Claude CLI) or unset.
+    generation_duration_s:    float | None = None
+    generation_input_tokens:  int   | None = None
+    generation_output_tokens: int   | None = None
+    generation_cost_usd:      float | None = None
+    # Same, for Stage 3.8's patch-generation call (a second, separate
+    # live-model call; not the same measurement as generation_* above).
+    patch_gen_duration_s:     float | None = None
+    patch_gen_input_tokens:   int   | None = None
+    patch_gen_output_tokens:  int   | None = None
+    patch_gen_cost_usd:       float | None = None
     # Stage 3.6 — did the generated artifact actually get RUN, and did it
     # actually reproduce the bug? Before this, an artifact could sit on disk
     # forever with nobody (human or pipeline) ever confirming it worked -
@@ -253,6 +281,17 @@ class PipelineReport(BaseModel):
     # tracked via elapsed() but never surfaced on the report until now -
     # src/metrics.py reads this for its per-CVE timing numbers).
     elapsed_s:         float = 0.0
+    # Real, measured totals across every live-model call this run made
+    # (currently Stage 3.5 generation + Stage 3.8 patch generation - the sum
+    # of ExploitArtifacts' generation_*/patch_gen_* fields), kept as a stored
+    # field rather than something every report reader must re-derive.
+    # duration/token totals are None only when NO live-model call happened
+    # at all (pure template run); a 0.0 cost is real (local Ollama), not
+    # "unknown".
+    total_llm_duration_s:     float | None = None
+    total_llm_input_tokens:   int   | None = None
+    total_llm_output_tokens:  int   | None = None
+    total_llm_cost_usd:       float | None = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -292,21 +331,31 @@ def _call_claude(prompt: str, timeout: int = 120) -> str:
     No ANTHROPIC_API_KEY required — works transparently inside Claude Code sessions.
     Falls back gracefully if claude CLI is not available.
     """
+    return _call_claude_metered(prompt, timeout).text
+
+
+def _call_claude_metered(prompt: str, timeout: int = 120) -> "LiveModelResult":
+    """Same as _call_claude, but also measures real wall-clock duration.
+    Token counts/cost are left None: `claude -p --output-format text` does not
+    expose usage data, and this pipeline does not guess a per-token price."""
+    t0 = time.monotonic()
     try:
         result = subprocess.run(
             ["claude", "-p", prompt, "--output-format", "text"],
             capture_output=True, text=True, timeout=timeout,
         )
+        elapsed = round(time.monotonic() - t0, 3)
         if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+            return LiveModelResult(result.stdout.strip(), "claude", "claude-cli", elapsed, None, None, None)
         log.debug("claude -p non-zero exit: %s", result.stderr[:200])
+        return LiveModelResult("", "claude", "claude-cli", elapsed, None, None, None)
     except FileNotFoundError:
         log.debug("claude CLI not found — AI enhancement skipped")
     except subprocess.TimeoutExpired:
         log.debug("claude -p timed out after %ds", timeout)
     except Exception as exc:
         log.debug("claude -p error: %s", exc)
-    return ""
+    return LiveModelResult("", "claude", "claude-cli", round(time.monotonic() - t0, 3), None, None, None)
 
 
 def _claude_available() -> bool:
@@ -317,6 +366,101 @@ def _claude_available() -> bool:
         return r.returncode == 0
     except Exception:
         return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Local model adapter (Ollama)  — provider-agnostic live-model path
+# ─────────────────────────────────────────────────────────────────────────────
+# Live-LLM plan step 2: a second backend alongside the Claude CLI, so the live
+# generation path (Stage 3.5/3.7/3.8) also works with a local model and no API
+# key. Configure with OLLAMA_HOST / OLLAMA_MODEL; if neither backend is present
+# the pipeline still falls back to templates (recorded via generation_outcome).
+
+_OLLAMA_HOST  = os.environ.get("OLLAMA_HOST",  "http://localhost:11434")
+_OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
+
+
+@dataclass
+class LiveModelResult:
+    """One live-model call's completion plus its real, measured cost —
+    per the benchmark protocol's ask to record run time / tokens / cost for
+    every CVE, not an estimate. Ollama's own API response carries exact
+    prompt_eval_count/eval_count/duration fields, used directly here, not
+    guessed. Claude CLI text output exposes no usage data, so its token/cost
+    fields are left None (genuinely unknown) rather than fabricated."""
+    text:           str
+    backend:        str            # "claude" | "ollama" | "none"
+    model:          str
+    duration_s:     float | None
+    input_tokens:   int   | None
+    output_tokens:  int   | None
+    cost_usd:       float | None   # 0.0 for local Ollama (real, no billing); None = unknown
+
+
+def _ollama_available() -> bool:
+    """Return True if a local Ollama server is reachable and has the model."""
+    try:
+        r = requests.get(f"{_OLLAMA_HOST}/api/tags", timeout=3)
+        if r.status_code != 200:
+            return False
+        want = _OLLAMA_MODEL.split(":")[0]
+        return any((m.get("name") or "").split(":")[0] == want
+                   for m in r.json().get("models", []))
+    except Exception:
+        return False
+
+
+def _call_ollama(prompt: str, timeout: int = 180) -> str:
+    """Call the local Ollama server. Returns completion text, or '' on failure."""
+    return _call_ollama_metered(prompt, timeout).text
+
+
+def _call_ollama_metered(prompt: str, timeout: int = 180) -> LiveModelResult:
+    """Same as _call_ollama, but also captures Ollama's own real per-call
+    metrics (prompt_eval_count/eval_count/total_duration) straight from its
+    API response — not estimated. Local inference has no API bill, so
+    cost_usd is a real 0.0, not an unknown."""
+    t0 = time.monotonic()
+    try:
+        r = requests.post(
+            f"{_OLLAMA_HOST}/api/generate",
+            json={"model": _OLLAMA_MODEL, "prompt": prompt, "stream": False},
+            timeout=timeout,
+        )
+        elapsed = round(time.monotonic() - t0, 3)
+        if r.status_code == 200:
+            body = r.json()
+            text = (body.get("response") or "").strip()
+            # Ollama reports durations in nanoseconds; prefer its own
+            # total_duration over our wall-clock timer when present.
+            duration_s = round(body["total_duration"] / 1e9, 3) if "total_duration" in body else elapsed
+            return LiveModelResult(
+                text, "ollama", _OLLAMA_MODEL, duration_s,
+                body.get("prompt_eval_count"), body.get("eval_count"), 0.0,
+            )
+        log.debug("ollama non-200: %s", r.status_code)
+        return LiveModelResult("", "ollama", _OLLAMA_MODEL, elapsed, None, None, 0.0)
+    except Exception as exc:
+        log.debug("ollama error: %s", exc)
+    return LiveModelResult("", "ollama", _OLLAMA_MODEL, round(time.monotonic() - t0, 3), None, None, 0.0)
+
+
+def _live_model_available() -> bool:
+    """True if any live code-model backend is usable (Claude CLI or local Ollama)."""
+    return _claude_available() or _ollama_available()
+
+
+def _call_live_model(prompt: str, timeout: int = 180) -> LiveModelResult:
+    """Call the best available live model: Claude CLI first, then local Ollama.
+    Returns a LiveModelResult carrying the real duration/tokens/cost of
+    whichever backend actually answered."""
+    if _claude_available():
+        result = _call_claude_metered(prompt, timeout)
+        if result.text:
+            return result
+    if _ollama_available():
+        return _call_ollama_metered(prompt, timeout)
+    return LiveModelResult("", "none", "", None, None, None, None)
 
 
 def _extract_marker(text: str, start: str, end: str) -> str:
@@ -1983,8 +2127,10 @@ def generate_exploit_artifacts(
     # ── 1. Try Claude -p for AI-generated, CVE-specific code ─────────────────
     poc_code    = ""
     target_code = ""
+    gen_call    = LiveModelResult("", "none", "", None, None, None, None)
+    model_avail = _live_model_available()
 
-    if _claude_available():
+    if model_avail:
         prompt = f"""\
 You are a security researcher writing a PoC exploit and a minimal vulnerable target \
 app for a specific CVE. Follow the EXACT output format below — no preamble, no markdown.
@@ -2025,6 +2171,14 @@ Then: python poc.py 127.0.0.1:5000
 Important rules:
 - Both files must be runnable with only stdlib + requests/flask/werkzeug.
 - The PoC must exit 0 on success, 1 on failure.
+- The PoC's sys.argv[1] is a bare `host:port` string with NO scheme (e.g.
+  "127.0.0.1:5000"). You MUST build every request URL as
+  `f"http://{{host}}:{{port}}/..."` — never pass the raw argv[1] string directly
+  into a request call or an f-string as if it already had "http://" on it.
+  Using it unprefixed raises requests.exceptions.MissingSchema, which a
+  broad `except requests.RequestException` will silently swallow as "target
+  unreachable" and the exploit will never even be attempted — a failure
+  that looks like the target is down, not like a scheme bug.
 - Target app must listen on port 5000, and the ONLY `port=` assignment in the
   file must be the one inside `app.run(...)` - the pipeline auto-detects the
   port by scanning for that pattern, so any other `port=`-shaped variable
@@ -2033,16 +2187,50 @@ Important rules:
   (Werkzeug's reloader forks a second process that a supervising script
   cannot reliably terminate).
 - Tailor the exploit to the SPECIFIC vulnerability class and root cause above.
+- Use this EXACT success contract, concretely, not just in spirit: the target
+  app must define a constant marker string, e.g. MARKER = "PWNED_<random-looking-suffix>".
+  The vulnerable endpoint must return that marker in its response body ONLY when
+  the attacker-controlled input, when substituted unsafely into the vulnerable
+  operation (SQL query / shell command / file path / template / etc.), causes an
+  EXTRA action beyond what the input alone should trigger (e.g. a SQL payload
+  like `' OR '1'='1` or `'; SELECT ... --` makes a query that was built by naive
+  string concatenation return the marker row; a shell metacharacter like `; echo
+  MARKER` causes the marker to appear in command output; a `../` sequence reads
+  a file containing the marker). A request with an ordinary, non-malicious value
+  for the same parameter must NOT return the marker.
+- verify(r) MUST check for exactly that same marker string appearing in the
+  response body, and nothing else. Do not check status codes, unrelated
+  substrings, or any condition true for a normal, non-malicious request.
+- CRITICAL: if you define a MARKER constant, you MUST actually return it
+  inside the response body (e.g. `return jsonify({{"data": MARKER}})`) on the
+  branch that fires when the malicious input is detected/used unsafely.
+  Defining MARKER but never including it in any returned response is wrong
+  and will make the PoC fail even though the logic looks right.
+- Do NOT use a real database (sqlite3, an actual file on disk, an ORM) or any
+  external file/service the app must set up first. Simulate the vulnerable
+  operation with plain Python string handling only (e.g. build the SQL/command/
+  path STRING as the vulnerable code would, then check with `in`/`==` whether
+  the malicious payload appears unescaped in that built string) — there is no
+  real backend to query, so nothing may depend on one existing.
 - No markdown fences, no explanations outside the markers.
 """
-        raw = _call_claude(prompt, timeout=180)
+        gen_call = _call_live_model(prompt, timeout=180)
 
-        if raw:
-            poc_code    = _extract_marker(raw, "===POC_START===",    "===POC_END===")
-            target_code = _extract_marker(raw, "===TARGET_START===", "===TARGET_END===")
+        if gen_call.text:
+            poc_code    = _extract_marker(gen_call.text, "===POC_START===",    "===POC_END===")
+            target_code = _extract_marker(gen_call.text, "===TARGET_START===", "===TARGET_END===")
 
             if poc_code and target_code:
                 log.info("[Stage 3.5] AI-generated artifacts for %s", cve_id)
+
+    # Record generation provenance BEFORE the template fallback overwrites any
+    # empty slot, so a failed live attempt is not masked by the template fill-in.
+    if not model_avail:
+        generation_outcome = "template"
+    elif poc_code and target_code:
+        generation_outcome = "llm_live_success"
+    else:
+        generation_outcome = "llm_live_failed"
 
     # ── 2. Fallback: class-specific template ──────────────────────────────────
     # Map long-form class names (returned by the analysis stage) to _POC_TEMPLATE keys.
@@ -2091,12 +2279,19 @@ Important rules:
         poc_summary = f"{vuln_class} exploit against {package} ({ecosystem})"
 
         return ExploitArtifacts(
-            generated       = True,
-            poc_path        = str(poc_path),
-            target_app_path = str(target_path),
-            vuln_class      = vuln_class,
-            poc_summary     = poc_summary,
-            iterations      = 1,
+            generated          = True,
+            poc_path           = str(poc_path),
+            target_app_path    = str(target_path),
+            vuln_class         = vuln_class,
+            poc_summary        = poc_summary,
+            iterations         = 1,
+            generation_outcome = generation_outcome,
+            generation_backend = gen_call.backend,
+            generation_model   = gen_call.model,
+            generation_duration_s    = gen_call.duration_s,
+            generation_input_tokens  = gen_call.input_tokens,
+            generation_output_tokens = gen_call.output_tokens,
+            generation_cost_usd      = gen_call.cost_usd,
         )
     except Exception as exc:
         log.warning("[Stage 3.5] Failed to write artifacts: %s", exc)
@@ -2571,6 +2766,26 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
     analysis_obj  = _sub(VulnAnalysisResult, analysis)  if analysis  else None
     probe_obj     = _sub(SSRFProbeResult,    probe)      if probe     else None
 
+    # Real totals across every live-model call this run made (generation +
+    # patch generation). None-safe: a stage that never ran a live model
+    # contributes nothing; the *_duration_s/tokens totals stay None only if
+    # NEITHER stage ran one (pure template run) - matches how the pipeline
+    # already treats "unset" vs "measured zero" everywhere else.
+    _llm_parts = [
+        (artifacts.generation_duration_s, artifacts.generation_input_tokens,
+         artifacts.generation_output_tokens, artifacts.generation_cost_usd),
+        (artifacts.patch_gen_duration_s, artifacts.patch_gen_input_tokens,
+         artifacts.patch_gen_output_tokens, artifacts.patch_gen_cost_usd),
+    ]
+    _ran = [p for p in _llm_parts if p[0] is not None]
+    total_llm_duration_s    = round(sum(p[0] for p in _ran), 3) if _ran else None
+    total_llm_input_tokens  = (sum(p[1] for p in _ran if p[1] is not None)
+                               if any(p[1] is not None for p in _ran) else None)
+    total_llm_output_tokens = (sum(p[2] for p in _ran if p[2] is not None)
+                               if any(p[2] is not None for p in _ran) else None)
+    total_llm_cost_usd      = (round(sum(p[3] for p in _ran if p[3] is not None), 4)
+                               if any(p[3] is not None for p in _ran) else None)
+
     _final_report = PipelineReport(
         pipeline_id      = report_dict.get("pipeline_id",      deps.pipeline_id),
         cve_id           = report_dict.get("cve_id",           deps.cve_id),
@@ -2587,6 +2802,10 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
         recommendations  = report_dict.get("recommendations",  []),
         errors           = report_dict.get("errors",           deps.errors),
         elapsed_s        = report_dict.get("elapsed_s",         deps.elapsed()),
+        total_llm_duration_s    = total_llm_duration_s,
+        total_llm_input_tokens  = total_llm_input_tokens,
+        total_llm_output_tokens = total_llm_output_tokens,
+        total_llm_cost_usd      = total_llm_cost_usd,
     )
     # Auto-ingest into Obsidian vault (silent on failure)
     obsidian_ingest(_final_report.cve_id, _final_report)
