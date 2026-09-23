@@ -160,6 +160,20 @@ is untested in this environment, for the same reason `reachcrs`'s own
 live-LLM validation needed a separate machine with a real provider
 configured. This is a standing, explicit caveat, not a hidden assumption.
 
+**Update, live-LLM Gate 1 (branch `feat/live-llm-gate1`, not yet merged):**
+this environment now has a real, local live-model backend (Ollama,
+`qwen2.5-coder:7b`, no API key), and a 4th, adjacent mechanism — Stage 3.5's
+*initial* exploit-artifact generation (not the 3 revision/patch/triage
+mechanisms in the table above) — has been verified genuinely live:
+`generation_outcome=llm_live_success`, `generation_backend=ollama`,
+`generation_model=qwen2.5-coder:7b`, a real CVE-tailored PoC, not a template.
+The three mechanisms in the table above (Stage 3.7 revision, Stage 3.8 patch
+generation, reachability's LLM fallback) are still unverified live — this
+does not change any "No" in the table, it adds a 4th row's worth of
+evidence for a different stage. The environment premise above ("neither the
+`claude` CLI nor an API key") is now stale for this specific local-Ollama
+path; it remains true that no hosted-API key is configured.
+
 ## Limitation 7: local exploitation of open-source software is legitimate authorized testing
 
 For the avoidance of doubt in the report: dynamically exploiting a
