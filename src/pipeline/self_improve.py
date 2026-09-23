@@ -123,8 +123,8 @@ def _llm_revise_artifacts(vuln_class: str, poc_text: str, target_text: str,
     None (never raises) if no AI backend is available or the response
     doesn't parse - the caller falls back to reporting "no known
     revision" rather than pretending a fix was attempted."""
-    from cve_pipeline import _call_claude, _claude_available, _extract_marker
-    if not _claude_available():
+    from cve_pipeline import _call_live_model, _live_model_available, _extract_marker
+    if not _live_model_available():
         return None
     prompt = f"""\
 You previously wrote a proof-of-concept exploit (poc.py) and a minimal
@@ -161,14 +161,14 @@ Output EXACTLY two sections, no markdown fences, no commentary outside them:
 (complete corrected target_app.py)
 ===TARGET_END===
 """
-    raw = _call_claude(prompt, timeout=180)
-    if not raw:
+    gen_call = _call_live_model(prompt, timeout=180)
+    if not gen_call.text:
         return None
-    poc_code = _extract_marker(raw, "===POC_START===", "===POC_END===")
-    target_code = _extract_marker(raw, "===TARGET_START===", "===TARGET_END===")
+    poc_code = _extract_marker(gen_call.text, "===POC_START===", "===POC_END===")
+    target_code = _extract_marker(gen_call.text, "===TARGET_START===", "===TARGET_END===")
     if not poc_code or not target_code:
         return None
-    return poc_code, target_code
+    return poc_code, target_code, gen_call
 
 
 def refine_and_reexecute(artifacts: "ExploitArtifacts", vuln_class: str,
@@ -227,13 +227,23 @@ def refine_and_reexecute(artifacts: "ExploitArtifacts", vuln_class: str,
             llm_fix = _llm_revise_artifacts(vuln_class, poc_text, target_text,
                                              artifacts.execution_log)
             if llm_fix is not None:
-                new_poc_text, new_target_text = llm_fix
+                new_poc_text, new_target_text, revision_call = llm_fix
                 source = "llm"
                 rule = {"description": "LLM-diagnosed revision from the execution log",
                         "poc_full": new_poc_text, "target_full": new_target_text}
 
         entry = {"iteration": iteration, "signature": signature, "source": source,
                   "exit_code_before": artifacts.exit_code}
+        if source == "llm":
+            # Real, measured cost of this revision call - same benchmark-
+            # protocol requirement Stage 3.5/3.8 already record for their
+            # own live-model calls.
+            entry["revision_duration_s"]    = revision_call.duration_s
+            entry["revision_input_tokens"]  = revision_call.input_tokens
+            entry["revision_output_tokens"] = revision_call.output_tokens
+            entry["revision_cost_usd"]      = revision_call.cost_usd
+            entry["revision_backend"]       = revision_call.backend
+            entry["revision_model"]         = revision_call.model
 
         if new_poc_text is None:
             entry["outcome"] = ("no known revision, and no AI backend available "
