@@ -20,11 +20,12 @@ from pathlib import Path
 
 
 def _extract_marker(text: str, start: str, end: str) -> str:
+    from cve_pipeline import _strip_markdown_fence
     i = text.find(start)
     j = text.find(end)
     if i == -1 or j == -1 or j < i:
         return ""
-    return text[i + len(start):j].strip()
+    return _strip_markdown_fence(text[i + len(start):j].strip())
 
 
 def _llm_generate_patch(vuln_class: str, root_cause: str, fix_summary: str,
@@ -55,6 +56,12 @@ every route path and method exactly as they are; only change what's needed
 to close the vulnerability (input validation, parameterized queries, safe
 deserialization, path canonicalization, output escaping, etc. - whatever
 actually applies to this vuln class).
+
+CRITICAL: output the COMPLETE file, including the exact
+`if __name__ == "__main__": app.run(port=5000, debug=False)` block at the
+end, unchanged from the original. Do not truncate the file after the
+routes — a patch missing the run block starts no server at all, which
+looks like an unrelated crash rather than a missing startup block.
 
 Output EXACTLY two sections, no markdown fences, no commentary outside them:
 
@@ -126,13 +133,18 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
     shadow = execute_exploit_artifacts(shadow)
 
     if not shadow.executed or shadow.execution_skip_reason:
+        # shadow.execution_log carries the patched process's own real
+        # stdout/stderr (its actual traceback, if it crashed) - previously
+        # discarded here, leaving only the generic "never became healthy"
+        # summary with no way to see WHY every crash-type rejection happened.
         artifacts.patch_validated = False
         artifacts.patch_validation_log = (
             f"patched target failed the /health regression check: "
-            f"{shadow.execution_skip_reason or 'did not execute'}"
-        )
+            f"{shadow.execution_skip_reason or 'did not execute'}\n\n"
+            f"{shadow.execution_log}"
+        ).rstrip()
         log.info("[Stage 3.8] Patch REJECTED (health check failed): %s",
-                  artifacts.patch_validation_log)
+                  shadow.execution_skip_reason or 'did not execute')
         return artifacts
 
     # exit_code convention (documented in every generated poc.py): 0 means
@@ -143,4 +155,35 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
               "VALIDATED" if artifacts.patch_validated else
               "REJECTED - exploit still succeeded against the patch",
               shadow.exit_code)
+
+    # Defeating the ONE payload the original PoC happens to use is not proof
+    # the vulnerability class is closed - a patch that just blocklists that
+    # literal string would pass the check above while remaining trivially
+    # bypassable. Re-probe with every alternate payload the generation stage
+    # produced for this same vulnerability class (a fresh target process per
+    # payload, same poc.py, same patched file); ALL must also fail for the
+    # patch to stand. The first payload that still succeeds overrides
+    # patch_validated back to False, with which payload proved it in the log.
+    if artifacts.patch_validated and artifacts.payload_variants:
+        for variant in artifacts.payload_variants:
+            probe = ExploitArtifacts(
+                generated=True,
+                poc_path=artifacts.poc_path,
+                target_app_path=str(patched_path),
+                vuln_class=vuln_class,
+            )
+            probe = execute_exploit_artifacts(probe, extra_arg=variant)
+            bypassed = bool(probe.executed and not probe.execution_skip_reason
+                            and probe.dynamically_confirmed)
+            log.info("[Stage 3.8] Multi-payload re-probe %r: %s",
+                      variant, "BYPASSED patch" if bypassed else "still blocked")
+            if bypassed:
+                artifacts.patch_validated = False
+                artifacts.patch_validation_log = (
+                    f"Patch defeated the original PoC's payload but was "
+                    f"BYPASSED by an alternate payload for the same "
+                    f"{vuln_class} class: {variant!r}\n\n{probe.execution_log}"
+                )
+                break
+
     return artifacts
