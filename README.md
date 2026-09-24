@@ -858,6 +858,19 @@ On Windows, `run_watcher_silent.vbs` launches `start_watcher.ps1` as a hidden
 process. Place a shortcut to `run_watcher_silent.vbs` in the Startup folder
 (`shell:startup`) to auto-start on login.
 
+**ProvTrail is checked every poll cycle too**, alongside NVD/GHSA — same
+default-discovery at `.provtrail/latest-scan.*` as `provtrail_bridge.py`.
+Unlike the two live feeds, ProvTrail is a static snapshot (no "since"
+window); every advisory in the current scan is checked each cycle, and
+the same `SeenStore` dedup that already prevents re-processing an
+already-seen CVE is what makes newly-flagged advisories get picked up
+automatically after a re-scan:
+
+```bash
+python cve_watcher.py --provtrail-scan latest-scan.sarif  # explicit
+python cve_watcher.py --no-provtrail                      # feeds only
+```
+
 ---
 
 ## Configuration reference
