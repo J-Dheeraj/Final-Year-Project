@@ -12,11 +12,16 @@ combined report pairing ProvTrail's static locations with the pipeline verdicts.
 Chain:  detect -> locate (ProvTrail)  ->  confirm -> patch (cve_pipeline)
 
 Source with fallback:
-  * Primary source is the ProvTrail artifact (--scan).
-  * If that source does not work — file missing/unreadable, unparseable or
-    unknown schema, or zero usable advisories after filtering — the bridge
-    falls back to the existing NVD/GHSA feeds (reusing cve_watcher's fetchers),
-    so the pipeline still gets fed. --source controls this.
+  * Primary source is the ProvTrail artifact (--scan). If --scan is not
+    given, it is auto-discovered at .provtrail/latest-scan.{sarif,json,
+    ai.txt} (SARIF preferred) — ProvTrail is the real default source, not
+    only the default when a --scan path happens to be passed.
+  * If that source does not work — no scan given or discoverable, file
+    unreadable, unparseable or unknown schema, or zero usable advisories
+    after filtering — the bridge falls back to the existing NVD/GHSA feeds
+    (reusing cve_watcher's fetchers), so the pipeline still gets fed.
+    --source controls this: --source feeds skips ProvTrail (and its
+    auto-discovery) entirely and goes straight to feeds.
 
 Depth (auto by ecosystem):
   ProvTrail flags JS/npm advisories; this project's live labs are Python/Go.
@@ -28,6 +33,7 @@ Findings fed: automatic_vulnerability AND manual_review (patched-only matches
 are never emitted by ProvTrail's exporter and are skipped here too).
 
 Usage:
+    python provtrail_bridge.py         # no --scan: auto-discovers .provtrail/latest-scan.*
     python provtrail_bridge.py --scan latest-scan.json
     python provtrail_bridge.py --scan latest-scan.sarif --no-probe --format json
     python provtrail_bridge.py --scan missing.json        # auto-falls back to feeds
@@ -444,12 +450,39 @@ def write_combined_report(rows: list[dict[str, Any]], *, source: str,
 # ─────────────────────────────────────────────────────────────────────────────
 # Orchestration
 # ─────────────────────────────────────────────────────────────────────────────
+_DEFAULT_SCAN_CANDIDATES = (
+    Path(".provtrail/latest-scan.sarif"),
+    Path(".provtrail/latest-scan.json"),
+    Path(".provtrail/latest-scan.ai.txt"),
+)
+
+
+def _default_scan_path() -> Path | None:
+    """When --scan isn't given, look for a scan at the conventional
+    .provtrail/latest-scan.* location (SARIF preferred, per docs) before
+    ever falling back to feeds. This is what makes ProvTrail the REAL
+    default source, not just the default when a --scan path happens to be
+    passed - matching this bridge's own docstring ("Primary source is the
+    ProvTrail artifact") and --source=auto's documented "ProvTrail then
+    feed fallback" priority, which previously only applied if the caller
+    remembered to pass --scan explicitly."""
+    for candidate in _DEFAULT_SCAN_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def _resolve_advisories(args) -> tuple[list[Advisory], str, str | None]:
     """Return (advisories, source_used, scan_path_str). Honours --source + fallback."""
-    scan_str = str(args.scan) if args.scan else None
+    scan_path = args.scan
+    if scan_path is None and args.source != "feeds":
+        scan_path = _default_scan_path()
+        if scan_path is not None:
+            log.info(f"No --scan given; using discovered default scan at {scan_path}")
+    scan_str = str(scan_path) if scan_path else None
     want_provtrail = args.source in ("provtrail", "auto")
-    if want_provtrail and args.scan:
-        findings, reason = load_scan(Path(args.scan))
+    if want_provtrail and scan_path:
+        findings, reason = load_scan(Path(scan_path))
         if reason:
             log.warning(f"ProvTrail source unusable: {reason}")
         advisories = dedupe(findings)
@@ -514,9 +547,13 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Feed ProvTrail scan findings into the CVE pipeline (with NVD/GHSA fallback).",
     )
     p.add_argument("--scan", metavar="PATH",
-                   help="ProvTrail artifact (.json / .sarif / .ai.txt). Primary advisory source.")
+                   help="ProvTrail artifact (.json / .sarif / .ai.txt). Primary advisory "
+                        "source. If omitted, auto-discovered at .provtrail/latest-scan.* "
+                        "(unless --source feeds).")
     p.add_argument("--source", choices=["auto", "provtrail", "feeds"], default="auto",
-                   help="auto = ProvTrail then feed fallback (default); provtrail = no fallback; feeds = skip ProvTrail.")
+                   help="auto = ProvTrail (explicit --scan, or auto-discovered "
+                        ".provtrail/latest-scan.*) then feed fallback (default); "
+                        "provtrail = no fallback; feeds = skip ProvTrail entirely.")
     p.add_argument("--no-probe", action="store_true",
                    help="Never run the live probe; static + patch analysis only for every advisory.")
     p.add_argument("--no-cache", action="store_true", help="Bypass the pipeline stage cache.")

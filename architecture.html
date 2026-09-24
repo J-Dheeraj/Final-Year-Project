@@ -263,8 +263,8 @@
   'tertiaryColor':'#17332A','fontFamily':'IBM Plex Mono','fontSize':'13px'
 }}}%%
 flowchart TD
-    NVD["NVD / GHSA feed"]:::src
-    PT["ProvTrail SARIF\n(JS/TS advisories)"]:::src
+    NVD["NVD / GHSA feed\n(fallback)"]:::src
+    PT["ProvTrail SARIF\n(default source)"]:::src
     S1["Stage 1\nAdvisory Fetch"]:::info
     S2["Stage 2\nClassify Vulnerability\n(SQLi / CMDi / XSS / Path Traversal /\nDeserialization / SSRF / Prototype Pollution)"]:::info
     S3["Stage 3\nLive Probe"]:::info
@@ -274,8 +274,8 @@ flowchart TD
     S38["Stage 3.8\nPatch Generate + Validate\nmulti-payload re-probe"]:::success
     S4["Stage 4\nReport\nJSON / text, cost+token metrics"]:::info
 
-    NVD --> S1
-    PT -.optional feed.-> S1
+    PT --> S1
+    NVD -.fallback, no ProvTrail scan discoverable.-> S1
     S1 --> S2 --> S3 --> S35 --> S36
     S36 -- "confirmed" --> S38
     S36 -- "genuine failure" --> S37

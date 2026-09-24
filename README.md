@@ -32,8 +32,8 @@ is the living done/open checklist.
 
 ```mermaid
 flowchart TD
-    NVD["NVD / GHSA feed"]
-    PT["ProvTrail SARIF<br/>(JS/TS advisories)"]
+    NVD["NVD / GHSA feed<br/>(fallback)"]
+    PT["ProvTrail SARIF<br/>(default source)"]
     S1["Stage 1<br/>Advisory Fetch"]
     S2["Stage 2<br/>Classify Vulnerability"]
     S3["Stage 3<br/>Live Probe"]
@@ -43,8 +43,8 @@ flowchart TD
     S38["Stage 3.8<br/>Patch Generate + Validate<br/>multi-payload re-probe"]
     S4["Stage 4<br/>Report"]
 
-    NVD --> S1
-    PT -.optional feed.-> S1
+    PT --> S1
+    NVD -.fallback, no ProvTrail scan discoverable.-> S1
     S1 --> S2 --> S3 --> S35 --> S36
     S36 -- confirmed --> S38
     S36 -- genuine failure --> S37
@@ -427,20 +427,32 @@ advisory it flagged, then writes a combined report pairing ProvTrail's static
 locations with this pipeline's risk / probe / patch verdicts.
 
 ```bash
-# Feed a ProvTrail SARIF or AI-text export straight in
+# ProvTrail is the DEFAULT source — no flags needed if a scan exists at
+# the conventional .provtrail/latest-scan.{sarif,json,ai.txt} location
+python provtrail_bridge.py
+
+# Or point at a scan explicitly
 python provtrail_bridge.py --scan latest-scan.sarif
 python provtrail_bridge.py --scan latest-scan.ai.txt --format json
 
 # Raw provtrail_scan_v* JSON needs ProvTrail importable (it owns the advisory
 # selection); otherwise export SARIF/AI-text with `provtrail scan ... --sarif-output`.
 python provtrail_bridge.py --scan .provtrail/latest-scan.json
+
+# Skip ProvTrail entirely and poll NVD/GHSA feeds directly
+python provtrail_bridge.py --source feeds
 ```
 
-**Source with fallback.** If the ProvTrail source does not work — file
-missing/unreadable, unparseable, or zero advisories — the bridge falls back to
-this project's own NVD/GHSA feeds (reusing `cve_watcher`'s fetchers) so the
-pipeline still runs. `--source {auto,provtrail,feeds}` controls this
-(`auto` = ProvTrail-then-feeds, the default; `provtrail` = never fall back).
+**ProvTrail is the default source, NVD/GHSA feeds are the fallback.**
+With no `--scan` given, the bridge auto-discovers a scan at
+`.provtrail/latest-scan.{sarif,json,ai.txt}` (SARIF preferred) before
+ever touching a feed. If that source does not work — no scan
+given/discoverable, file unreadable, unparseable, or zero advisories —
+the bridge falls back to this project's own NVD/GHSA feeds (reusing
+`cve_watcher`'s fetchers) so the pipeline still runs. `--source
+{auto,provtrail,feeds}` controls this (`auto` = ProvTrail then feed
+fallback, the default; `provtrail` = never fall back; `feeds` = skip
+ProvTrail, including auto-discovery, entirely).
 
 **Auto by ecosystem.** ProvTrail flags npm advisories; this project's live labs
 are Python/Go. The live probe runs only when `package_labs.py` maps a finding's

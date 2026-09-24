@@ -123,3 +123,37 @@ def test_source_provtrail_missing_scan_does_not_fall_back(monkeypatch):
     assert advisories == []
     assert source == "provtrail"
     assert called["feeds"] is False, "--source provtrail must never hit the feeds"
+
+
+def test_default_scan_auto_discovered_when_no_scan_given(monkeypatch):
+    """ProvTrail is the REAL default source: with no --scan given at all,
+    a scan file at the conventional .provtrail/latest-scan.* location is
+    used automatically, before ever falling back to feeds."""
+    import argparse
+    called = {"feeds": False}
+    monkeypatch.setattr(bridge, "feed_advisories",
+                        lambda *a, **k: called.__setitem__("feeds", True) or [])
+    monkeypatch.setattr(bridge, "_DEFAULT_SCAN_CANDIDATES", (SARIF,))
+    args = argparse.Namespace(scan=None, source="auto", no_probe=True,
+                              no_cache=True, format="text", lookback=24, limit=25)
+    advisories, source, scan_str = bridge._resolve_advisories(args)
+    assert source == "provtrail"
+    assert scan_str == str(SARIF)
+    assert {a.advisory_id for a in advisories} == EXPECTED_IDS
+    assert called["feeds"] is False, "a discoverable default scan must never hit the feeds"
+
+
+def test_source_feeds_skips_default_scan_discovery(monkeypatch):
+    """--source feeds is the explicit escape hatch: skips ProvTrail
+    auto-discovery entirely even when a default scan file is discoverable."""
+    import argparse
+    called = {"feeds": False}
+    monkeypatch.setattr(bridge, "feed_advisories",
+                        lambda *a, **k: called.__setitem__("feeds", True) or [])
+    monkeypatch.setattr(bridge, "_DEFAULT_SCAN_CANDIDATES", (SARIF,))
+    args = argparse.Namespace(scan=None, source="feeds", no_probe=True,
+                              no_cache=True, format="text", lookback=24, limit=25)
+    advisories, source, scan_str = bridge._resolve_advisories(args)
+    assert source == "feeds"
+    assert scan_str is None
+    assert called["feeds"] is True

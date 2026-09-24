@@ -6,6 +6,30 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-24 (ProvTrail SARIF made the real default source)** — The
+  user flagged that the just-published architecture diagram showed
+  NVD/GHSA as the primary path and ProvTrail as a dotted "optional"
+  feed - backwards from `provtrail_bridge.py`'s own documented
+  `--source=auto` priority (ProvTrail then feed fallback), which only
+  actually took effect if the caller remembered to pass `--scan`
+  explicitly. Fixed both the framing and the real gap: added
+  `_default_scan_path()`, which auto-discovers a scan at the
+  conventional `.provtrail/latest-scan.{sarif,json,ai.txt}` location
+  (SARIF preferred) when `--scan` isn't given, so ProvTrail is now the
+  genuine default source with zero flags needed - `--source feeds`
+  remains the explicit escape hatch to skip it entirely. Caught and
+  fixed a real bug in my own first edit before it ever shipped: the
+  function body still referenced the now-stale `args.scan` (always
+  `None` on the auto-discovery path) instead of the resolved
+  `scan_path`, which would have crashed with `Path(None)` the first
+  time discovery actually found a file - caught by re-reading the
+  function after the edit, not by running it. Two new offline tests
+  added (`test_default_scan_auto_discovered_when_no_scan_given`,
+  `test_source_feeds_skips_default_scan_discovery`); full suite (9/9,
+  up from 7) passing. Both README.md's and architecture.html's Mermaid
+  diagrams corrected to show ProvTrail as the solid/default path and
+  NVD/GHSA as the dotted/fallback one, matching the code exactly.
+
 - **2026-09-24 (ProvTrail JS/TS bounded validation — DONE)** — Picked up
   the ProvTrail integration item's step 3 (`provtrail_js_lab/`), the one
   remaining substantial open item after everything else this session had
