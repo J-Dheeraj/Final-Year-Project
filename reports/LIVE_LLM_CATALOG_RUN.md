@@ -388,3 +388,65 @@ Total run cost: 196.4s, 16937 input tokens, 8783 output tokens,
 
 Raw round-4 reports: `reports/llm_catalog_run_2026-09-23_round4/<CVE-ID>.json`,
 full terminal transcript at `reports/llm_catalog_run_2026-09-23_round4/RAW_LOG.txt`.
+
+## Round 5 — full catalog on the reconciled `main` (both sessions' fixes combined)
+
+2026-09-24. `main` was reconciled the same day (see `docs/PROJECT_STATUS.md`'s
+reconciliation entry) with a separate session's parallel live-LLM work:
+multi-payload patch validation, pinned sampling (`temperature=0`, fixed
+`seed=42`, now the default — no flags needed), and 4 more bug fixes, on
+top of this session's round 3/4 fixes. A single-CVE spot check
+(`CVE-2026-78683`) confirmed the merge held together; round 5 is the
+full 6-CVE catalog re-run to complete that check — same protocol as
+every prior round (one shot per CVE, `--no-cache`, sandboxed cache-dir).
+
+| CVE | Class | Confirmed | Iterations | Patch attempted | Patch validated | Payload variants | Time (s) |
+|---|---|---|---|---|---|---|---|
+| CVE-2026-42208 | SQL Injection | **True** | 2 | True | False | 2 | 31.1 |
+| CVE-2026-27602 | OS Command Injection | **True** | 2 | True | False | 2 | 17.7 |
+| CVE-2026-23949 | Path Traversal | False | 4 | False | — | 3† | 51.2 |
+| CVE-2026-78683 | Insecure Deserialization | **True** | 1 | True | **True** | 2 | 19.6 |
+| CVE-2026-54729 | SSRF | **True** | 1 | True | False | 2 | 18.9 |
+| CVE-2026-46492 | XSS | **True** | 1 | True | False | 2 | 18.7 |
+| **Total** | | **5/6** | 11 | 5/6 | 1/6 | — | **157.2** |
+
+† `payload_variants` is populated at Stage 3.5 generation time regardless
+of whether the exploit later confirms — it's not conditional on
+`patch_attempted`, so a non-confirmed CVE can still show variants from
+its own generation step.
+
+**5/6 confirmed — the best single-round result across all five rounds**,
+up from round 4's 4/6. `CVE-2026-42208` (SQLi) confirmed for the first
+time since round 1, via a genuine live Stage 3.7 revision (`source=llm`,
+not a reused lesson — verified in the raw log: `[Stage 3.7] Applying
+revision (iteration 2, source=llm)` → `Revision succeeded on iteration 2`
+→ `Learned new lesson: SQL Injection / generic_failure`), and that fix is
+now persisted in `.pipeline_lessons.json` for future runs to reuse for
+free. Checked programmatically: zero of the six reports contain the
+`SyntaxError` markdown-fence crash signature anywhere in `execution_log`
+— the fix from round 4 continues to hold under the merged code.
+
+`CVE-2026-23949` (Path Traversal) is the only non-confirmation this
+round, after 3 fresh LLM-diagnosed revision attempts (exhausting
+`max_iterations=3`) — a real, clean failure against a healthy target
+each time, not a crash. This flips round 3/4's pattern (Path Traversal
+confirmed, other classes didn't) — consistent with the project's
+standing caveat that single-shot per-CVE results can flip between runs
+even with pinned sampling, since the *prompt* still varies by CVE
+content and the model's response to a fixed seed isn't guaranteed
+identical across different `cve_pipeline.py` versions or Ollama restarts.
+
+**Patch validation**: only `CVE-2026-78683` validated (same CVE as
+round 4 and the single-CVE spot check) — the other 4 confirmed CVEs got
+`patch_attempted=True, patch_validated=False`, each a real, logged
+rejection (e.g. `CVE-2026-42208`: "Patch REJECTED - exploit still
+succeeded against the patch"), not a silent skip. This is now the most
+consistent finding across rounds 4 and 5: Insecure Deserialization's
+patch generation reliably produces a working fix for this specific CVE;
+the other 5 classes' patch generation has never once validated across
+any round.
+
+Total run cost: 157.2s, local Ollama, **$0.0000**.
+
+Raw round-5 reports: `reports/llm_catalog_run_2026-09-24_round5/<CVE-ID>.json`,
+full terminal transcript at `reports/llm_catalog_run_2026-09-24_round5/RAW_LOG.txt`.
