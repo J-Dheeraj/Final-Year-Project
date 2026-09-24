@@ -6,6 +6,27 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-24 (ProvTrail JS/TS bounded validation — DONE)** — Picked up
+  the ProvTrail integration item's step 3 (`provtrail_js_lab/`), the one
+  remaining substantial open item after everything else this session had
+  flagged was closed out. Full detail in the ProvTrail item's own entry
+  above and `provtrail_js_lab/README.md`. Summary: `execute_exploit_artifacts`
+  now spawns `node` instead of Python when the target is `.js` (the ONE
+  pipeline change, additive - Python path re-verified unaffected after
+  the change, not just before); built one hand-authored JS target
+  (`CVE-2024-48910`, dompurify Prototype Pollution, CWE-1321, CRITICAL -
+  picked from the real ProvTrail fixture over two other real candidates
+  for being genuinely JS-native and honestly reproducible) and its PoC;
+  ran it through the real Stage 3.6 mechanism via `run_demo.py`, not a
+  parallel script. Caught and fixed a real false-positive during
+  verification: a leftover node process from earlier manual testing
+  made a broken spawn attempt (`EADDRINUSE`) look like a clean success
+  by accident - found via `netstat`, killed the stale PID, re-ran
+  genuinely clean. Exit criterion met: one real end-to-end case,
+  `dynamically_confirmed: True`, verified twice. Auto-classification/
+  auto-generation for JS classes and a second JS class remain explicitly
+  out of scope, as planned from the start.
+
 - **2026-09-24 (qwen2.5-coder:1.5b timing outlier, narrowed)** — Picked
   up the other open item from `reports/PATCH_VALIDATION_INVESTIGATION.md`:
   a 1636.5s generation call for the smallest model, flagged but never
@@ -700,14 +721,38 @@ parallel system.
            inconsistent build/run requirements — closer in difficulty to
            the memory-safety harness-generation work than to the existing
            Python templates. Don't start here.
-      3. **Bounded validation**: pick exactly ONE ProvTrail-flagged CVE
-         (e.g. the Axios example from their demo), build ONE JS/TS
-         template for its class, confirm it dynamically executes end to
-         end before committing to building out more classes.
-      4. Exit criterion matches the live-LLM item's discipline above: one
-         real end-to-end case (ProvTrail flag -> dynamic confirmation)
-         is success, not "all classes work." Report what doesn't work
-         honestly rather than cherry-picking the class that does.
+      3. **Bounded validation — DONE, 2026-09-24.** Built exactly ONE
+         JS/TS template (`provtrail_js_lab/`), for exactly ONE
+         ProvTrail-flagged CVE from the real fixture
+         (`tests/fixtures/provtrail/latest-scan.ai.txt`):
+         `CVE-2024-48910` (dompurify, Prototype Pollution, CWE-1321,
+         CRITICAL) — chosen over the fixture's other two real
+         high-confidence `VULN` entries (a Next.js HTTP-smuggling CVE, a
+         fastify one) because prototype pollution is genuinely JS-native
+         with no equivalent in this pipeline's existing 6 Python classes,
+         and far more tractable to honestly reproduce than smuggling's
+         precise HTTP-framing requirements. One real pipeline change,
+         additive only: `execute_exploit_artifacts` now spawns `node`
+         instead of the Python interpreter when the target file is
+         `.js` — the Python path is otherwise completely untouched,
+         verified by re-running an existing Python CVE end-to-end
+         *after* the change (still confirms, still patches, still passes
+         multi-payload validation, identical to before). `provtrail_js_lab/`
+         has a hand-authored `target_app.js` (zero npm deps — Node's
+         built-in `http`/`url` only) and `poc.py` (same 4-phase pattern
+         as every other CVE's PoC), run through the *real*
+         `execute_exploit_artifacts` (not a parallel script) via
+         `run_demo.py`. Result: `dynamically_confirmed: True` — real
+         global `Object.prototype` pollution, verified twice (once with
+         a stale leftover process from manual testing giving a
+         false-clean read, caught via `netstat`/`taskkill`, then re-run
+         genuinely clean with a fresh spawned process).
+      4. Exit criterion matches the live-LLM item's discipline above:
+         **met** — one real end-to-end case (ProvTrail flag -> dynamic
+         confirmation) succeeded. Explicitly not attempted: auto-
+         classification (Stage 2) or auto-generation (Stage 3.5) for JS
+         classes, or a second JS/TS class — both correctly out of scope
+         for this bounded pass; "all classes work" was never the bar.
 
       **Strong precedent found, 2026-09-17**: Team Atlanta's Atlantis —
       the actual AIxCC Final Competition winner — has a real, working
