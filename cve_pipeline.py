@@ -2469,12 +2469,18 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
 
     port = _extract_target_port(target_path)
     python = sys.executable
+    # Every existing template/generation path produces a Python target.py,
+    # run with the same interpreter as the PoC. ProvTrail's JS/TS
+    # integration is the first to produce a target.js, which needs
+    # `node` instead - the PoC itself (poc.py) is unaffected and always
+    # stays Python, only the TARGET's interpreter varies by extension.
+    target_interpreter = "node" if target_path.suffix == ".js" else python
 
     log.info("[Stage 3.6] Executing generated artifacts for %s on :%d …",
               artifacts.vuln_class, port)
 
     target_proc = subprocess.Popen(
-        [python, str(target_path)], cwd=str(target_path.parent),
+        [target_interpreter, str(target_path)], cwd=str(target_path.parent),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
     artifacts.execution_log = ""
