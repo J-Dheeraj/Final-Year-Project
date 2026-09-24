@@ -6,6 +6,30 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-24 (qwen2.5-coder:1.5b timing outlier, narrowed)** — Picked
+  up the other open item from `reports/PATCH_VALIDATION_INVESTIGATION.md`:
+  a 1636.5s generation call for the smallest model, flagged but never
+  investigated. Structural read first, before any live call: the
+  `(None, None)` `generation_input_tokens`/`generation_output_tokens`
+  pairing on that historical record is only possible on
+  `_call_ollama_metered`'s failure/timeout path - a successful `200`
+  always carries Ollama's own `prompt_eval_count`/`eval_count` - so this
+  was never a slow *successful* generation, it was a request that
+  ultimately failed. Reproduced live to confirm: re-ran the exact same
+  CVE/model (`CVE-2026-54729`/`qwen2.5-coder:1.5b`) and got the identical
+  failure mode on demand - `generation_outcome: llm_live_failed`,
+  `generation_duration_s: 180.001` (capped at the `timeout=180` default),
+  tokens `None`/`None`. Narrowed, not fully root-caused: the *class* of
+  failure (this CVE/model pairing genuinely struggles to converge within
+  the timeout) is now confirmed and reproducible, not a one-off; the
+  *exact* 1636.5s figure (9x the 180s timeout) remains unexplained in
+  full - `requests`' `timeout=` is a per-read-chunk timeout, not a hard
+  total-request cap, so a low-level connection event could in principle
+  let a call run past its nominal timeout, but this wasn't directly
+  observed, only plausible given how `requests` timeouts work. Read
+  `reports/PATCH_VALIDATION_INVESTIGATION.md`'s updated note for the
+  full reasoning - stated as narrowed, not solved, deliberately.
+
 - **2026-09-24 (mistral:7b patch-parse bug, diagnosed and fixed)** —
   Picked up the open item from `reports/PATCH_VALIDATION_INVESTIGATION.md`:
   mistral:7b's confirmed CVEs showing `patch_skip_reason: "...didn't
