@@ -101,6 +101,34 @@ is now verified stable, this is most likely the "didn't parse" half of
 that message - a further, distinct parsing issue in mistral's patch
 response, not yet diagnosed.
 
+**Diagnosed and fixed, 2026-09-24 (commit follows this file's own
+update):** reproduced directly by replaying `_llm_generate_patch`'s exact
+prompt against `mistral:7b` outside the pipeline and printing the raw,
+unparsed response. Root cause: mistral:7b's patch response emits
+`===PATCHED_TARGET_START===`, the patched code, then goes straight to
+`===SUMMARY_START===` — it **never emits the literal
+`===PATCHED_TARGET_END===` marker at all**, unlike every other model
+tested. `_extract_marker`'s `text.index(end, s)` raised `ValueError` on
+the missing end marker and the function returned `""`, silently
+discarding a real, usable patch as if the model had produced nothing.
+
+Fixed in `cve_pipeline.py`'s shared `_extract_marker` (used by Stage
+3.5/3.7/3.8, all three): when the exact end marker isn't found, fall
+back to the next `===X_Y===`-shaped marker in the text as an implicit
+boundary, instead of losing the content. Verified four ways before
+declaring it fixed: (1) a unit test against the exact captured failure
+shape (0 chars recovered → 842 chars, compiles as valid Python); (2) a
+control case confirming normal both-markers-present responses are
+unaffected; (3) a control case confirming a genuinely markerless
+response still safely returns empty rather than grabbing garbage; (4) a
+live, unmodified pipeline re-run on `CVE-2026-42208` with `mistral:7b` -
+before the fix this showed `patch_attempted: False,
+patch_skip_reason: "...didn't parse"`; after the fix it shows
+`patch_attempted: True, patch_skip_reason: ""`, a real patch summary
+("moved the authorization check into a separate function..."), and an
+honest `patch_validated: False` verdict (the patch didn't actually close
+the exploit - a real, evaluated rejection, not a silent skip).
+
 ## The most important caveat: "3/48 validated" overstates confidence
 
 **All 3 validated patches have `payload_variants: []`.** The smallest

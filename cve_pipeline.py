@@ -488,16 +488,31 @@ def _call_live_model(prompt: str, timeout: int = 180) -> LiveModelResult:
     return LiveModelResult("", "none", "", None, None, None, None)
 
 
+_NEXT_MARKER_RE = re.compile(r"===[A-Z_]+===")
+
+
 def _extract_marker(text: str, start: str, end: str) -> str:
     """Pull the text between two literal markers out of an LLM response -
-    shared by Stage 3.5's generation prompt and Stage 3.7's revision
-    prompt, both of which use the same ===X_START===/===X_END=== contract."""
+    shared by Stage 3.5's generation prompt, Stage 3.7's revision prompt,
+    and Stage 3.8's patch prompt, all of which use the same
+    ===X_START===/===X_END=== contract. Some models (found live:
+    mistral:7b's patch response) emit the section's content and go
+    straight to the NEXT section's start marker without ever emitting the
+    literal end marker - a real response, not a truncated one, that a
+    strict index(end) lookup silently discards as empty. When the exact
+    end marker is missing, fall back to the next ===X_Y===-shaped marker
+    in the text as an implicit boundary, rather than losing the content
+    entirely."""
     try:
         s = text.index(start) + len(start)
-        e = text.index(end, s)
-        return _strip_markdown_fence(text[s:e].strip())
     except ValueError:
         return ""
+    try:
+        e = text.index(end, s)
+    except ValueError:
+        m = _NEXT_MARKER_RE.search(text, s)
+        e = m.start() if m else len(text)
+    return _strip_markdown_fence(text[s:e].strip())
 
 
 def _strip_markdown_fence(code: str) -> str:
