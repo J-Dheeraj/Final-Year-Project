@@ -1,0 +1,448 @@
+<title>Pipeline Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    color-scheme: dark;
+    --bg: #11151D;
+    --surface: #1B212C;
+    --surface-2: #212838;
+    --border: #2A3242;
+    --text: #E7EAF2;
+    --text-muted: #8B93A7;
+    --text-faint: #5C6478;
+    --accent: #D98E3F;
+    --accent-soft: #3A2E1E;
+    --success: #5FB894;
+    --success-soft: #17332A;
+    --danger: #D9707A;
+    --danger-soft: #331E22;
+    --info: #6E9BD1;
+    --info-soft: #1B2836;
+    --font-sans: "IBM Plex Sans", -apple-system, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    margin: 0;
+    padding-inline: 16px;
+    padding-block: 40px;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+
+  header { display: flex; flex-direction: column; gap: 10px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 700;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    color: var(--text-muted);
+    font-size: 16px;
+    max-width: 68ch;
+    margin: 0;
+  }
+
+  .lede code { color: var(--text); }
+
+  code, .mono { font-family: var(--font-mono); }
+
+  section { display: flex; flex-direction: column; gap: 16px; }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .diagram-frame {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  .diagram-frame pre.mermaid {
+    margin: 0;
+    min-width: 560px;
+  }
+
+  .caption {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .caption strong { color: var(--text); font-weight: 500; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 22px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+
+  .swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .sw-info { background: var(--info); }
+  .sw-accent { background: var(--accent); }
+  .sw-success { background: var(--success); }
+  .sw-danger { background: var(--danger); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .stat {
+    background: var(--surface);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-value.success { color: var(--success); }
+  .stat-value.accent { color: var(--accent); }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .table-frame {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  th, td {
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  th {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    background: var(--surface-2);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  td.stage {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    white-space: nowrap;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-weight: 500;
+  }
+
+  .pill-info { background: var(--info-soft); color: var(--info); }
+  .pill-accent { background: var(--accent-soft); color: var(--accent); }
+  .pill-success { background: var(--success-soft); color: var(--success); }
+
+  footer {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <span class="eyebrow">AI CVE Exploit Automation</span>
+    <h1>Pipeline architecture</h1>
+    <p class="lede">
+      An 8-stage pipeline that fetches a real CVE advisory, classifies the bug,
+      generates an exploit and a faithful vulnerable target with a local or
+      hosted LLM, <strong style="color:var(--text)">actually runs it</strong>
+      as a real subprocess, self-improves on genuine failure, and validates a
+      generated patch against multiple attack payloads — for both Python and
+      JavaScript targets.
+    </p>
+  </header>
+
+  <section>
+    <h2>Core pipeline — cve_pipeline.py</h2>
+    <div class="diagram-frame">
+<pre class="mermaid">
+%%{init: {'theme':'base', 'themeVariables': {
+  'background':'#1B212C','primaryColor':'#212838','primaryTextColor':'#E7EAF2',
+  'primaryBorderColor':'#2A3242','lineColor':'#5C6478','secondaryColor':'#3A2E1E',
+  'tertiaryColor':'#17332A','fontFamily':'IBM Plex Mono','fontSize':'13px'
+}}}%%
+flowchart TD
+    NVD["NVD / GHSA feed"]:::src
+    PT["ProvTrail SARIF\n(JS/TS advisories)"]:::src
+    S1["Stage 1\nAdvisory Fetch"]:::info
+    S2["Stage 2\nClassify Vulnerability\n(SQLi / CMDi / XSS / Path Traversal /\nDeserialization / SSRF / Prototype Pollution)"]:::info
+    S3["Stage 3\nLive Probe"]:::info
+    S35["Stage 3.5\nGenerate Exploit + Target\n(LLM-written, or template fallback)"]:::accent
+    S36["Stage 3.6\nExecute\nreal subprocess, real exit code"]:::accent
+    S37["Stage 3.7\nSelf-Improve\nlesson reuse -> live LLM revision"]:::danger
+    S38["Stage 3.8\nPatch Generate + Validate\nmulti-payload re-probe"]:::success
+    S4["Stage 4\nReport\nJSON / text, cost+token metrics"]:::info
+
+    NVD --> S1
+    PT -.optional feed.-> S1
+    S1 --> S2 --> S3 --> S35 --> S36
+    S36 -- "confirmed" --> S38
+    S36 -- "genuine failure" --> S37
+    S37 -- "revised artifact" --> S36
+    S38 -- "re-probe every alt payload" --> S38
+    S38 --> S4
+    S36 -- "never confirmed" --> S4
+
+    classDef src fill:#212838,stroke:#2A3242,color:#8B93A7
+    classDef info fill:#1B2836,stroke:#2A3242,color:#6E9BD1
+    classDef accent fill:#3A2E1E,stroke:#D98E3F,color:#D98E3F
+    classDef danger fill:#331E22,stroke:#D9707A,color:#D9707A
+    classDef success fill:#17332A,stroke:#5FB894,color:#5FB894
+</pre>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="swatch sw-info"></span>data / classification</span>
+      <span class="legend-item"><span class="swatch sw-accent"></span>LLM-touched</span>
+      <span class="legend-item"><span class="swatch sw-danger"></span>retry loop</span>
+      <span class="legend-item"><span class="swatch sw-success"></span>validation</span>
+    </div>
+    <p class="caption">
+      Every arrow into and out of Stage 3.6 is a <strong>real subprocess exit
+      code</strong>, not a description of what should happen — that single
+      function (<code>execute_exploit_artifacts</code>) is what every other
+      stage in this diagram ultimately routes through.
+    </p>
+  </section>
+
+  <section>
+    <h2>Supporting infrastructure</h2>
+    <div class="diagram-frame">
+<pre class="mermaid">
+%%{init: {'theme':'base', 'themeVariables': {
+  'background':'#1B212C','primaryColor':'#212838','primaryTextColor':'#E7EAF2',
+  'primaryBorderColor':'#2A3242','lineColor':'#5C6478','secondaryColor':'#3A2E1E',
+  'tertiaryColor':'#17332A','fontFamily':'IBM Plex Mono','fontSize':'13px'
+}}}%%
+flowchart LR
+    subgraph BACKEND [" Live-model backend "]
+        direction TB
+        CC["Claude CLI\n(preferred)"]:::accent
+        OL["Local Ollama\nqwen2.5-coder:7b\ntemperature=0, seed=42"]:::accent
+        LMR["_call_live_model()\nLiveModelResult\ntext, backend, tokens, cost"]:::info
+        CC --> LMR
+        OL --> LMR
+    end
+
+    LMR --> S35["Stage 3.5\ngeneration"]:::accent
+    LMR --> S37["Stage 3.7\nrevision"]:::danger
+    LMR --> S38["Stage 3.8\npatch"]:::success
+
+    subgraph BRANCH [" Stage 3.6 interpreter branch "]
+        direction TB
+        EXT{"target file\nextension"}:::info
+        PY["python target_app.py\n(every existing class)"]:::info
+        ND["node target_app.js\n(ProvTrail JS/TS lab)"]:::accent
+        EXT -- ".py" --> PY
+        EXT -- ".js" --> ND
+    end
+
+    S37 -. persists a working fix .-> LESSONS[(".pipeline_lessons.json"\nreused across future CVEs)]:::danger
+    LESSONS -. checked first, before any LLM call .-> S37
+
+    classDef src fill:#212838,stroke:#2A3242,color:#8B93A7
+    classDef info fill:#1B2836,stroke:#2A3242,color:#6E9BD1
+    classDef accent fill:#3A2E1E,stroke:#D98E3F,color:#D98E3F
+    classDef danger fill:#331E22,stroke:#D9707A,color:#D9707A
+    classDef success fill:#17332A,stroke:#5FB894,color:#5FB894
+</pre>
+    </div>
+    <p class="caption">
+      One provider-agnostic call site backs all three LLM-touched stages —
+      Claude CLI first, a local Ollama model as fallback, with real
+      duration/token/cost recorded on every call, not estimated. The
+      interpreter branch is the one line that lets Stage 3.6 run a
+      JavaScript target: everything else in the pipeline is unaware the
+      target isn't Python.
+    </p>
+  </section>
+
+  <section>
+    <h2>Verified, not claimed</h2>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-value success">5/6</span>
+        <span class="stat-label">CVEs confirmed, best single round</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value success">1/8</span>
+        <span class="stat-label">patches ever validated end-to-end</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value accent">6/6</span>
+        <span class="stat-label">classes confirmed at least once, combined</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value accent">$0.00</span>
+        <span class="stat-label">cost per run — 100% local Ollama</span>
+      </div>
+    </div>
+    <p class="caption">
+      Full per-round detail in <code>reports/LIVE_LLM_CATALOG_RUN.md</code> —
+      including the rounds that <em>didn't</em> improve, and the two real
+      bugs (a markdown-fence artifact, a stale <code>exit_code</code> on
+      crash) found by digging into raw logs rather than trusting the
+      summary numbers.
+    </p>
+  </section>
+
+  <section>
+    <h2>Stage reference</h2>
+    <div class="table-frame">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Stage</th><th>Does</th><th>Evidence type</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="stage">1</td>
+              <td>Fetch the real advisory from NVD v2 / GitHub Security Advisories.</td>
+              <td><span class="pill pill-info">real API</span></td>
+            </tr>
+            <tr>
+              <td class="stage">2</td>
+              <td>Classify the vulnerability into one of 7 classes from the advisory text + CWE.</td>
+              <td><span class="pill pill-info">heuristic</span></td>
+            </tr>
+            <tr>
+              <td class="stage">3</td>
+              <td>Live probe — real for SSRF and memory-safety; static pattern match for the rest.</td>
+              <td><span class="pill pill-info">mixed</span></td>
+            </tr>
+            <tr>
+              <td class="stage">3.5</td>
+              <td>Generate a minimal vulnerable target + PoC exploit for this specific CVE.</td>
+              <td><span class="pill pill-accent">LLM-generated</span></td>
+            </tr>
+            <tr>
+              <td class="stage">3.6</td>
+              <td>Actually start the target, poll <code>/health</code>, run the PoC, read the real exit code.</td>
+              <td><span class="pill pill-success">real subprocess</span></td>
+            </tr>
+            <tr>
+              <td class="stage">3.7</td>
+              <td>On genuine failure: reuse a persisted lesson, or ask the LLM to diagnose and rewrite.</td>
+              <td><span class="pill pill-accent">LLM-diagnosed</span></td>
+            </tr>
+            <tr>
+              <td class="stage">3.8</td>
+              <td>Generate a patch, then require it to survive the original payload <em>and</em> every alternate payload.</td>
+              <td><span class="pill pill-success">re-validated</span></td>
+            </tr>
+            <tr>
+              <td class="stage">4</td>
+              <td>Compile the full report — curl commands, bypass results, real cost/token totals.</td>
+              <td><span class="pill pill-info">structured JSON</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    docs/PROJECT_STATUS.md — session log &nbsp;·&nbsp; docs/SCOPE_AND_LIMITATIONS.md — what each result proves &nbsp;·&nbsp; docs/DEFENSE_PREP.md — viva Q&A
+  </footer>
+
+</div>

@@ -28,25 +28,132 @@ is the living done/open checklist.
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TD
+    NVD["NVD / GHSA feed"]
+    PT["ProvTrail SARIF<br/>(JS/TS advisories)"]
+    S1["Stage 1<br/>Advisory Fetch"]
+    S2["Stage 2<br/>Classify Vulnerability"]
+    S3["Stage 3<br/>Live Probe"]
+    S35["Stage 3.5<br/>Generate Exploit + Target<br/>(LLM-written, or template fallback)"]
+    S36["Stage 3.6<br/>Execute — real subprocess, real exit code"]
+    S37["Stage 3.7<br/>Self-Improve<br/>lesson reuse → live LLM revision"]
+    S38["Stage 3.8<br/>Patch Generate + Validate<br/>multi-payload re-probe"]
+    S4["Stage 4<br/>Report"]
+
+    NVD --> S1
+    PT -.optional feed.-> S1
+    S1 --> S2 --> S3 --> S35 --> S36
+    S36 -- confirmed --> S38
+    S36 -- genuine failure --> S37
+    S37 -- revised artifact --> S36
+    S38 -- re-probe every alt payload --> S38
+    S38 --> S4
+    S36 -- never confirmed --> S4
+```
+
+```mermaid
+flowchart LR
+    subgraph BACKEND[" Live-model backend "]
+        direction TB
+        CC["Claude CLI (preferred)"]
+        OL["Local Ollama<br/>qwen2.5-coder:7b<br/>temperature=0, seed=42"]
+        LMR["_call_live_model()<br/>LiveModelResult: text, backend, tokens, cost"]
+        CC --> LMR
+        OL --> LMR
+    end
+    LMR --> S35b["Stage 3.5 generation"]
+    LMR --> S37b["Stage 3.7 revision"]
+    LMR --> S38b["Stage 3.8 patch"]
+
+    subgraph BRANCH[" Stage 3.6 interpreter branch "]
+        direction TB
+        EXT{"target file extension"}
+        PY["python target_app.py<br/>(every Python class)"]
+        ND["node target_app.js<br/>(ProvTrail JS/TS lab)"]
+        EXT -- .py --> PY
+        EXT -- .js --> ND
+    end
+
+    S37b -. persists a working fix .-> LESSONS[(".pipeline_lessons.json")]
+    LESSONS -. checked before any LLM call .-> S37b
+```
+
+An interactive, standalone version of this diagram — with a stage
+reference table and live verified numbers — is at
+[`architecture.html`](architecture.html) (open locally; GitHub does not
+render embedded HTML/JS inline).
+
+Every arrow into and out of Stage 3.6 is a **real subprocess exit code**,
+not a description of what should happen — `execute_exploit_artifacts` is
+the one function every other stage in this diagram routes through,
+regardless of vulnerability class or target language.
+
+---
+
+## Live-LLM results (2026-09-23/24)
+
+Both the Claude CLI path and a fully local, zero-cost Ollama path are
+wired into Stage 3.5 (generation), Stage 3.7 (self-improvement), and
+Stage 3.8 (patch generation) — one provider-agnostic call site
+(`_call_live_model`), Claude CLI first, local Ollama fallback, with real
+per-call duration/token/cost recorded, not estimated. Full narrative,
+raw logs, and every JSON report are in
+[`reports/LIVE_LLM_CATALOG_RUN.md`](reports/LIVE_LLM_CATALOG_RUN.md);
+this is the honest summary.
+
+| Round | Confirmed | Notable |
+|---|---|---|
+| 1 | 1/6 | First live-LLM catalog run — SQLi confirmed |
+| 2 | 2/6 | SSRF + XSS confirmed after a schemeless-URL bug fix |
+| 3 | 1/6 | Stage 3.7 self-improvement wired live for the first time — surfaced a markdown-fence bug that crashed 4/5 failures |
+| 4 | 4/6 | Both round-3 bugs fixed — **first-ever validated patch** (CVE-2026-78683) |
+| 5 | **5/6** | Full catalog on the reconciled codebase (two parallel sessions' work merged) — **best round yet**, SQLi confirmed again via a genuine live self-improvement revision |
+
+**Counting per-class, not per-round: all 6 Python vulnerability classes
+have confirmed dynamically at least once** across the five rounds
+combined, plus a 7th, JS-native class (Prototype Pollution) confirmed
+separately via the ProvTrail integration below. Patch validation has
+succeeded end-to-end exactly once (Insecure Deserialization,
+`CVE-2026-78683`) — survived re-probing with 2 additional distinct
+payloads, not just its original one. Two real pipeline bugs were found
+and fixed by digging into raw execution logs rather than trusting
+summary numbers (a markdown-fence artifact in the shared marker
+extractor, and a stale `exit_code`/`dynamically_confirmed` on a target
+crash) — see `docs/SCOPE_AND_LIMITATIONS.md` and
+`reports/PATCH_VALIDATION_INVESTIGATION.md` for both.
+
+---
+
 ## Paper
 
 [`paper/main.tex`](paper/main.tex) is a short paper ("Reachability-Guided
 Triage and Upstream-Verified Patching for a Real free5GC Vulnerability")
-submitted to the **2nd free5GC World Forum, In-Cooperation with ACM
+drafted for the **2nd free5GC World Forum, In-Cooperation with ACM
 SIGSAC** (December 17–18, 2026, NYCU, Hsinchu — CFP:
-[free5gc.org/forum/2026](https://free5gc.org/forum/2026/), submission
-deadline September 28, 2026). It reports the reachability + patch-generation
-+ upstream-verification case study against CVE-2026-40248 in free5GC's UDR
-(see `docs/REACHABILITY.md`). Real ACM CCS concepts, verified citations,
-and a real author affiliation — no placeholders. Compiles cleanly to 3
-pages under the venue's 4-page short-paper cap. `paper/main.pdf` is the
-submission-ready file; `paper/main.docx` is a Word copy for editing;
+[free5gc.org/forum/2026](https://free5gc.org/forum/2026/)). It reports the
+reachability + patch-generation + upstream-verification case study
+against CVE-2026-40248 in free5GC's UDR (see `docs/REACHABILITY.md`).
+Real ACM CCS concepts, verified citations, and a real author affiliation
+— no placeholders. Compiles cleanly to 3 pages under the venue's 4-page
+short-paper cap. **Submission was prepared but explicitly not sent** —
+the paper stays in the repo as a complete, submission-ready artifact for
+a future venue rather than a live deadline. `paper/main.pdf` is the
+compiled file; `paper/main.docx` is a Word copy for editing;
 `paper/NOTES.md` tracks exactly what's independently verified in the
-paper versus what still needs author action.
+paper versus what still needs author action before any future
+submission.
 
 ---
 
 ## CVE results
+
+**This is the original template-based baseline** (no live model — text-only
+heuristic mode, the "no manual config needed" default path). For the newer,
+live-LLM-generated results across 5 rounds — including the first validated
+patch and the JS/TS prototype-pollution case — see "Live-LLM results" above.
 
 Every CVE below has actually been run through this pipeline — real advisory
 fetch, real generated exploit, real subprocess execution against a real
@@ -201,50 +308,26 @@ RESULT: real free5GC/udr @ 86686276a7e2 with the pipeline's auto-generated patch
 
 ---
 
-## How it works
-
-```
-NVD / GHSA feed
-      │
-      ▼
-Stage 1 — Advisory Fetch
-  Pull structured metadata: CVSS, CWE, affected versions,
-  root cause, file locations, patch diff links.
-      │
-      ▼
-Stage 2 — Vulnerability Analysis
-  Classify: SSRF / SQL Injection / OS Command Injection /
-  XSS / Path Traversal / Deserialization / UNKNOWN.
-  Identify unsafe code patterns and fix description.
-      │
-      ▼
-Stage 3 — Live Probe
-  Route to a class-specific probe. Test against the local
-  SSRF lab in vulnerable mode, then patched mode.
-  Produce curl commands and EXPLOITED / BLOCKED verdicts.
-      │
-      ▼
-Stage 3.5 — Exploit Artifact Generation
-  Write poc.iter1.v0.py + target_app.iter1.v0.py for every CVE.
-  AI-generated when claude CLI is available; class-specific
-  template fallback otherwise.
-      │
-      ▼
-Stage 4 — Report
-  Compile everything into a structured TEXT or JSON report.
-  Auto-ingest into Obsidian wiki if OBSIDIAN_VAULT is set.
-```
-
----
-
 ## Features
 
-- **No API key required.** Uses Claude Code's own auth via `claude -p` when
-  available, falls back to text-only heuristic extraction.
-- **6 vuln classes** with dedicated probes and bypass analysis: SSRF, SQL Injection,
-  OS Command Injection, XSS, Path Traversal, Deserialization.
-- **5 bypass techniques per class** tested against the patched lab, each returning
-  EXPLOITED / BLOCKED / THEORETICAL.
+- **No API key required.** Full agent mode via `ANTHROPIC_API_KEY`, `claude -p`
+  CLI, a **local Ollama model** (zero cost, `temperature=0`/fixed `seed` for
+  reproducibility), or text-only heuristic extraction — auto-selected, in
+  that priority order.
+- **7 vuln classes** with dedicated probes: SSRF, SQL Injection, OS Command
+  Injection, XSS, Path Traversal, Deserialization, and (via the ProvTrail
+  JS/TS integration) Prototype Pollution.
+- **Real dynamic execution for every class** (Stage 3.6) — a real subprocess
+  runs the generated PoC against the generated target and reads the real
+  exit code, for both Python and JavaScript targets.
+- **Self-improvement** (Stage 3.7) — reuses a persisted fix across CVEs
+  first, then asks a live LLM to diagnose and rewrite a genuinely-failed
+  exploit, bounded to 3 attempts.
+- **Multi-payload patch validation** (Stage 3.8) — a generated patch must
+  survive the original exploit *and* every alternate payload Stage 3.5
+  produced, not just the one payload that happened to be tried first.
+- **5 bypass techniques per class** tested against the patched SSRF lab, each
+  returning EXPLOITED / BLOCKED / THEORETICAL.
 - **Ready-to-run PoC artifacts** per CVE: `poc.iter1.v0.py` + `target_app.iter1.v0.py`
   following the 4-phase exploit pattern (health → exploit → verify → exit code).
 - **Persistent cache** — each pipeline stage is cached to `.pipeline_cache/<CVE-ID>/`
@@ -369,6 +452,21 @@ without a real target. `package_labs.PACKAGE_LABS` starts empty by design; add a
 Outputs: one `reports/<CVE-ID>.{txt,json}` per advisory (the normal pipeline
 artifact) plus one combined `reports/provtrail_link_<timestamp>.{md,json}`.
 
+**JS/TS dynamic confirmation (`provtrail_js_lab/`).** The one real gap this
+linkage had — real Python/Go labs, but zero JS/TS dynamic-execution
+capability anywhere in the pipeline — has a first, bounded proof: Stage
+3.6's `execute_exploit_artifacts` now spawns `node` instead of Python when
+the target is `.js` (the Python path is completely unaffected). One real
+ProvTrail-flagged CVE from the project's actual fixture data —
+[CVE-2024-48910](https://github.com/advisories/GHSA-p3vf-v8qc-cwcr)
+(dompurify, Prototype Pollution, CWE-1321, CRITICAL) — is hand-authored
+with a zero-npm-dependency Node target and a Python PoC, run through the
+*real* pipeline mechanism via `provtrail_js_lab/run_demo.py`:
+`dynamically_confirmed: True`, real global `Object.prototype` pollution.
+Auto-classification and auto-generation for JS classes remain future
+work — this proves the mechanism, for one class, not "all classes work."
+See `provtrail_js_lab/README.md`.
+
 ---
 
 ## Project structure
@@ -396,11 +494,13 @@ AI CVE Exploit Automation/
 │   ├── REACHABILITY.md      # The reachability engine vs. a real free5GC CVE
 │   └── FREE5GC_LAB.md       # The free5GC-adjacent dynamic exploit lab
 │
-├── paper/                   # free5GC World Forum '26 submission (see "Paper" above)
-│   ├── main.tex             # ACM sigconf source, real CCS concepts + citations
-│   ├── main.pdf             # Submission-ready, 3 pages
+├── paper/                   # free5GC World Forum '26 draft (see "Paper" above,
+│   ├── main.tex             # drafted, submission-ready, NOT submitted)
+│   ├── main.pdf             # Compiled, 3 pages
 │   ├── main.docx            # Word copy for editing
 │   └── NOTES.md             # Verified-vs-needs-action checklist
+│
+├── architecture.html        # Standalone architecture diagram (open locally)
 │
 ├── ssrf_lab/
 │   ├── server.py            # Dual-mode Flask lab (vulnerable / patched)
@@ -408,6 +508,11 @@ AI CVE Exploit Automation/
 │   ├── ssrf_probe.py        # Live SSRF probe runner
 │   ├── bypass_analysis.py   # 5-technique bypass analysis against patched mode
 │   └── bypass_demo.py       # Interactive bypass demo
+│
+├── provtrail_js_lab/        # ProvTrail JS/TS dynamic-confirmation MVP
+│   ├── CVE-2024-48910/      # dompurify Prototype Pollution (Node target + PoC)
+│   ├── run_demo.py          # Runs the real pipeline mechanism, not a parallel script
+│   └── README.md            # Scope: proves the mechanism, one class, not "all classes work"
 │
 ├── reports/
 │   ├── CVE-2026-33626.txt   # Text report (one file per CVE)
@@ -456,6 +561,11 @@ Classifies the vulnerability into one of eight classes:
 | Deserialization | CWE-502 | Unsafe object deserialization |
 | Memory Safety (buffer overflow / UAF / underflow) | CWE-121, CWE-416, CWE-191 | Compile + run a generated PoV harness against the real C source - see "Stage 3 (native code)" below |
 | UNKNOWN | — | Generic template |
+
+**Not auto-classified**: Prototype Pollution (CWE-1321), the ProvTrail
+JS/TS integration's one proven class, is hand-authored in
+`provtrail_js_lab/`, not wired into Stage 2's classifier — stated
+honestly rather than implying broader auto-classification than exists.
 
 When Claude is available, it reads the patch diff to identify unsafe code patterns
 and generate a fix description. In text-only mode, classification uses keyword
@@ -697,7 +807,8 @@ python dryrun.py
 
 ## AI backend
 
-The pipeline auto-selects from three modes at startup:
+**Stage 1/2 (advisory fetch, classification)** auto-selects from three
+modes at startup:
 
 | Priority | Condition | What it does |
 |---|---|---|
@@ -707,6 +818,16 @@ The pipeline auto-selects from three modes at startup:
 
 Mode 3 requires no credentials and produces useful reports for all standard CVE types.
 Mode 2 (Claude Code CLI) adds AI-written PoC code and richer advisory summaries.
+
+**Stages 3.5/3.7/3.8 (exploit generation, self-improvement, patch
+generation)** use a separate, provider-agnostic call site
+(`_call_live_model`): Claude CLI first, then a **local Ollama model**
+(`OLLAMA_MODEL`, default `qwen2.5-coder:7b`; `OLLAMA_HOST`, default
+`http://127.0.0.1:11434`; pinned `temperature=0` and `OLLAMA_SEED` for
+reproducibility), falling back to class-specific templates if neither is
+available. Every call records its real backend, model, duration, tokens,
+and cost (`$0.00` for local Ollama) on the report — see "Live-LLM results"
+above.
 
 ---
 
