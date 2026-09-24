@@ -84,6 +84,24 @@ and (2) reachability-filtered static analysis narrowing what to look at
 in real source, which is discovery-*adjacent* (narrowing scope) but not
 discovery itself.
 
+## "You also have a bug bounty / discovery tool (claude-bug-bounty) — why isn't that part of this project?"
+
+Deliberately kept separate, not an oversight. `claude-bug-bounty` is a
+real, actively-maintained discovery tool (recon, live scanning for 26+
+web vuln classes plus smart-contract bugs, a validation gate, then
+platform-specific report generation for HackerOne/Bugcrowd/etc.) — it
+hunts for *unknown* bugs in live targets. That is precisely the CRS-style
+capability the previous answer says this project does not attempt.
+Merging it in would blur the exact line the "fuzzing" reframing (below)
+was built to make precise: this project confirms and patches *known*
+CVEs; it does not discover unknown ones. Two honestly-scoped tools -
+discovery in one repo, confirmation in this one - is a stronger,
+more defensible position than one tool quietly claiming both. If
+pressed on whether they could be combined: yes, architecturally
+(`claude-bug-bounty`'s findings could in principle feed this pipeline's
+Stage 1 the same way ProvTrail's static findings already do), but that
+was never attempted and isn't claimed here.
+
 ## "Why did you drop fuzzing from the project title/pitch?"
 
 Because nothing in the pipeline does coverage-guided input mutation —
