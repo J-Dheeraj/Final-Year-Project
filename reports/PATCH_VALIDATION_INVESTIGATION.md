@@ -93,6 +93,31 @@ model in the comparison. `output_tokens` for that call is `None`.
 Flagged, not investigated further given cost; not papered over with a
 guessed cause.
 
+**Partially resolved, 2026-09-24:** the `(None, None)` token-count
+pairing is structurally the failure/timeout path in
+`_call_ollama_metered` (a successful `200` response always carries
+Ollama's own `prompt_eval_count`/`eval_count`) - this was never a slow
+*successful* generation, it was a call that ultimately failed after a
+long wait. Reproduced live: re-running the exact same CVE/model
+(`CVE-2026-54729`, `qwen2.5-coder:1.5b`) genuinely hit
+`generation_outcome: llm_live_failed`, `generation_duration_s: 180.001`
+(capped at the `timeout=180` value), tokens `None`/`None` - the same
+failure mode, reproduced on demand, not a one-off. This is a real,
+repeatable weak spot in this specific CVE/model pairing (the smallest
+model, 1.5B, struggling to converge on SSRF's generation prompt), not a
+code bug. The exact historical **1636.5s** figure (9x the nominal 180s
+timeout) is still not fully explained - `requests`' `timeout=` parameter
+is a per-read-chunk timeout, not a hard total-request cap, so a
+low-level connection event (a local proxy, antivirus HTTP inspection, or
+similar touching even loopback traffic) could in principle let a call
+run far past its nominal timeout without raising - but this specific
+mechanism was not directly observed, only reproduced as plausible given
+how `requests` timeouts work. Read this as narrowed, not root-caused:
+the *class* of failure (times out on this exact CVE/model pairing) is
+now confirmed and reproducible; the *exact 1636.5s duration* that one
+time remains attributed to environmental conditions during the original
+sequential 8-model comparison run, not conclusively proven.
+
 **Note on mistral:7b's 0/6 patch attempts despite 2/6 confirmed:** even
 with the `localhost` fix confirmed stable (3/3 direct checks), 2 of
 mistral:7b's confirmed CVEs still show `patch_skip_reason: "no AI
