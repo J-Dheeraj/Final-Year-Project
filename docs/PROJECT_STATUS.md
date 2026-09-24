@@ -6,6 +6,24 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-24 (post-merge verification)** — Ran `CVE-2026-78683` end to
+  end on the just-reconciled `main` (`5417c29`), since the merge combined
+  two independently-tested code paths (this session's exit_code fix,
+  the other session's multi-payload validation + pinned sampling) that
+  had never actually run together. Result: `dynamically_confirmed=True`
+  (exit_code 0), `patch_attempted=True`, `patch_validated=True`, and
+  `payload_variants` populated with 2 real distinct alternate payloads —
+  the patch survived re-probing with both, not just the original. This
+  is the strongest single result across every round run so far: real
+  generation → real dynamic confirmation → real patch → validated
+  against 3 total distinct payloads, all on the merged code, with no
+  stale `exit_code`/`dynamically_confirmed` anywhere in the run. One CVE,
+  one shot - not a full catalog re-run (that's a larger, separate task if
+  wanted later) - but it directly answers the open question from the
+  reconciliation entry above: the merge did not silently break either
+  side's capability. Exit criterion met: the two independently-fixed
+  code paths coexist and both fire correctly in the same run.
+
 - **2026-09-24 (reconciliation)** — Two Claude sessions worked this repo
   in parallel on 2026-09-23, both branching from the same commit
   (`4c1a386`) without initially knowing about each other: this session
