@@ -5,6 +5,10 @@ and automatically runs the analysis pipeline for each one.
 Feeds polled:
     NVD  (services.nvd.nist.gov)   — broadest coverage
     GHSA (api.github.com/advisories) — open-source library CVEs
+    ProvTrail (local static scan, not a live feed) — auto-discovered at
+    .provtrail/latest-scan.* each poll cycle if present; see
+    fetch_provtrail()'s own docstring for why this isn't "since"-windowed
+    the way the two real feeds are.
 
 Integration:
     Imports cve_pipeline directly (no subprocess) for speed.
@@ -18,6 +22,8 @@ Usage:
     python cve_watcher.py --no-probe             # skip live SSRF probe
     python cve_watcher.py --lookback 6           # on first run, fetch last 6h
     python cve_watcher.py --workers 4            # process 4 CVEs in parallel
+    python cve_watcher.py --provtrail-scan x.sarif  # explicit ProvTrail scan
+    python cve_watcher.py --no-provtrail         # feeds only, skip ProvTrail
 
 Outputs:
     reports/<CVE-ID>.txt     — one report per CVE
@@ -70,10 +76,28 @@ except ImportError as _e:
     _PIPELINE_AVAILABLE = False
     _PIPELINE_IMPORT_ERR = str(_e)
 
-# ── UTF-8 stdout on Windows ───────────────────────────────────────────────────
-if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+try:
+    import provtrail_bridge as _provtrail
+    _PROVTRAIL_AVAILABLE = True
+except ImportError:
+    _PROVTRAIL_AVAILABLE = False
+
+def _fix_stdout() -> None:
+    """UTF-8 stdout on Windows. Called from main() - NOT at import time.
+    A module-level rewrap here permanently replaces the sys.stdout object
+    pytest's own capture fixture holds a reference to, so pytest crashes
+    at teardown trying to restore/snapshot the original ("ValueError: I/O
+    operation on closed file") - a real bug found while adding tests/
+    test_cve_watcher_provtrail.py: merely IMPORTING cve_watcher (which
+    any test file must do) broke test collection entirely, for every
+    test in the suite, not just the new one. cve_pipeline.py and
+    provtrail_bridge.py already do this correctly (their own
+    _fix_stdout() is called from their entry function too) - this
+    brings cve_watcher.py in line with that proven pattern instead of
+    being the one inconsistent script."""
+    if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 # ── paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR    = Path(__file__).parent
@@ -341,6 +365,40 @@ def fetch_repo_advisories(repos: list[str], since: datetime) -> Iterator[str]:
             time.sleep(0.3)
 
 
+# ── ProvTrail scan fetcher (local static-scan snapshot, not a live feed) ─────
+
+def fetch_provtrail(scan_path: Path | None = None) -> Iterator[str]:
+    """Yield advisory IDs from a ProvTrail scan, if one is discoverable.
+
+    Unlike NVD/GHSA (which publish new CVEs continuously), ProvTrail is a
+    static local scanner with no live feed to poll - there's no "since"
+    window here. Instead, every advisory in the CURRENT scan is yielded
+    on every poll cycle, and SeenStore's existing dedup (the same
+    mechanism that already prevents re-processing an already-seen
+    NVD/GHSA CVE) is what makes this behave like "pick up anything new
+    since the last poll": if you re-run ProvTrail between polls and it
+    flags a new advisory, the next poll cycle picks it up automatically;
+    already-processed advisories are silently skipped, not re-run.
+
+    Reuses provtrail_bridge's own default-discovery
+    (.provtrail/latest-scan.{sarif,json,ai.txt}) and parsing/dedup logic
+    directly rather than duplicating it - the same source-of-truth as
+    `python provtrail_bridge.py` with no --scan given."""
+    if not _PROVTRAIL_AVAILABLE:
+        return
+    path = scan_path or _provtrail._default_scan_path()
+    if path is None:
+        return
+    findings, reason = _provtrail.load_scan(path)
+    if reason:
+        log.warning(f"ProvTrail scan at {path} unusable: {reason}")
+        return
+    advisories = _provtrail.dedupe(findings)
+    log.info(f"ProvTrail scan at {path}: {len(advisories)} advisory(ies)")
+    for advisory in advisories:
+        yield advisory.advisory_id
+
+
 # ── pipeline runner ───────────────────────────────────────────────────────────
 
 def run_pipeline(cve_id: str, fmt: str, no_probe: bool,
@@ -411,12 +469,14 @@ def poll_once(since: datetime, seen: SeenStore,
               fmt: str, no_probe: bool,
               workers: int = 1,
               lab_url: str = "http://127.0.0.1:8000",
-              repos: list[str] | None = None) -> tuple[int, int]:
+              repos: list[str] | None = None,
+              provtrail_scan: Path | None = None,
+              provtrail_enabled: bool = True) -> tuple[int, int]:
     """
-    Fetch all feeds (NVD + global GHSA + optional repo advisories),
-    deduplicate, then run the pipeline for every new CVE.
-    Up to *workers* CVEs are processed concurrently.
-    Returns (new_found, succeeded).
+    Fetch all feeds (NVD + global GHSA + optional repo advisories, plus a
+    ProvTrail scan if one is discoverable), deduplicate, then run the
+    pipeline for every new CVE. Up to *workers* CVEs are processed
+    concurrently. Returns (new_found, succeeded).
     """
     new_ids: set[str] = set()
 
@@ -434,6 +494,11 @@ def poll_once(since: datetime, seen: SeenStore,
         for cve_id in fetch_repo_advisories(repos, since):
             if cve_id not in seen:
                 new_ids.add(cve_id)
+
+    if provtrail_enabled:
+        for advisory_id in fetch_provtrail(provtrail_scan):
+            if advisory_id not in seen:
+                new_ids.add(advisory_id)
 
     if not new_ids:
         log.info("No new CVEs found.")
@@ -476,6 +541,7 @@ def poll_once(since: datetime, seen: SeenStore,
 # ── main loop ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    _fix_stdout()
     parser = argparse.ArgumentParser(description="CVE feed watcher → auto pipeline")
     parser.add_argument("--interval",  default=60,  type=int,
                         help="Poll interval in minutes (default: 60)")
@@ -497,6 +563,14 @@ def main() -> None:
                              "InternLM/lmdeploy,psf/requests  (requires GITHUB_TOKEN "
                              "with repo scope for private/draft access; public repos "
                              "work without a token)")
+    parser.add_argument("--provtrail-scan", default=None, metavar="PATH",
+                        help="ProvTrail artifact to check each poll (.json/.sarif/"
+                             ".ai.txt). If omitted, auto-discovered at "
+                             ".provtrail/latest-scan.* (SARIF preferred) — same "
+                             "default-discovery as provtrail_bridge.py.")
+    parser.add_argument("--no-provtrail", action="store_true",
+                        help="Never check for a ProvTrail scan, including "
+                             "auto-discovery — feeds (+ --repos) only.")
     args = parser.parse_args()
 
     if not _PIPELINE_AVAILABLE:
@@ -522,6 +596,16 @@ def main() -> None:
         gh_token = os.environ.get("GITHUB_TOKEN", "")
         auth_note = "authenticated" if gh_token else "unauthenticated (public only)"
         log.info(f"Repo feed : {', '.join(repos)}  [{auth_note}]")
+    provtrail_scan_path = Path(args.provtrail_scan) if args.provtrail_scan else None
+    if args.no_provtrail:
+        log.info("ProvTrail : disabled (--no-provtrail)")
+    elif not _PROVTRAIL_AVAILABLE:
+        log.info("ProvTrail : provtrail_bridge not importable — skipped")
+    elif provtrail_scan_path:
+        log.info(f"ProvTrail : {provtrail_scan_path} (explicit --provtrail-scan)")
+    else:
+        discovered = _provtrail._default_scan_path()
+        log.info(f"ProvTrail : {'checked each poll, currently ' + (str(discovered) if discovered else 'none discoverable')}")
     log.info(f"Reports  → {REPORTS_DIR.resolve()}")
     log.info(f"Log      → {LOG_FILE.resolve()}")
 
@@ -541,6 +625,8 @@ def main() -> None:
                 workers=args.workers,
                 lab_url=args.lab_url,
                 repos=repos or None,
+                provtrail_scan=provtrail_scan_path,
+                provtrail_enabled=not args.no_provtrail,
             )
             log.info(f"Poll complete — {found} new CVE(s), {ok} pipeline(s) succeeded")
         except Exception as exc:

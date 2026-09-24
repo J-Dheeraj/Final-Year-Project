@@ -6,6 +6,56 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-24 (ProvTrail checking extended to cve_watcher.py)** — The
+  user asked to check ProvTrail integration in `cve_watcher.py` too,
+  after it was made the real default source in `provtrail_bridge.py`
+  earlier the same session. Audited first: `cve_watcher.py` had zero
+  ProvTrail awareness, by design, not oversight - it's architecturally
+  a continuous NVD/GHSA feed poller, while ProvTrail is a static,
+  point-in-time local scan with no live feed to poll the same way.
+  Presented this distinction and a concrete extension option before
+  writing any code; user chose to extend it.
+
+  Added `fetch_provtrail()` (mirrors `fetch_nvd`/`fetch_ghsa`'s
+  generator shape, reuses `provtrail_bridge`'s own default-discovery
+  and `load_scan`/`dedupe` directly rather than duplicating them) and
+  wired it into `poll_once()` alongside the existing NVD/GHSA/`--repos`
+  sources. Design choice: no new mtime-tracking state needed - the
+  existing `SeenStore` dedup (which already prevents re-processing an
+  already-seen NVD/GHSA CVE) does the "pick up anything new since last
+  poll" job for free, since every advisory in the CURRENT scan is
+  yielded every cycle and already-seen ones are silently skipped. New
+  flags: `--provtrail-scan PATH` (explicit override) and
+  `--no-provtrail` (full opt-out, including auto-discovery).
+
+  **A real, pre-existing bug found and partially addressed along the
+  way**: `cve_watcher.py`'s Windows stdout-rewrap ran unconditionally
+  at import time (not inside `main()`, unlike the same code in
+  `cve_pipeline.py`/`provtrail_bridge.py`) - moved it into `main()` to
+  match the already-proven pattern in those two files. This did NOT
+  fully fix a deeper issue it happened to surface: merely importing
+  `cve_pipeline` at module level (which `cve_watcher.py` has always
+  done, eagerly, unlike `provtrail_bridge.py`'s lazy function-local
+  import of the same module) corrupts pytest's own capture mechanism on
+  Windows (`ValueError: I/O operation on closed file` at
+  `tempfile.py:500`, inside pytest's own capture fixture) - confirmed
+  via bisection to be triggered by `cve_pipeline` alone, not by
+  `logging.basicConfig()` or `pydantic_ai` individually. Root cause not
+  fully found; chasing it further was disproportionate to this task's
+  actual scope. **Deliberately deferred, not silently dropped** - same
+  "flagged, not chased down given cost" honesty as the
+  `qwen2.5-coder:1.5b` timing outlier elsewhere in this file.
+  Consequence: no pytest-based regression test for
+  `fetch_provtrail()`/`poll_once()` exists (a first attempt was written
+  then removed once it couldn't be collected). Verified instead via a
+  live, non-mocked script exercising the real functions directly -
+  confirmed correct in all 4 cases: no scan discoverable (empty),
+  explicit fixture scan (6 real advisories from
+  `tests/fixtures/provtrail/latest-scan.sarif`), `--no-provtrail`
+  (never calls `fetch_provtrail`), and the existing test suite (9/9)
+  still passing since nothing in `provtrail_bridge.py`/its own tests
+  was touched. Real evidence, just not pytest-shaped evidence.
+
 - **2026-09-24 (ProvTrail SARIF made the real default source)** — The
   user flagged that the just-published architecture diagram showed
   NVD/GHSA as the primary path and ProvTrail as a dotted "optional"
