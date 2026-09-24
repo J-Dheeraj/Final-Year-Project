@@ -6,6 +6,30 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-24 (mistral:7b patch-parse bug, diagnosed and fixed)** —
+  Picked up the open item from `reports/PATCH_VALIDATION_INVESTIGATION.md`:
+  mistral:7b's confirmed CVEs showing `patch_skip_reason: "...didn't
+  parse"`. Reproduced directly (replayed `_llm_generate_patch`'s exact
+  prompt against `mistral:7b` outside the pipeline, printed the raw
+  response) before touching any code. Root cause: mistral:7b's patch
+  response never emits the literal `===PATCHED_TARGET_END===` marker -
+  it goes straight from the patched code to `===SUMMARY_START===` - so
+  `_extract_marker`'s strict `text.index(end, s)` raised and the whole
+  patch was silently discarded as empty, even though real, usable code
+  was sitting right there in the response. Fixed in the shared
+  `_extract_marker` (used by Stage 3.5/3.7/3.8 alike): fall back to the
+  next `===X_Y===`-shaped marker as an implicit boundary when the exact
+  end marker is missing. Verified 4 ways before and after: a unit test
+  against the exact captured failure shape (0 → 842 chars recovered,
+  compiles), two control cases (normal both-markers response unaffected;
+  a genuinely markerless response still safely returns empty), and a
+  live unmodified pipeline re-run on `CVE-2026-42208`/`mistral:7b` -
+  before: `patch_attempted: False`; after: `patch_attempted: True`, a
+  real patch summary, and an honest `patch_validated: False` (the patch
+  itself didn't work, evaluated and rejected for real, not skipped).
+  Exit criterion met: the parsing gap is closed and independently
+  verified live, not just theorized.
+
 - **2026-09-24 (post-merge verification)** — Ran `CVE-2026-78683` end to
   end on the just-reconciled `main` (`5417c29`), since the merge combined
   two independently-tested code paths (this session's exit_code fix,
