@@ -6,6 +6,93 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-25 (corrected patch validator - Step 1 of a 6-step
+  multi-agent comparison plan, DONE)** — The old two-check
+  `patch_validated` flag (exploit fails + `/health` passes) cannot tell a
+  deliberate security rejection apart from an unrelated crash in the
+  patched route - this is exactly the bug that produced the round-5
+  CVE-2026-78683 false acceptance (a missing `io` import crashed the
+  route for every request, satisfied both checks, and was flagged
+  `patch_validated: True`). Fixed additively in `src/pipeline/patch.py` +
+  `cve_pipeline.py`'s `ExploitArtifacts` model: kept `patch_validated`
+  with its original meaning (old reports/results stay under the old
+  validator, unchanged), added three new fields on top -
+  `patch_exploit_blocked` (did the exploit fail *without* an unhandled
+  exception in the target's own log, via a
+  `Traceback (most recent call last)` / `Exception on ... [` heuristic),
+  `patch_function_preserved` (does a benign, non-malicious request to the
+  same route still succeed, probed the same way the existing
+  multi-payload re-probe already works via `extra_arg`), and
+  `patch_verdict` (one of `confirmed_fix` / `regression_broke_route` /
+  `inconclusive_crash` / `not_blocked`).
+
+  Verified against the REAL preserved round-5 log (not synthetic data):
+  replaying that exact scenario through `generate_and_validate_patch`
+  with `execute_exploit_artifacts` mocked confirms `patch_validated=True`
+  (the old bug still reproduces) while `patch_verdict=inconclusive_crash`
+  (the new check correctly refuses to call it a fix). Also verified the
+  `confirmed_fix` and `regression_broke_route` paths with synthetic
+  clean-rejection/benign-probe logs. A real, non-obvious finding along
+  the way: the crash heuristic also flags round 4's `ValueError`-based
+  rejection as a "crash" (Flask logs any raised exception with the same
+  `Exception on ... Traceback` banner regardless of whether the exception
+  was deliberate or a bug) - this is correct, not a false positive: an
+  automated check genuinely cannot distinguish "deliberately raised to
+  reject" from "accidentally raised", which is exactly the same honest
+  limitation already stated in the FYP report's Discussion for round 4's
+  own accepted patch ("this project's evidence for that claim is the same
+  kind of manual inspection... not an independently stronger automated
+  guarantee").
+
+  A first attempt at a pytest test file
+  (`tests/test_patch_validator.py`) hit the SAME pre-existing, previously
+  documented Windows/pytest capture-corruption bug this file already
+  describes elsewhere (any `cve_pipeline` import, even lazy/function-local,
+  corrupts pytest's own capture teardown) - written then removed once it
+  couldn't be collected, same precedent as before. Verified instead via a
+  direct, non-pytest script exercising the real functions with
+  `execute_exploit_artifacts` mocked - real evidence, just not
+  pytest-shaped evidence, matching this project's established practice for
+  this specific, still-unsolved environment bug.
+
+  **Exit criterion for Step 1: met.**
+
+- **2026-09-25 (real-upstream validation - Step 4, DONE)** — Per the
+  user's direction, validated CVE-2026-23949 (jaraco.context path
+  traversal) against the REAL package installed from PyPI, not a
+  reproduction: two isolated venvs, `jaraco.context==5.3.0` (advisory's
+  own stated vulnerable range) and `==6.1.0` (advisory's own stated fixed
+  version). Read the actual installed source in both venvs to confirm the
+  real root cause (`strip_first_component` splits on the first `/` and
+  keeps any `../` in the remainder) and the real fix (`6.1.0` composes
+  stdlib `tarfile.data_filter`, PEP 706, ahead of the same
+  `strip_first_component`). Built a real malicious tarball and a real
+  legitimate tarball, served locally over HTTP (127.0.0.1, the same
+  local-self-controlled-target discipline this project already uses
+  elsewhere), and called the real, unmodified `jaraco.context.tarball()`
+  directly - no mocking. Full real four-way matrix:
+  vulnerable+exploit = EXPLOITED (canary file written outside the
+  extraction dir); vulnerable+legitimate = OK; patched+exploit = BLOCKED
+  (`tarfile.OutsideDestinationError`, a real stdlib safety exception, not
+  a generic crash); patched+legitimate = OK. Verdict using the same
+  vocabulary as Step 1's corrected validator:
+  `patch_exploit_blocked=True`, `patch_function_preserved=True`,
+  `patch_verdict=confirmed_fix` - the strongest evidence tier this
+  project has produced for any single case. Full writeup + raw log:
+  `real_upstream_case/CVE-2026-23949/RESULTS.md` and `raw_log.txt`.
+  **Exit criterion: met.**
+
+  Steps 2-6 of the user's 2026-09-25 plan
+  (common experiment protocol across this pipeline + Codex + Claude Code,
+  running and preserving that comparison, validating one case on real
+  upstream software, updating the report from the evidence, then an
+  OSS-CRS source-only adapter) are NOT started - they need user decisions
+  this session can't make unilaterally (Codex CLI is not installed in
+  this environment - confirmed via `which codex`, only `claude` and
+  `ollama` are present; real-upstream-software testing needs a scope/time
+  decision). Flagged to the user rather than silently attempted or
+  skipped.
+
 - **2026-09-24 (ProvTrail checking extended to cve_watcher.py)** — The
   user asked to check ProvTrail integration in `cve_watcher.py` too,
   after it was made the real default source in `provtrail_bridge.py`

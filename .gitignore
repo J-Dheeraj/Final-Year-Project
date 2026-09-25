@@ -29,3 +29,6 @@ env/
 # ── OS noise ──────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# Real-upstream case study venvs (reproducible via pip install, not committed)
+real_upstream_case/**/venv_*/

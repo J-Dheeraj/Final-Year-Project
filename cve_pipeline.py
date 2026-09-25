@@ -264,6 +264,19 @@ class ExploitArtifacts(BaseModel):
     patch_summary:        str        = ""   # one-line description of the fix
     patch_validated:      bool | None = None
     patch_validation_log: str        = ""
+    # Corrected validator (2026-09-25): `patch_validated` above cannot tell
+    # a deliberate rejection apart from an unrelated crash in the patched
+    # route (the round-5 CVE-2026-78683 false acceptance - a missing `io`
+    # import crashed the handler for every request, which still satisfied
+    # the old exploit-fails+health-passes check). These three fields are
+    # purely additive: `patch_validated` keeps its original meaning and old
+    # reports are unaffected. `patch_verdict` is the report-facing summary.
+    patch_exploit_blocked:    bool | None = None  # exploit failed WITHOUT crashing the route
+    patch_function_preserved: bool | None = None  # a benign request to the same route still works
+    patch_benign_probe_log:   str         = ""
+    # One of: "confirmed_fix", "regression_broke_route", "inconclusive_crash",
+    # "not_blocked", or "" if patch generation/validation never ran.
+    patch_verdict: str = ""
 
 
 class PipelineReport(BaseModel):
