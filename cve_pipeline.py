@@ -364,6 +364,10 @@ def _call_claude(prompt: str, timeout: int = 120) -> str:
 # mode's bare stdout with no usage data at all (the reason cost/tokens were
 # `None` for every Claude-CLI entry before this change).
 _CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "")
+# Optional timeout floor (seconds) for the Claude CLI leg of _call_live_model,
+# see the comment at its call site. Empty/unset = no change to any caller's
+# own timeout.
+_CLAUDE_TIMEOUT_OVERRIDE = int(os.environ.get("CLAUDE_TIMEOUT_S", "0")) or None
 
 
 def _call_claude_metered(prompt: str, timeout: int = 120) -> "LiveModelResult":
@@ -544,7 +548,17 @@ def _call_live_model(prompt: str, timeout: int = 180) -> LiveModelResult:
     requested), the original best-effort fallback is kept, but now logged
     as a visible WARNING instead of silent debug."""
     if _claude_available():
-        result = _call_claude_metered(prompt, timeout)
+        # Optional per-call timeout floor for the Claude CLI leg only, for
+        # the 2026-09-25 multi-model comparison: found live that
+        # claude-opus-4-7/4-8 genuinely take longer than this pipeline's
+        # hardcoded 180s on realistic exploit-generation-scale prompts
+        # (confirmed: a representative ~7KB prompt took 234s on opus-4-8,
+        # not stuck/hanging - just slower). Without this, those two models
+        # always hit subprocess.TimeoutExpired and silently fall back to
+        # the built-in template, which isn't a fair per-model comparison.
+        # Unset (default) leaves every call's own timeout unchanged.
+        effective_timeout = max(timeout, _CLAUDE_TIMEOUT_OVERRIDE) if _CLAUDE_TIMEOUT_OVERRIDE else timeout
+        result = _call_claude_metered(prompt, effective_timeout)
         if result.text:
             return result
         if _CLAUDE_MODEL:
