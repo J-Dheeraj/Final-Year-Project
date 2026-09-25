@@ -16,7 +16,35 @@ same reason as src/pipeline/self_improve.py: cve_pipeline.py imports
 generate_and_validate_patch from here, so a module-level import the other
 direction would be circular.
 """
+import re
 from pathlib import Path
+
+# Corrected validator (2026-09-25). The original check below (exploit fails,
+# /health passes) cannot distinguish a deliberate rejection from an unrelated
+# crash in the patched handler: CVE-2026-78683 round 5's patch crashed with
+# `NameError: name 'io' is not defined` on every request, which still made
+# the exploit "fail" and left /health (a DIFFERENT route) reporting 200 -
+# satisfying the old check while fixing nothing. See
+# docs/PATCH_VALIDATION_INVESTIGATION.md and the FYP report's Section 4.1.2
+# for the full trace. This block adds two further, independent checks:
+# (1) did the exploit request itself fail cleanly, without an unhandled
+# exception, and (2) does a benign, non-malicious request to the SAME route
+# still succeed. Both use the crash-signature heuristic below, since none of
+# this pipeline's generated targets expose a structured way to distinguish
+# "the security check rejected this" from "the handler crashed" other than
+# the presence of an unhandled Python traceback in the process's own log.
+_CRASH_SIGNATURE_RE = re.compile(
+    r"Traceback \(most recent call last\)|Exception on .* \[", re.IGNORECASE
+)
+_BENIGN_PROBE_PAYLOAD = "benign-legitimate-request-2026-not-an-attack-payload"
+
+
+def _response_shows_crash(execution_log: str) -> bool:
+    """True if the target process's own log contains an unhandled Python
+    exception (a crash), as opposed to a clean HTTP-level rejection. This is
+    a heuristic over stdout/stderr text, not a structured signal - the best
+    available without changing every generated target's own error handling."""
+    return bool(_CRASH_SIGNATURE_RE.search(execution_log or ""))
 
 
 def _llm_generate_patch(vuln_class: str, root_cause: str, fix_summary: str,
@@ -176,5 +204,45 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
                     f"{vuln_class} class: {variant!r}\n\n{probe.execution_log}"
                 )
                 break
+
+    # --- Corrected validator: exploit-blocked, function-preserved, verdict ---
+    # Uses the FINAL state of patch_validated above (after the multi-payload
+    # re-probe, if any), so a patch bypassed by an alternate payload is
+    # correctly treated as not blocked here too.
+    exploit_crashed = bool(artifacts.patch_validated) and _response_shows_crash(shadow.execution_log)
+    artifacts.patch_exploit_blocked = bool(artifacts.patch_validated) and not exploit_crashed
+
+    if artifacts.patch_exploit_blocked:
+        # The exploit failed cleanly. Now probe the SAME route with a
+        # benign, non-malicious request to confirm the patch didn't just
+        # break legitimate use of it (round 5's crash-on-every-request bug
+        # would fail this check too, independently of the crash check above).
+        benign_probe = ExploitArtifacts(
+            generated=True,
+            poc_path=artifacts.poc_path,
+            target_app_path=str(patched_path),
+            vuln_class=vuln_class,
+        )
+        benign_probe = execute_exploit_artifacts(benign_probe, extra_arg=_BENIGN_PROBE_PAYLOAD)
+        benign_ran = bool(benign_probe.executed and not benign_probe.execution_skip_reason)
+        benign_crashed = _response_shows_crash(benign_probe.execution_log)
+        artifacts.patch_function_preserved = benign_ran and not benign_crashed
+        artifacts.patch_benign_probe_log = benign_probe.execution_log
+    else:
+        artifacts.patch_function_preserved = None  # not applicable - exploit wasn't cleanly blocked
+
+    if exploit_crashed:
+        artifacts.patch_verdict = "inconclusive_crash"
+    elif not artifacts.patch_validated:
+        artifacts.patch_verdict = "not_blocked"
+    elif artifacts.patch_function_preserved:
+        artifacts.patch_verdict = "confirmed_fix"
+    else:
+        artifacts.patch_verdict = "regression_broke_route"
+
+    log.info(
+        "[Stage 3.8] Corrected verdict: %s (exploit_blocked=%s, function_preserved=%s)",
+        artifacts.patch_verdict, artifacts.patch_exploit_blocked, artifacts.patch_function_preserved,
+    )
 
     return artifacts
