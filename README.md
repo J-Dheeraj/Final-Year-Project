@@ -138,13 +138,14 @@ reachability + patch-generation + upstream-verification case study
 against CVE-2026-40248 in free5GC's UDR (see `docs/REACHABILITY.md`).
 Real ACM CCS concepts, verified citations, and a real author affiliation
 — no placeholders. Compiles cleanly to 3 pages under the venue's 4-page
-short-paper cap. **Submission was prepared but explicitly not sent** —
-the paper stays in the repo as a complete, submission-ready artifact for
-a future venue rather than a live deadline. `paper/main.pdf` is the
-compiled file; `paper/main.docx` is a Word copy for editing;
-`paper/NOTES.md` tracks exactly what's independently verified in the
-paper versus what still needs author action before any future
-submission.
+short-paper cap. **The conference submission has been abandoned (void as
+of 2026-09-25)** — this work is no longer being submitted to that forum
+or any venue, and instead feeds the free5GC chapter of the full FYP
+report. The `paper/` files stay in the repo only as a verification
+record: `paper/main.pdf` is the compiled draft, `paper/main.docx` a Word
+copy, and `paper/NOTES.md` documents exactly which numbers and citations
+were independently verified against primary sources — reusable when
+writing the report, but no live submission is planned.
 
 ---
 

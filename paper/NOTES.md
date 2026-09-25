@@ -1,3 +1,12 @@
+> **VOID — conference submission abandoned (2026-09-25).** This paper is
+> no longer being submitted to the free5GC World Forum or any venue. The
+> deliverable is now the full FYP report + viva + demo. The free5GC
+> reachability work described below is still real and reusable in the
+> report; the verified-vs-fabricated table further down is the useful
+> part. Everything about HotCRP, deadlines, and "action needed before
+> submitting" is dead — ignore it. Kept, not deleted, only as a record of
+> what was independently verified.
+
 # Notes on this draft — read before submitting anything
 
 ## What's real vs. what needs your input

@@ -1,3 +1,10 @@
+> **VOID — conference submission abandoned (2026-09-25).** Neither the
+> short nor the long paper is being submitted anywhere. The deliverable is
+> now the full FYP report + viva + demo. The technical content and the
+> verified-numbers list below stay useful as source material for the
+> report's free5GC chapter; the HotCRP/deadline/"action needed before
+> submitting" parts are dead. Kept as a verification record, not a plan.
+
 # Notes on the LONG-paper draft (`main_long.tex`) — read before submitting
 
 This is the long-track variant of `main.tex` for the 2nd free5GC World Forum.

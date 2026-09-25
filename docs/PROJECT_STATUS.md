@@ -6,6 +6,27 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-25 (conference paper declared void; deliverable is now the
+  full FYP report)** — User stated the free5GC World Forum paper is void:
+  no longer being submitted to that venue or any venue. The graded
+  deliverable is now the full FYP report (user is sending the draft this
+  session for review), plus viva + demo. Did NOT delete any `paper/`
+  content — the free5GC reachability work and its independently-verified
+  numbers/citations still feed the report's free5GC chapter. Instead
+  marked the now-dead submission framing honestly so the next session and
+  viva prep don't act on it: VOID banner added to `paper/NOTES.md` and
+  `paper/NOTES_long.md` (they literally opened "read before submitting"),
+  and README's "## Paper" section reframed from "prepared but not sent /
+  future venue" to "abandoned / feeds the FYP report." Historical dated
+  entries below that mention the "Sept 28 deadline" or "frozen for
+  conference use" are left as-is — they are an accurate record of what was
+  true then, not a live plan; this new top entry supersedes them.
+  Deliberately NOT done unilaterally: (1) `origin/feat/live-llm-gate1` is
+  a stale already-merged branch (main is 22 ahead, branch 0 ahead — its
+  HEAD is the merge base), safe to delete but left pending user OK since
+  it's shared state; (2) the LICENSE decision still waits on the
+  university IP-policy check. Report review is the next real work item.
+
 - **2026-09-24 (ProvTrail checking extended to cve_watcher.py)** — The
   user asked to check ProvTrail integration in `cve_watcher.py` too,
   after it was made the real default source in `provtrail_bridge.py`
