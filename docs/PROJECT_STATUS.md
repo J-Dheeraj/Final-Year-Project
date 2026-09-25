@@ -6,72 +6,117 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
-- **2026-09-25 (Claude Code catalog run - Steps 2/3 of the 6-step
-  multi-agent comparison plan, DONE)** — Ran the same 6 main-catalogue
+- **2026-09-25 (CORRECTION: the "Claude Code catalog run" below never ran
+  on Claude Code - it silently ran on Ollama, DONE)** — While building a
+  full session documentation pass at the user's request, finally checked
+  the protocol's own Section 6 provenance rule
+  (`docs/CLAUDE_CODE_COMPARISON_PROTOCOL.md`: every entry's
+  `generation_backend`/`generation_model` must read
+  `"claude"`/`"claude-cli"`, or be flagged) against the six reports from
+  the run described in the entry directly below - a check that was NOT
+  done before those results were first reported to the user, who was
+  briefly (one conversation turn) told this was a genuine Claude Code
+  comparison. It was not: every one of the 6 reports shows
+  `generation_backend: "ollama"`, `generation_model: "qwen2.5-coder:7b"`,
+  real token counts, and `generation_cost_usd: 0.0` - none of which the
+  Claude CLI backend ever produces.
+
+  **Root cause, verified directly, not guessed**: `_claude_available()`
+  (`cve_pipeline.py:381`) only runs `claude --version` (no auth required,
+  succeeded: `2.1.280 (Claude Code)`, exit 0). The actual generation calls
+  use `claude -p <prompt> --output-format text`, which failed on *every*
+  call in this run with `Failed to authenticate: OAuth session expired
+  and could not be refreshed` (exit 1 - confirmed by running that exact
+  command standalone in this session). `_call_live_model()`
+  (`cve_pipeline.py:491-499`) treats any empty-text Claude response as
+  "fall through to Ollama," and nothing in the pipeline surfaces that
+  fallback as a warning anywhere in the logs - so the run completed
+  looking entirely normal while silently substituting Ollama for Claude
+  at every single LLM call. This is a real, undocumented observability
+  gap in the pipeline itself (a broken primary backend degrades silently
+  instead of warning), not fixed in this session - flagged here, not
+  fixed yet, per this project's own convention of separating a finding
+  from its fix as two distinct, auditable steps. The `claude` CLI's own
+  OAuth session is separate from whatever authenticates this Claude Code
+  conversation itself and needs re-authentication outside this pipeline's
+  control before a genuine Claude Code run is possible.
+
+  **Remediation taken**: the six report files were `git mv`'d from
+  `reports/claude_code_catalog_run_2026-09-25/` to
+  `reports/llm_catalog_run_2026-09-25_round6/` (their content is real,
+  honest Ollama data - just not the comparison they were meant to be) and
+  written up as Round 6 in `reports/LIVE_LLM_CATALOG_RUN.md`, using the
+  corrected Step 1 validator's full verdict breakdown for the first time
+  in that file's series. `docs/CLAUDE_CODE_COMPARISON_PROTOCOL.md` is
+  left as-is (still a valid, unexecuted protocol for whenever the `claude`
+  CLI is re-authenticated) rather than deleted. The `src/pipeline/patch.py`
+  bug fix documented in the entry below is unaffected by this correction -
+  it was verified by direct code reading and by running the corrected
+  logic, not by which backend answered the prompt, and both of its
+  verification runs (recorded as "Claude-CLI" at the time) are now known
+  to have actually run on Ollama too, which does not change the fix's
+  correctness.
+
+  **A genuine Claude Code catalog run, and the Codex leg of Step 2, both
+  remain not yet done.**
+
+- **2026-09-25 (originally reported as "Claude Code catalog run" - Steps
+  2/3 of the 6-step multi-agent comparison plan; SUPERSEDED - see the
+  correction entry directly above, kept verbatim below for the audit
+  trail)** — Ran the same 6 main-catalogue
   CVEs (CVE-2026-42208/27602/23949/78683/54729/46492) through the
   unmodified pipeline with `claude -p` as the live-model backend instead
   of Ollama (`_call_live_model()` already prefers the `claude` CLI
   whenever `_claude_available()` is true - a pure backend swap, no code
-  change). Protocol frozen first in
+  change). **This intent was not achieved - see the correction entry
+  above.** Protocol frozen first in
   `docs/CLAUDE_CODE_COMPARISON_PROTOCOL.md` (case selection, attempt
   limits, scoring rules using Step 1's corrected verdict fields as the
   headline metric, provenance rules) before running anything, same
   discipline as `docs/BENCHMARK_PROTOCOL.md`. Stages 1-3 (advisory,
   analysis, vuln probe) served from a sandboxed cache copy of the
-  existing `.pipeline_cache/` (`--cache-dir
-  reports/claude_code_catalog_run_2026-09-25/.sandbox_cache
-  --cache-ttl 999999999`) since this environment has no
-  NVD/GHSA API keys configured; Stage 3.5+ (generation, self-improvement,
-  patch) is never cached, so every LLM call in this run was genuinely
-  fresh Claude-CLI output. `.pipeline_lessons.json` backed up and
+  existing `.pipeline_cache/` since this environment has no
+  NVD/GHSA API keys configured. `.pipeline_lessons.json` backed up and
   replaced with `{}` for the full run to isolate it from Ollama-learned
   fixes, then restored afterward - confirmed byte-identical
   (8286 bytes) post-restore.
 
-  **Results**: 4/6 exploits dynamically confirmed (CVE-2026-27602,
+  **Results** (real, but Ollama not Claude - see correction above): 4/6
+  exploits dynamically confirmed (CVE-2026-27602,
   CVE-2026-23949 did not confirm after 3 refinement iterations each);
   4/6 patches attempted; **0/6 `patch_verdict=confirmed_fix`** - every
-  Claude-CLI-generated patch either failed to block the exploit
+  generated patch either failed to block the exploit
   (`not_blocked`: CVE-2026-42208, CVE-2026-78683, CVE-2026-54729) or
   crashed the patched route entirely (`inconclusive_crash`:
   CVE-2026-46492). No `regression_broke_route` case occurred. Raw
-  reports + per-CVE timing in
-  `reports/claude_code_catalog_run_2026-09-25/<CVE-ID>.json`. This is
-  compared against the existing 5 Ollama rounds
-  (`reports/llm_catalog_run_*`) as frozen historical data, not a fresh
-  Ollama re-run, per the protocol's own rule.
+  reports (now relabeled, see correction above) + per-CVE timing in
+  `reports/llm_catalog_run_2026-09-25_round6/<CVE-ID>.json`.
 
-  **Bug found and fixed during this run**: while building the per-CVE
+  **Bug found and fixed during this run** (this part stands, unaffected
+  by the backend mislabeling): while building the per-CVE
   timing/verdict table, `CVE-2026-46492`'s `patch_verdict` was an empty
   string despite `patch_attempted=True`. Root cause: the early-return
   path in `generate_and_validate_patch()`
   (`src/pipeline/patch.py`) for when the patched target's health check
   fails entirely returned before reaching Step 1's corrected-verdict
   block, which lives at the end of the function - a genuine gap in the
-  Step 1 implementation, not a Claude-Code-specific issue. Fixed by
+  Step 1 implementation, not backend-specific. Fixed by
   adding explicit `patch_exploit_blocked=False`,
   `patch_function_preserved=None`, `patch_verdict="inconclusive_crash"`
   assignments directly in that early-return branch (a target that never
   becomes healthy at all is the clearest possible "crashed" case - no
   heuristic needed there). Verified by re-running CVE-2026-46492 alone
-  twice - once immediately after the fix (under the still-restored
-  shared lessons file, to confirm the fix works), and once more under a
-  freshly re-isolated empty lessons file (to make the full 6-CVE batch
-  methodologically uniform, since the first post-fix run had
-  inadvertently happened after lessons-file restoration) - both runs
-  produced the identical `inconclusive_crash` verdict, confirming the
-  fix is correct and the lessons-file state had no effect on this
-  particular CVE (Stage 3.7 never fired either time: 0 refinement
-  iterations).
+  twice - both runs produced the identical `inconclusive_crash` verdict
+  (both, it is now known, also ran on Ollama, which does not change the
+  fix's correctness since it was verified by direct code reading first).
 
-  Steps 2/3 not yet fully closed: Step 3 also asks to "save each agent's
-  prompt" - the raw JSON reports capture execution trace/patch/test
-  results but not the exact prompt text sent to Claude per stage as a
-  separate artifact, and "cost" is `None` for every entry in this run
-  since `claude -p --output-format text` exposes no token/cost data (a
-  real, protocol-acknowledged asymmetry vs. Ollama's `$0.0000`, not an
-  oversight). Codex's leg of Step 2 explicitly deferred by the user
-  until this Claude Code leg is complete.
+  Steps 2/3 remain not done for a genuine Claude Code leg: Step 3 also
+  asks to "save each agent's prompt" - not yet done for any backend -
+  and "cost" would read `None` for every Claude-CLI entry once a real
+  run happens, since `claude -p --output-format text` exposes no
+  token/cost data (a real, protocol-acknowledged asymmetry vs. Ollama's
+  `$0.0000`, not an oversight). Codex's leg of Step 2 explicitly deferred
+  by the user until a working Claude Code leg is complete.
 
 - **2026-09-25 (corrected patch validator - Step 1 of a 6-step
   multi-agent comparison plan, DONE)** — The old two-check
