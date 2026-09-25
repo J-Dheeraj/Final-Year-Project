@@ -1,5 +1,18 @@
 # Claude Code comparison protocol (pipeline-vs-agent Step 2)
 
+> **Status (2026-09-25): frozen, NOT yet successfully executed.** The
+> first execution attempt under this protocol silently ran on Ollama
+> instead of Claude Code - the local `claude` CLI's OAuth session had
+> expired (`claude --version` succeeds with no auth; `claude -p <prompt>`
+> failed with `Failed to authenticate: OAuth session expired`, and the
+> pipeline's `_call_live_model()` silently falls back to Ollama on any
+> empty Claude response with no warning logged). That run's real,
+> honest-but-mislabeled Ollama results are recorded as Round 6 in
+> `reports/LIVE_LLM_CATALOG_RUN.md`, not here. This protocol document is
+> unchanged and still the one to execute once the `claude` CLI is
+> re-authenticated - see `docs/PROJECT_STATUS.md`'s 2026-09-25 correction
+> entry for the full trace.
+
 Frozen before any run, per the same rigor pattern `docs/BENCHMARK_PROTOCOL.md`
 already follows for this project. Codex is explicitly out of scope for this
 protocol - it will get its own comparison after this one, per the user's

@@ -450,3 +450,82 @@ Total run cost: 157.2s, local Ollama, **$0.0000**.
 
 Raw round-5 reports: `reports/llm_catalog_run_2026-09-24_round5/<CVE-ID>.json`,
 full terminal transcript at `reports/llm_catalog_run_2026-09-24_round5/RAW_LOG.txt`.
+
+## Round 6 — intended as a Claude Code comparison, actually ran on Ollama (relabeled honestly)
+
+2026-09-25. This run was **launched** as the first leg of a separate,
+frozen protocol (`docs/CLAUDE_CODE_COMPARISON_PROTOCOL.md`) meant to
+compare this pipeline's Ollama backend against Claude Code (`claude -p`)
+on the same 6 CVEs. It is recorded here instead, under the existing
+Ollama round numbering, because **it did not actually run on Claude
+Code**: every report's `generation_backend` field reads `"ollama"` /
+`"qwen2.5-coder:7b"` with real token counts and `cost_usd: 0.0` — none of
+which the Claude CLI backend ever produces (`claude -p --output-format
+text` leaves `cost_usd`/tokens as `None`, per that backend's own metering
+code). This was not caught before the results were first reported and
+briefly (for one conversation turn) mislabeled as a genuine Claude Code
+comparison — caught immediately afterward while building a documentation
+pass, by finally checking `generation_backend` per entry as the
+protocol's own Section 6 rule requires and had not yet been checked.
+
+**Root cause, verified directly**: `_claude_available()`
+(`cve_pipeline.py:381`) only runs `claude --version`, which succeeded
+(exit 0, prints `2.1.280 (Claude Code)`) and does not require
+authentication. The actual generation calls use `claude -p <prompt>
+--output-format text`, which failed on every single call with `Failed to
+authenticate: OAuth session expired and could not be refreshed` (exit 1,
+confirmed by running that exact command standalone). `_call_live_model()`
+(`cve_pipeline.py:491-499`) treats any empty-text Claude response as
+"fall through to Ollama" rather than a hard error, and nothing in the
+pipeline surfaces that fallback as a warning — so the run completed
+looking entirely normal (correct advisory data, real exploit generation,
+real execution) while silently substituting Ollama for Claude at every
+single LLM call, with no error anywhere in the logs. This is a real gap
+in the pipeline's own observability, not yet fixed: an expired/broken
+primary backend should probably be a visible warning, not a silent
+substitution. The `claude` CLI's own OAuth session is separate from
+whatever authenticates this Claude Code conversation itself; re-running a
+genuine Claude Code comparison requires re-authenticating that CLI
+session first (outside this pipeline's control).
+
+Since the run is real, honest Ollama data — just not the comparison it
+was meant to be — it's kept and reported here as round 6, using the same
+protocol as every prior round (one shot per CVE, `--no-cache`, sandboxed
+cache-dir with 3 stages pre-seeded from the existing cache to work around
+this environment's missing NVD/GHSA API keys) plus, for the first time,
+the corrected patch validator's full verdict breakdown
+(`patch_exploit_blocked` / `patch_function_preserved` / `patch_verdict`)
+instead of just the old `patch_validated` flag:
+
+| CVE | Class | Confirmed | Refine attempts | Patch attempted | `patch_exploit_blocked` | `patch_function_preserved` | `patch_verdict` | Time (s) |
+|---|---|---|---|---|---|---|---|---|
+| CVE-2026-42208 | SQL Injection | **True** | 1 | True | False | n/a | `not_blocked` | 49.5 |
+| CVE-2026-27602 | OS Command Injection | False | 3 | — | — | — | — | 74.0 |
+| CVE-2026-23949 | Path Traversal | False | 3 | — | — | — | — | 77.7 |
+| CVE-2026-78683 | Insecure Deserialization | **True** | 0 | True | False | n/a | `not_blocked` | 31.6 |
+| CVE-2026-54729 | SSRF | **True** | 0 | True | False | n/a | `not_blocked` | 32.5 |
+| CVE-2026-46492 | XSS | **True** | 0 | True | False | n/a | `inconclusive_crash` | 34.2 |
+| **Total** | | **4/6** | 7 | 4/6 | **0/6** | — | **0/6 `confirmed_fix`** | **299.5** |
+
+**Read against the corrected validator, not the old flag:** all 4
+confirmed exploits got a patch attempt, and every one of those 4 patches
+failed to close the vulnerability — 3 as a clean `not_blocked` (the
+exploit still succeeded against the patched target) and 1 as
+`inconclusive_crash` (the patched target never became healthy at all, a
+health-check failure this session also found and fixed a gap for in
+`src/pipeline/patch.py` — that path previously left `patch_verdict` blank
+instead of classifying it). Under the *old* `patch_validated` flag, all
+4 already read `False`, so this round's corrected verdict doesn't change
+which patches look wrong — but it does explain *how* wrong two different
+ways instead of collapsing them into one undifferentiated failure, and
+confirms none of this round's failures are round 5's specific false-
+acceptance bug (a patch that crashes but still reads as "validated").
+
+Total run cost: 299.5s, local Ollama, **$0.0000** — same real-not-estimated
+accounting as every prior round, despite being launched with the
+intention of measuring Claude CLI cost instead.
+
+Raw round-6 reports: `reports/llm_catalog_run_2026-09-25_round6/<CVE-ID>.json`.
+A genuine Claude Code comparison against this same 6-CVE catalog, under
+the still-valid frozen protocol in
+`docs/CLAUDE_CODE_COMPARISON_PROTOCOL.md`, remains not yet run.
