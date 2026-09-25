@@ -6,6 +6,73 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-25 (Claude Code catalog run - Steps 2/3 of the 6-step
+  multi-agent comparison plan, DONE)** — Ran the same 6 main-catalogue
+  CVEs (CVE-2026-42208/27602/23949/78683/54729/46492) through the
+  unmodified pipeline with `claude -p` as the live-model backend instead
+  of Ollama (`_call_live_model()` already prefers the `claude` CLI
+  whenever `_claude_available()` is true - a pure backend swap, no code
+  change). Protocol frozen first in
+  `docs/CLAUDE_CODE_COMPARISON_PROTOCOL.md` (case selection, attempt
+  limits, scoring rules using Step 1's corrected verdict fields as the
+  headline metric, provenance rules) before running anything, same
+  discipline as `docs/BENCHMARK_PROTOCOL.md`. Stages 1-3 (advisory,
+  analysis, vuln probe) served from a sandboxed cache copy of the
+  existing `.pipeline_cache/` (`--cache-dir
+  reports/claude_code_catalog_run_2026-09-25/.sandbox_cache
+  --cache-ttl 999999999`) since this environment has no
+  NVD/GHSA API keys configured; Stage 3.5+ (generation, self-improvement,
+  patch) is never cached, so every LLM call in this run was genuinely
+  fresh Claude-CLI output. `.pipeline_lessons.json` backed up and
+  replaced with `{}` for the full run to isolate it from Ollama-learned
+  fixes, then restored afterward - confirmed byte-identical
+  (8286 bytes) post-restore.
+
+  **Results**: 4/6 exploits dynamically confirmed (CVE-2026-27602,
+  CVE-2026-23949 did not confirm after 3 refinement iterations each);
+  4/6 patches attempted; **0/6 `patch_verdict=confirmed_fix`** - every
+  Claude-CLI-generated patch either failed to block the exploit
+  (`not_blocked`: CVE-2026-42208, CVE-2026-78683, CVE-2026-54729) or
+  crashed the patched route entirely (`inconclusive_crash`:
+  CVE-2026-46492). No `regression_broke_route` case occurred. Raw
+  reports + per-CVE timing in
+  `reports/claude_code_catalog_run_2026-09-25/<CVE-ID>.json`. This is
+  compared against the existing 5 Ollama rounds
+  (`reports/llm_catalog_run_*`) as frozen historical data, not a fresh
+  Ollama re-run, per the protocol's own rule.
+
+  **Bug found and fixed during this run**: while building the per-CVE
+  timing/verdict table, `CVE-2026-46492`'s `patch_verdict` was an empty
+  string despite `patch_attempted=True`. Root cause: the early-return
+  path in `generate_and_validate_patch()`
+  (`src/pipeline/patch.py`) for when the patched target's health check
+  fails entirely returned before reaching Step 1's corrected-verdict
+  block, which lives at the end of the function - a genuine gap in the
+  Step 1 implementation, not a Claude-Code-specific issue. Fixed by
+  adding explicit `patch_exploit_blocked=False`,
+  `patch_function_preserved=None`, `patch_verdict="inconclusive_crash"`
+  assignments directly in that early-return branch (a target that never
+  becomes healthy at all is the clearest possible "crashed" case - no
+  heuristic needed there). Verified by re-running CVE-2026-46492 alone
+  twice - once immediately after the fix (under the still-restored
+  shared lessons file, to confirm the fix works), and once more under a
+  freshly re-isolated empty lessons file (to make the full 6-CVE batch
+  methodologically uniform, since the first post-fix run had
+  inadvertently happened after lessons-file restoration) - both runs
+  produced the identical `inconclusive_crash` verdict, confirming the
+  fix is correct and the lessons-file state had no effect on this
+  particular CVE (Stage 3.7 never fired either time: 0 refinement
+  iterations).
+
+  Steps 2/3 not yet fully closed: Step 3 also asks to "save each agent's
+  prompt" - the raw JSON reports capture execution trace/patch/test
+  results but not the exact prompt text sent to Claude per stage as a
+  separate artifact, and "cost" is `None` for every entry in this run
+  since `claude -p --output-format text` exposes no token/cost data (a
+  real, protocol-acknowledged asymmetry vs. Ollama's `$0.0000`, not an
+  oversight). Codex's leg of Step 2 explicitly deferred by the user
+  until this Claude Code leg is complete.
+
 - **2026-09-25 (corrected patch validator - Step 1 of a 6-step
   multi-agent comparison plan, DONE)** — The old two-check
   `patch_validated` flag (exploit fails + `/health` passes) cannot tell a
