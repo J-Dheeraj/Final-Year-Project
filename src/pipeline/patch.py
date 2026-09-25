@@ -164,6 +164,15 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
         ).rstrip()
         log.info("[Stage 3.8] Patch REJECTED (health check failed): %s",
                   shadow.execution_skip_reason or 'did not execute')
+        # A patched target that never became healthy at all is the clearest
+        # possible case of "crashed" (found via real testing on 2026-09-25:
+        # this early-return path previously skipped the corrected-verdict
+        # block entirely, leaving patch_verdict blank instead of classified).
+        # No regex heuristic needed here - the health check itself already
+        # is the "did it crash" signal.
+        artifacts.patch_exploit_blocked = False
+        artifacts.patch_function_preserved = None
+        artifacts.patch_verdict = "inconclusive_crash"
         return artifacts
 
     # exit_code convention (documented in every generated poc.py): 0 means
