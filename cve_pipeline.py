@@ -354,28 +354,65 @@ def _call_claude(prompt: str, timeout: int = 120) -> str:
     return _call_claude_metered(prompt, timeout).text
 
 
+# Optional model override for the Claude CLI backend, for the 2026-09-25
+# multi-model comparison (Haiku/Sonnet/Opus point releases). Empty = whatever
+# `claude -p` defaults to on its own (mirrors the OLLAMA_MODEL env-var
+# pattern above). `--output-format json` (not `text`) is required to read
+# this back: it's the only output mode that exposes `total_cost_usd` and a
+# real `usage.input_tokens`/`output_tokens` breakdown - confirmed live via
+# `claude -p ... --output-format json`, which returns both, vs. `text`
+# mode's bare stdout with no usage data at all (the reason cost/tokens were
+# `None` for every Claude-CLI entry before this change).
+_CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "")
+
+
 def _call_claude_metered(prompt: str, timeout: int = 120) -> "LiveModelResult":
-    """Same as _call_claude, but also measures real wall-clock duration.
-    Token counts/cost are left None: `claude -p --output-format text` does not
-    expose usage data, and this pipeline does not guess a per-token price."""
+    """Same as _call_claude, but also measures real wall-clock duration and,
+    via --output-format json, this call's real cost/token usage as reported
+    by the CLI itself - not estimated."""
     t0 = time.monotonic()
+    cmd = ["claude", "-p", prompt, "--output-format", "json"]
+    if _CLAUDE_MODEL:
+        cmd += ["--model", _CLAUDE_MODEL]
+    model_label = _CLAUDE_MODEL or "claude-cli-default"
     try:
-        result = subprocess.run(
-            ["claude", "-p", prompt, "--output-format", "text"],
-            capture_output=True, text=True, timeout=timeout,
-        )
+        # encoding="utf-8" is required on Windows: capture_output=True with
+        # text=True (no explicit encoding) decodes with the system codepage
+        # (cp1252 here), which raises UnicodeDecodeError and silently drops
+        # the whole response the moment the JSON contains any non-cp1252
+        # byte (e.g. a smart quote or emoji in the model's own output) -
+        # found live: a real claude -p JSON response crashed the subprocess
+        # reader thread and this call fell through to the except-Exception
+        # branch below, returning an empty result with the actual error
+        # never surfaced anywhere above debug level.
+        result = subprocess.run(cmd, capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace", timeout=timeout)
         elapsed = round(time.monotonic() - t0, 3)
         if result.returncode == 0 and result.stdout.strip():
-            return LiveModelResult(result.stdout.strip(), "claude", "claude-cli", elapsed, None, None, None)
+            try:
+                data = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                log.debug("claude -p JSON parse failed: %s", result.stdout[:200])
+                return LiveModelResult("", "claude", model_label, elapsed, None, None, None)
+            usage = data.get("usage") or {}
+            cost  = data.get("total_cost_usd")
+            text  = (data.get("result") or "").strip()
+            if data.get("is_error"):
+                log.debug("claude -p API error (status %s): %s",
+                          data.get("api_error_status"), text[:200])
+                return LiveModelResult("", "claude", model_label, elapsed,
+                                        usage.get("input_tokens"), usage.get("output_tokens"), cost)
+            return LiveModelResult(text, "claude", model_label, elapsed,
+                                    usage.get("input_tokens"), usage.get("output_tokens"), cost)
         log.debug("claude -p non-zero exit: %s", result.stderr[:200])
-        return LiveModelResult("", "claude", "claude-cli", elapsed, None, None, None)
+        return LiveModelResult("", "claude", model_label, elapsed, None, None, None)
     except FileNotFoundError:
         log.debug("claude CLI not found — AI enhancement skipped")
     except subprocess.TimeoutExpired:
         log.debug("claude -p timed out after %ds", timeout)
     except Exception as exc:
         log.debug("claude -p error: %s", exc)
-    return LiveModelResult("", "claude", "claude-cli", round(time.monotonic() - t0, 3), None, None, None)
+    return LiveModelResult("", "claude", model_label, round(time.monotonic() - t0, 3), None, None, None)
 
 
 def _claude_available() -> bool:
