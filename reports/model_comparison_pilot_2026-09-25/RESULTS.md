@@ -132,3 +132,53 @@ CVE-2026-42208 on `claude-opus-4-7`'s successful attempt, so
   be roughly **$45-50** in real, additional API spend).
 
 Raw reports: `reports/model_comparison_pilot_2026-09-25/<model>/<CVE-ID>.json`.
+
+---
+
+## Extension to the full 6x6 matrix (all 6 catalogue CVEs)
+
+Extended to all 6 catalogue CVEs (CVE-2026-42208, CVE-2026-27602,
+CVE-2026-23949, CVE-2026-78683, CVE-2026-54729, CVE-2026-46492) x the
+same 6 models, per the user's explicit "continue 6 x 6 matrix"
+instruction, same isolated-lessons-per-run protocol as the pilot above.
+
+### A fourth real bug found and fixed during this extension
+
+`claude-opus-4-7` and `claude-opus-4-8` failed 100% of their first pass
+through the 4 new CVEs (all 4/4 each fell back to templates), this time
+failing **fast** (21-23s), not via the earlier timeout signature.
+Root-caused live: without `--tools ""`/`--permission-prompts none`,
+these two models sometimes attempted to use their own Write tool on a
+generation prompt instead of just returning text, hit an unanswerable
+permission prompt in this non-interactive `claude -p` context, and
+either stalled for minutes before an inline-text fallback or failed
+fast with no output at all. A separate reproduction also showed a call
+referencing an unrelated "prior session summary" - a real
+session-persistence leak between what should be one-shot, stateless
+calls. Fixed by adding `--tools ""`, `--permission-prompts none`, and
+`--no-session-persistence` to every Claude CLI invocation in
+`cve_pipeline.py`. Verified: the same realistic-scale prompt that
+previously took 258s (with a mid-response permission stall) now
+completes in 113s with clean text and real cost, unchanged model.
+
+### Interim state (mid-retry when first documented)
+
+24 of 36 cells got real per-model generation on the first pass; 12
+fell back to templates (2x sonnet-4-6, 1x opus-4-6, 5x opus-4-7, 4x
+opus-4-8) - all attributable to the bug above, all being re-run with
+the fix in place.
+
+| Model | Real generation | Confirmed | `confirmed_fix` | Cost so far (6 CVEs, incl. template-fallback cells) |
+|---|---|---|---|---|
+| claude-haiku-4-5 | 6/6 | 6/6 | 5/6 | $1.81 |
+| claude-sonnet-4-6 | 4/6 (2 pending retry) | 6/6 | 4/6 | $3.98 |
+| claude-sonnet-5 | 6/6 | 6/6 | 4/6 | $4.26 |
+| claude-opus-4-6 | 5/6 (1 pending retry) | 6/6 | 4/6 | $7.10 |
+| claude-opus-4-7 | 1/6 (5 pending retry) | 4/6 | 2/6 | $2.82 |
+| claude-opus-4-8 | 2/6 (4 pending retry) | 4/6 | 2/6 | $3.86 |
+
+This table will be superseded by a final, complete version once the
+12-cell retry (now running with the tools/session-persistence fix)
+finishes - kept here as an honest record of the interim state, per
+this project's own "document what's known, when it's known" practice
+rather than only publishing a polished final table.
