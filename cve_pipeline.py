@@ -375,7 +375,21 @@ def _call_claude_metered(prompt: str, timeout: int = 120) -> "LiveModelResult":
     via --output-format json, this call's real cost/token usage as reported
     by the CLI itself - not estimated."""
     t0 = time.monotonic()
-    cmd = ["claude", "-p", prompt, "--output-format", "json"]
+    # --tools "" / --permission-prompts none: this pipeline wants a single
+    # stateless text completion, never an agentic session with file/bash
+    # access. Found live during the 2026-09-25 multi-model comparison:
+    # without these, claude-opus-4-7/4-8 sometimes attempted to use their
+    # Write tool on a generation prompt, hit an unanswerable permission
+    # prompt in this non-interactive context, and either stalled for
+    # minutes before falling back to inline text, or failed fast with no
+    # output at all - neither is what any caller of this function wants.
+    # --no-session-persistence: prevents cross-call session-state bleed;
+    # confirmed live that a call could reference an unrelated "prior
+    # session summary" without it, which has no place in a one-shot
+    # generation call.
+    cmd = ["claude", "-p", prompt, "--output-format", "json",
+           "--tools", "", "--permission-prompts", "none",
+           "--no-session-persistence"]
     if _CLAUDE_MODEL:
         cmd += ["--model", _CLAUDE_MODEL]
     model_label = _CLAUDE_MODEL or "claude-cli-default"
