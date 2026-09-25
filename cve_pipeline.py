@@ -528,11 +528,36 @@ def _live_model_available() -> bool:
 def _call_live_model(prompt: str, timeout: int = 180) -> LiveModelResult:
     """Call the best available live model: Claude CLI first, then local Ollama.
     Returns a LiveModelResult carrying the real duration/tokens/cost of
-    whichever backend actually answered."""
+    whichever backend actually answered.
+
+    If CLAUDE_MODEL is explicitly set (the caller wants a SPECIFIC Claude
+    model, e.g. for a cross-model comparison run), a failed Claude call is
+    surfaced as a visible WARNING and returned as-is - it does NOT silently
+    fall through to Ollama, which would substitute a completely different
+    backend under the requested model's own label with nothing anywhere
+    flagging the swap. This is a real, twice-observed failure mode on
+    2026-09-25 alone: an expired `claude` CLI OAuth session, and separately
+    a real API rate-limit hit mid comparison-sweep, both silently produced
+    Ollama results mislabeled as Claude Code / a specific Claude model,
+    caught only by manually auditing `generation_backend` after the fact.
+    Without CLAUDE_MODEL set (ordinary pipeline use, no specific model
+    requested), the original best-effort fallback is kept, but now logged
+    as a visible WARNING instead of silent debug."""
     if _claude_available():
         result = _call_claude_metered(prompt, timeout)
         if result.text:
             return result
+        if _CLAUDE_MODEL:
+            log.warning(
+                "claude -p --model %s returned no usable output - NOT "
+                "falling back to Ollama because a specific model was "
+                "explicitly requested via CLAUDE_MODEL. Run `claude -p "
+                "... --model %s --output-format json` directly to see the "
+                "real error (auth, rate limit, invalid model, etc).",
+                _CLAUDE_MODEL, _CLAUDE_MODEL,
+            )
+            return result
+        log.warning("claude -p returned no usable output - falling back to Ollama")
     if _ollama_available():
         return _call_ollama_metered(prompt, timeout)
     return LiveModelResult("", "none", "", None, None, None, None)
