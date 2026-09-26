@@ -6,7 +6,38 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
-- **2026-09-26 (external review response + stronger patch reassessment,
+- **2026-09-26 (second external review response - report-writing fixes,
+  DONE)** — A follow-up external review of `FYP_Report_main.pdf`
+  (v9-equivalent, after the reassessment work below) confirmed the prior
+  fixes held and requested writing-quality changes, applied to
+  `C:\Users\dheer\Downloads\FYP_Report_main.tex` (this file lives outside
+  the git repo, so this entry is its own record): shortened the abstract
+  from ~4900 to ~2000 characters, moving detailed per-number caveats
+  (13/27 HTTP 200, the shared-path artifact-survival count, the exact
+  Claude model list) into Chapter 4 where they already lived in full;
+  added a new Chapter 1 "Ethics and Responsible Use" section (local-only
+  targets, no third-party systems touched, all CVEs already publicly
+  disclosed, future-work commitment to coordinated disclosure); added an
+  objective-by-objective closure table to Chapter 5 (Met/Partially
+  Met/evidence per stated objective); fixed a real internal
+  inconsistency the review found - Section 1.4 (Scope) said benign-route
+  preservation was pure future work, while Chapter 4 already reported
+  the stronger reassessment confirming it for 6 recoverable artifacts -
+  reworded to state the reassessment was added later, for the cases it
+  could reach, not performed uniformly. ProvTrail wording was already
+  strict on inspection (no change needed) and the reviewer's figure-1
+  cosmetic note was left as-is (out of scope for a same-day text pass).
+  Recompiled clean, 65 pages, no undefined references.
+
+  The reviewer's separate research roadmap (fix the artifact-overwrite
+  bug properly + a clean model-comparison rerun; class-specific benign
+  oracles - largely done by the reassessment above; a real free5GC
+  *runtime* validation, the biggest remaining research upgrade; Codex +
+  Claude Code as a controlled comparison, deferred; conceptual-only
+  OSS-CRS integration) was presented back to the user for prioritization,
+  not started unilaterally given real cost/scope for several items.
+
+- **2026-09-25 (external review response + stronger patch reassessment,
   DONE)** — An external review of `FYP_Report_main.pdf` (paste, verified
   independently before acting on it) found the report's `confirmed_fix`
   label overstated what the corrected validator actually proves: its
