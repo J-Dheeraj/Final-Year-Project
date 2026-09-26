@@ -6,6 +6,69 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-26 (external review response + stronger patch reassessment,
+  DONE)** — An external review of `FYP_Report_main.pdf` (paste, verified
+  independently before acting on it) found the report's `confirmed_fix`
+  label overstated what the corrected validator actually proves: its
+  benign-route check only requires the absence of a crash signature, not
+  a correct HTTP response or class-specific expected output. Verified
+  every specific number in the review against `src/pipeline/patch.py`
+  and the raw JSON reports before changing anything - all checked out
+  exactly (27/27 `confirmed_fix` benign probes exited via the reused
+  PoC's own failure path, only 13/27 returned HTTP 200 on the final
+  benign request, the rest split 401/403/400; one case,
+  `claude-haiku-4-5`/CVE-2026-42208, showed `[-] Target unreachable`
+  during the exploit re-probe, a transient startup race in the reused
+  script's own health check, not a deliberate block, which the
+  crash-signature check does not distinguish from either).
+
+  Rewrote the report's abstract, Section 4.1.2, Section 4.1.5,
+  Discussion, Key Findings, Contributions, and both appendices to
+  describe `confirmed_fix` as heuristic patch-screening (exploit
+  rejected without a detected crash, benign probe also crash-free), not
+  confirmed functional correctness; fixed "three-way validator" to
+  "four-outcome verdict" throughout (the ambiguity the review flagged);
+  reconciled earlier limitation-section text that predated the
+  corrected validator. SGD cost columns were added per a separate user
+  request (with a cited exchange-rate source), then reverted to
+  USD-only per the user's immediate follow-up - both tables and the
+  bibliography are back to their prior USD-only state.
+
+  **Then closed part of the gap directly** (Step 2 of a 5-step roadmap
+  the user set after the review, agreed via AskUserQuestion: Steps 1-3
+  now, Codex-dependent Steps 4-5 deferred - Codex remains uninstalled in
+  this environment, confirmed again via `which codex`). Defined a real,
+  class-specific expected malicious/legitimate result for each of the 6
+  main-catalogue CVEs by reading the actual generated target/PoC source
+  (e.g. SQLi: token `sk-legit-user-001` must return exactly
+  `{"status":"authenticated","user_id":"u1"}`). Locating saved patches
+  to reassess surfaced a further, previously undocumented harness gap:
+  Stage 3.5/3.8's artifact writer saves to a shared,
+  non-model-specific scratch path regardless of a run's own `--out`
+  destination, so every model that touched the same CVE in the 36-run
+  comparison overwrote the same file - only 6 of the 36 patched targets
+  survive on disk, one per CVE (whichever model ran last for it, mostly
+  unattributable; CVE-2026-46492's survivor was identified as
+  `claude-opus-4-8`'s via its unique `generation_output_tokens=14789`
+  fingerprint). Re-tested all 6 survivors against the new
+  content-verified criterion: **all 6 pass** - clean, class-appropriate
+  rejection on the malicious request, exact expected content on the
+  legitimate one. Also explained, not just found, a real discrepancy:
+  `claude-opus-4-8`'s CVE-2026-46492 patch (a correct `html.escape()`
+  fix, confirmed by direct testing) was originally recorded
+  `not_blocked` because the generated target's own vulnerability
+  self-check is a keyword regex over its *escaped* output, which still
+  matches literal text like " onerror=" even though the markup itself
+  is inert and would never execute in a real browser - a fidelity
+  limitation of the synthetic target's self-check, not a bypass of the
+  patch. Full writeup: `reports/patch_reassessment_2026-09-26/RESULTS.md`.
+  Folded into the FYP report (abstract + Section 4.1.2 + repo-path
+  appendix). Committed as `ad06a3a`, pushed to `fyp`.
+
+  Step 3 (a substantial new free5GC upstream case, chosen from the real
+  free5GC security advisories, independently verified vulnerable/fixed)
+  was approved but **not started** this session - next open item.
+
 - **2026-09-25 (CORRECTION: the "Claude Code catalog run" below never ran
   on Claude Code - it silently ran on Ollama, DONE)** — While building a
   full session documentation pass at the user's request, finally checked
