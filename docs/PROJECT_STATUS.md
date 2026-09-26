@@ -6,6 +6,39 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-26 (Phase 2 read-only design pass - free5GC runtime
+  validation plan, DONE)** — Per explicit user instruction: read-only
+  target-selection pass only, no paid LLM calls, no OpenEMR yet, and an
+  explicit no-paid-backend guard before anything else, given the Phase 1
+  smoke-test cost overrun above.
+
+  Added and **tested live** `NO_PAID_BACKEND` env guard in
+  `cve_pipeline.py`: with it set, `_call_claude_metered` raises
+  immediately before any subprocess/network call; confirmed it reads
+  `False` (no behaviour change) when unset. Committed `32ae137`.
+
+  Investigated the real, currently-published `github.com/free5gc/udr`
+  source (a disposable shallow clone, network-only, no LLM involved;
+  inspected then deleted) to write
+  `docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md` from verified facts, not
+  guesses: confirmed the exact vulnerable/patched code
+  (`HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete`,
+  missing `return` at the same fix commit `86686276a7e226183ee786e3dd6714ec56c78fda`
+  already used by the existing compile-verified case in
+  `docs/REACHABILITY.md`); confirmed NRF registration failure is
+  non-fatal (`pkg/service/init.go` only logs it), so no real NRF is
+  needed; confirmed OAuth2 and TLS are both config-toggleable off
+  (`internal/context/context.go`'s `OAuth2Required` field,
+  `sbi.scheme: http`); fetched the real official reference config from
+  `free5gc/free5gc`. Net conclusion: **only a real MongoDB is required**,
+  a much smaller dependency footprint than a full free5GC deployment.
+  Committed `07c5616`, pushed to `fyp`.
+
+  Docker Desktop is installed but its daemon was not running at
+  inspection time - noted as a prerequisite to start before
+  implementation, not yet resolved. Implementation of the actual
+  runtime harness is the next step, explicitly not started this pass.
+
 - **2026-09-26 (Phase 1 of the professor-approved critical-infrastructure
   roadmap - artifact preservation fix, DONE)** — A third external review
   proposed a 6-phase reframing of the FYP (free5GC + a new OpenEMR
