@@ -381,11 +381,28 @@ _CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "")
 # own timeout.
 _CLAUDE_TIMEOUT_OVERRIDE = int(os.environ.get("CLAUDE_TIMEOUT_S", "0")) or None
 
+# Explicit, testable guard against any accidental paid-backend call, added
+# after a 2026-09-26 smoke test cost ~$6.88 more than intended: an attempt
+# to force the free Ollama backend by hiding `claude` from PATH silently
+# failed (the CLI stayed reachable through another resolution path on
+# Windows), and nothing in this pipeline would have refused the call or even
+# flagged it as unexpectedly expensive. Setting NO_PAID_BACKEND=1 makes any
+# call to the real Claude CLI (never Ollama, which is local and free) raise
+# immediately, loudly, before any subprocess or network call is attempted -
+# not a silent fallback. Used for phases of work (e.g. the free5GC runtime
+# validation harness) that must never touch a paid backend at all.
+NO_PAID_BACKEND = os.environ.get("NO_PAID_BACKEND", "") not in ("", "0", "false", "False")
+
 
 def _call_claude_metered(prompt: str, timeout: int = 120) -> "LiveModelResult":
     """Same as _call_claude, but also measures real wall-clock duration and,
     via --output-format json, this call's real cost/token usage as reported
     by the CLI itself - not estimated."""
+    if NO_PAID_BACKEND:
+        raise RuntimeError(
+            "NO_PAID_BACKEND is set - refusing to call the real Claude CLI "
+            "(a paid backend). Unset NO_PAID_BACKEND to allow this call."
+        )
     t0 = time.monotonic()
     # --tools "" / --permission-prompts none: this pipeline wants a single
     # stateless text completion, never an agentic session with file/bash
