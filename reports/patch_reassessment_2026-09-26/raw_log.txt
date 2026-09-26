@@ -1,0 +1,7 @@
+CVE             Class                   ExploitBlocked  LegitPreserved  Verdict               MalStatus LegitStatus
+CVE-2026-42208  SQL Injection           True            True            confirmed_fix         401       200
+CVE-2026-27602  OS Command Injection    True            True            confirmed_fix         400       200
+CVE-2026-23949  Path Traversal          True            True            confirmed_fix         400       200
+CVE-2026-78683  Insecure DeserializationTrue            True            confirmed_fix         400       200
+CVE-2026-54729  SSRF                    True            True            confirmed_fix         403       200
+CVE-2026-46492  XSS                     True            True            confirmed_fix         200       200
