@@ -6,6 +6,41 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-26 (Phase 1 of the professor-approved critical-infrastructure
+  roadmap - artifact preservation fix, DONE)** — A third external review
+  proposed a 6-phase reframing of the FYP (free5GC + a new OpenEMR
+  healthcare case, AIxCC-style evidence schema, restructured report),
+  professor-approved per the user. Phase 1 (fix artifact preservation)
+  was executed now since it's cheap and scope-neutral; Phases 2+
+  (free5GC runtime validation, OpenEMR pilot, report reframing) not yet
+  started - next open items.
+
+  Added `--run-id` CLI flag to `cve_pipeline.py` (default `""`, exact
+  prior single-run behaviour unchanged) that scopes Stage 3.5/3.8's
+  generated artifacts under `reports/<run-id>/<CVE-ID>/` instead of the
+  bare `reports/<CVE-ID>/` - the root cause of the shared-path overwrite
+  bug found on 2026-09-26 (destroyed 30 of 36 hosted-Claude comparison
+  artifacts). Every run now also writes `manifest.json` (backend/model/
+  cost/duration/tokens for both generation and patch stages, confirmed
+  status, `patch_verdict`), `patch.diff` (real unified diff, vulnerable
+  vs. patched), and `exploit_log.txt`/`benign_log.txt` alongside the
+  generated files.
+
+  Verified live, not just by reading the code: two real runs of
+  CVE-2026-42208 against the same `--cache-dir` with `--run-id modelA`
+  and `--run-id modelB` produced two complete, independent artifact
+  directories with no overwrite - `reports/modelA/CVE-2026-42208/` and
+  `reports/modelB/CVE-2026-42208/`, each with its own manifest/diff/logs.
+  This smoke test cost more real money than intended (~\$6.88 total):
+  the first run used the real Claude backend by default (not flagged as
+  a concern beforehand), and an attempt to force free Ollama for the
+  second run by hiding `claude` from `PATH` did not actually work (the
+  CLI was still reachable through some other resolution path on
+  Windows) - both runs ended up billed. The path-scoping fix itself is
+  confirmed correct regardless of which backend answered either run.
+  Updated `docs/BENCHMARK_PROTOCOL.md` with a new Section 2 documenting
+  the bug, the fix, and this verification.
+
 - **2026-09-26 (second external review response - report-writing fixes,
   DONE)** — A follow-up external review of `FYP_Report_main.pdf`
   (v9-equivalent, after the reassessment work below) confirmed the prior
