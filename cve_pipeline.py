@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import difflib
 import io
 import json
 import logging
@@ -326,6 +327,17 @@ class PipelineDeps:
     lab_url:      str
     skip_probe:   bool
     no_cache:     bool
+    # Scopes this run's generated artifacts (Stage 3.5/3.8 output) under
+    # reports/<run_id>/<cve_id>/ instead of the bare reports/<cve_id>/.
+    # Empty (default) preserves the exact original single-run path, so the
+    # canonical main-catalogue reports this project already cites are
+    # unaffected. Set this whenever more than one run for the same CVE
+    # might execute against the same --cache-dir (e.g. a multi-model
+    # comparison) - found live on 2026-09-25/26: without it, every run
+    # shared one path and silently overwrote the previous run's own
+    # generated target/patch, destroying 30 of 36 hosted-model comparison
+    # artifacts before they could be reassessed.
+    run_id:       str          = ""
     errors:       list[str]    = field(default_factory=list)
     completed:    list[str]    = field(default_factory=list)
     failed:       list[str]    = field(default_factory=list)
@@ -2799,6 +2811,13 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--format",    choices=["text", "json"], default="text")
     p.add_argument("--out",       metavar="FILE",
                    help="Write report to file instead of stdout")
+    p.add_argument("--run-id",    default="",
+                   help="Scope this run's generated artifacts under "
+                        "reports/<run-id>/<cve-id>/ instead of the bare "
+                        "reports/<cve-id>/ - set this for any multi-run "
+                        "comparison sharing one --cache-dir (e.g. a "
+                        "multi-model sweep) so runs never overwrite each "
+                        "other's generated target/patch files")
     p.add_argument("--verbose",   action="store_true")
     return p.parse_args()
 
@@ -2826,6 +2845,7 @@ async def run_pipeline(args: argparse.Namespace) -> PipelineReport:
         lab_url     = args.lab_url,
         skip_probe  = args.no_probe,
         no_cache    = args.no_cache,
+        run_id      = args.run_id,
     )
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -2878,6 +2898,11 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
 
     # ── Stage 3.5: generate exploit artifacts (poc.py + target_app.py) ───────
     reports_dir = deps.cache.root.parent / "reports"
+    if deps.run_id:
+        # See PipelineDeps.run_id's own comment: scopes this run's own
+        # generated files so a concurrent/sequential run for the same CVE
+        # under the same --cache-dir can never overwrite them.
+        reports_dir = reports_dir / deps.run_id
     artifacts = ExploitArtifacts(generated=False, skip_reason="not run")
     try:
         artifacts = generate_exploit_artifacts(
@@ -2934,6 +2959,64 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
         except Exception as exc:
             log.warning("[Stage 3.8] Error: %s", exc)
             deps.failed.append("3.8_patch")
+
+    # ── Preserve a manifest for this run, scoped by run_id (Phase 1 of the
+    # 2026-09-26 roadmap): every generated file this run wrote, its real
+    # cost/duration/tokens, and a real unified diff between the vulnerable
+    # and patched source when both exist - so a reassessment (like
+    # reports/patch_reassessment_2026-09-26/) never again has to guess
+    # which model produced a surviving artifact from a file's mtime alone.
+    try:
+        manifest_dir = reports_dir / deps.cve_id
+        vulnerable_src = Path(artifacts.target_app_path).read_text(encoding="utf-8") if artifacts.target_app_path and Path(artifacts.target_app_path).exists() else ""
+        patched_src = Path(artifacts.patched_target_path).read_text(encoding="utf-8") if artifacts.patched_target_path and Path(artifacts.patched_target_path).exists() else ""
+        diff_text = "".join(difflib.unified_diff(
+            vulnerable_src.splitlines(keepends=True),
+            patched_src.splitlines(keepends=True),
+            fromfile="target_app.py (vulnerable)",
+            tofile="target_app.py (patched)",
+        )) if vulnerable_src and patched_src else ""
+        manifest = {
+            "cve_id": deps.cve_id,
+            "run_id": deps.run_id or None,
+            "vuln_class": vuln_class,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generation": {
+                "backend": artifacts.generation_backend,
+                "model": artifacts.generation_model,
+                "cost_usd": artifacts.generation_cost_usd,
+                "duration_s": artifacts.generation_duration_s,
+                "input_tokens": artifacts.generation_input_tokens,
+                "output_tokens": artifacts.generation_output_tokens,
+            },
+            "patch": {
+                "attempted": artifacts.patch_attempted,
+                "backend": artifacts.generation_backend if artifacts.patch_attempted else None,
+                "model": artifacts.generation_model if artifacts.patch_attempted else None,
+                "cost_usd": artifacts.patch_gen_cost_usd,
+                "duration_s": artifacts.patch_gen_duration_s,
+                "output_tokens": artifacts.patch_gen_output_tokens,
+                "verdict": artifacts.patch_verdict or None,
+                "exploit_blocked": artifacts.patch_exploit_blocked,
+                "function_preserved": artifacts.patch_function_preserved,
+            },
+            "dynamically_confirmed": artifacts.dynamically_confirmed,
+            "artifacts": {
+                "poc_path": artifacts.poc_path,
+                "vulnerable_target_path": artifacts.target_app_path,
+                "patched_target_path": artifacts.patched_target_path,
+            },
+        }
+        manifest_dir.mkdir(parents=True, exist_ok=True)
+        (manifest_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        if diff_text:
+            (manifest_dir / "patch.diff").write_text(diff_text, encoding="utf-8")
+        if artifacts.execution_log:
+            (manifest_dir / "exploit_log.txt").write_text(artifacts.execution_log, encoding="utf-8")
+        if artifacts.patch_benign_probe_log:
+            (manifest_dir / "benign_log.txt").write_text(artifacts.patch_benign_probe_log, encoding="utf-8")
+    except Exception as exc:
+        log.warning("[manifest] Error writing run manifest: %s", exc)
 
     # ── Stage 4: compile report ───────────────────────────────────────────────
     report_dict = compile_report(

@@ -38,6 +38,49 @@ Limitation 1). Entry 8 is the one case where the real source itself was
 analyzed and patched. Any report table built from this protocol must
 carry that distinction as a column, not flatten it away.
 
+## 2. Artifact preservation for multi-run comparisons (`--run-id`)
+
+**Found live, 2026-09-25/26**: `generate_exploit_artifacts()` (Stage 3.5)
+writes to `reports/<CVE-ID>/`, derived from `--cache-dir`'s parent
+directory. This is fine for a single run per CVE, but any comparison
+that runs the *same* CVE more than once against the *same* `--cache-dir`
+(a multi-model sweep, a repeated verification pass, etc.) silently
+overwrote every earlier run's own generated `target_app.py`/`poc.py`/
+patched file with the next run's - this destroyed 30 of the 36 artifacts
+from the 2026-09-25 hosted-Claude comparison before they could be
+reassessed (`reports/patch_reassessment_2026-09-26/RESULTS.md`).
+
+**Fix**: pass `--run-id <label>` to scope a run's own generated files
+under `reports/<run-id>/<CVE-ID>/` instead of the bare
+`reports/<CVE-ID>/`. Any multi-run comparison sharing one `--cache-dir`
+**must** pass a distinct `--run-id` per run (e.g. the model name) or
+risk the same silent overwrite. Omitting `--run-id` (the default,
+empty string) preserves the exact original single-run path, so every
+already-cited canonical `reports/<CVE-ID>/` result in this project's
+report is unaffected.
+
+Every run - with or without `--run-id` - now also writes, alongside its
+generated `poc.iter1.v0.py`/`target_app.iter1.v0.py`/
+`target_app.iter1.v0.patched.py`:
+
+- `manifest.json` - CVE ID, run ID, vulnerability class, generation
+  and patch-generation backend/model/cost/duration/tokens (read
+  directly from the LLM provider, not estimated), `dynamically_confirmed`,
+  and the corrected validator's `patch_verdict`/`patch_exploit_blocked`/
+  `patch_function_preserved`.
+- `patch.diff` - a real unified diff between the vulnerable and patched
+  target, when both exist.
+- `exploit_log.txt` / `benign_log.txt` - the real execution logs behind
+  `patch_exploit_blocked`/`patch_function_preserved`, so a later
+  reassessment never again has to reconstruct which model produced a
+  surviving artifact from a file's modification time alone.
+
+**Verified live** (not just code-read): two real runs of the same CVE
+(`CVE-2026-42208`) against the same `--cache-dir` with `--run-id modelA`
+and `--run-id modelB` produced two complete, independent artifact sets
+(`reports/modelA/CVE-2026-42208/` and `reports/modelB/CVE-2026-42208/`,
+each with its own `manifest.json`/`patch.diff`/logs) with no overwrite.
+
 ## 2. System configuration under test
 
 One configuration, not several — this project does not run baseline
