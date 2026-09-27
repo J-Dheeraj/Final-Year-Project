@@ -1,0 +1,15 @@
+{
+  "label": "patched",
+  "commit": "86686276a7e226183ee786e3dd6714ec56c78fda",
+  "seed_status": 200,
+  "pre_check_status": 200,
+  "malicious_status": 404,
+  "malicious_body": "404 page not found",
+  "post_malicious_check_status": 200,
+  "reseed_status": 200,
+  "benign_status": 204,
+  "post_benign_check_status": 404,
+  "verdict": "confirmed_fix",
+  "patch_exploit_blocked": true,
+  "patch_function_preserved": true
+}

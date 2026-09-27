@@ -1,0 +1,42 @@
+{
+  "cve_id": "CVE-2026-40246",
+  "component": "free5GC UDR (internal/sbi/api_datarepository.go)",
+  "handler": "HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete",
+  "vulnerable_commit": "86686276a7e226183ee786e3dd6714ec56c78fda^",
+  "fixed_commit": "86686276a7e226183ee786e3dd6714ec56c78fda",
+  "services_used": {
+    "mongodb": "mongodb://localhost:27017 (real, local)",
+    "nrf": "stub h2c server (stub_nrf/main.go) required to unblock UDR's blocking registration retry loop at startup; not a real NRF (no discovery, no NF tracking), has no bearing on the vulnerability under test"
+  },
+  "generated_at": "2026-09-27T05:05:17.335448+00:00",
+  "vulnerable_run": {
+    "label": "vulnerable",
+    "commit": "ce36d00028def38a98c1bf4e2be97645b544e93d",
+    "seed_status": 200,
+    "pre_check_status": 200,
+    "malicious_status": 404,
+    "malicious_body": "404 page not found",
+    "post_malicious_check_status": 404,
+    "reseed_status": 200,
+    "benign_status": 204,
+    "post_benign_check_status": 404,
+    "verdict": "not_blocked",
+    "patch_exploit_blocked": false,
+    "patch_function_preserved": true
+  },
+  "patched_run": {
+    "label": "patched",
+    "commit": "86686276a7e226183ee786e3dd6714ec56c78fda",
+    "seed_status": 200,
+    "pre_check_status": 200,
+    "malicious_status": 404,
+    "malicious_body": "404 page not found",
+    "post_malicious_check_status": 200,
+    "reseed_status": 200,
+    "benign_status": 204,
+    "post_benign_check_status": 404,
+    "verdict": "confirmed_fix",
+    "patch_exploit_blocked": true,
+    "patch_function_preserved": true
+  }
+}

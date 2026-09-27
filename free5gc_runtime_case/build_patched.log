@@ -1,0 +1,3 @@
+go build ./cmd/... @ 86686276a7e226183ee786e3dd6714ec56c78fda
+exit_code=0
+

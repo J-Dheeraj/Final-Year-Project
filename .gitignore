@@ -32,3 +32,8 @@ Thumbs.db
 
 # Real-upstream case study venvs (reproducible via pip install, not committed)
 real_upstream_case/**/venv_*/
+
+# free5GC runtime case: the cloned upstream repo + built binaries (reproducible
+# via `git clone` + `go build` at the pinned commits, not committed)
+free5gc_runtime_case/.udr_clone/
+free5gc_runtime_case/*.exe

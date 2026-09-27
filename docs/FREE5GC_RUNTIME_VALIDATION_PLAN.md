@@ -261,4 +261,88 @@ rather than Docker, because the experiment's only real dependency was
 UDR's own database connection - this reduces infrastructure complexity
 without changing what's actually under test.
 
+## Correction, 2026-09-27: NRF registration is a blocking infinite retry, not "logged and non-fatal"
+
+This plan originally concluded (based on a shallow read of
+`pkg/service/init.go`'s `Start()` wrapper alone) that a failed NRF
+registration was only logged, not fatal, to UDR startup. Running the
+harness for real disproved that: the vulnerable UDR process never bound
+to port 8000 within a 30-second wait window.
+
+Reading `Start()` more completely shows it is fully sequential:
+`a.registerToNrf(a.ctx)` (blocking) -> MongoDB connect -> HTTP server
+bind. And `internal/sbi/consumer/nrf_service.go`'s
+`SendRegisterNFInstance` is a genuine infinite retry loop (`for
+!finish { ...; time.Sleep(2*time.Second); continue }`) with no
+give-up condition except success or context cancellation. Without a
+reachable NRF at the configured `nrfUri` (`http://127.0.0.10:8000`),
+UDR never starts its own HTTP server, so the whole runtime case is
+unreachable.
+
+**Fix: a stub NRF**, satisfying only the one call UDR needs
+(`PUT .../nf-instances/{id}`, i.e. `RegisterNFInstance`) with a minimal
+valid response (`nfInstanceId`/`nfType`/`nfStatus` - the only three
+required, non-`omitempty` fields of `models.NrfNfManagementNfProfile`,
+confirmed by reading the real vendored struct). This stub does not
+perform discovery, does not track other NFs, and has no bearing on the
+vulnerability under test (the data-repository DELETE handler's own
+missing `return`), which is entirely independent of NRF's behaviour.
+
+**First stub attempt (Python `http.server`) failed for a second,
+unrelated reason**: free5gc's NRF client
+(`github.com/free5gc/openapi`'s `innerHTTP2CleartextClient`) uses
+`golang.org/x/net/http2` with `AllowHTTP: true`, dialing with prior
+knowledge of HTTP/2 framing (h2c) - not plain HTTP/1.1. A Python
+`http.server`-based stub can only answer HTTP/1.1, which the client
+misparses as malformed HTTP/2 frames, failing with `http2: frame too
+large` / connection-abort errors. This was confirmed live: the
+Python stub's connections were repeatedly aborted with exactly that
+client-side error.
+
+**Working fix**: a small standalone Go binary, `stub_nrf/main.go`,
+using `golang.org/x/net/http2/h2c` to serve real HTTP/2 cleartext,
+answering the one `PUT` call UDR needs. `golang.org/x/net` was already
+an indirect dependency of the UDR module, so no new dependency was
+introduced. Built once (`go build`) into `stub_nrf.exe` and launched as
+a subprocess by `run_harness.py` around each of the two `run_case()`
+calls.
+
+## Result, 2026-09-27: CVE-2026-40246 runtime-confirmed, patch runtime-validated
+
+With the h2c stub NRF in place, both runs completed with real,
+non-inconclusive verdicts:
+
+- **Vulnerable commit** (`86686276a7e226183ee786e3dd6714ec56c78fda^`):
+  the malicious `DELETE
+  /nudr-dr/v2/application-data/influenceData/attacker-controlled-id/<subId>`
+  request itself received `404` (the handler's own
+  `influenceId != "subs-to-notify"` check fires and writes a 404 body
+  in both versions), but a follow-up `GET` confirmed the subscription
+  record was deleted anyway (`post_malicious_check_status: 404`) - the
+  vulnerable version falls through and deletes server-side despite
+  already having written the 404 response, because the original code
+  has no `return` after that write.
+- **Patched commit** (`86686276a7e226183ee786e3dd6714ec56c78fda`): the
+  same malicious request again received `404`, but the follow-up `GET`
+  confirmed the record still existed (`post_malicious_check_status:
+  200`) - the added `return` stops execution before the delete runs.
+- **Benign path preserved on both**: a legitimate `DELETE` using the
+  correct `influenceId` ("subs-to-notify") returned `204` and the
+  record was subsequently confirmed gone (`post_benign_check_status:
+  404`) on both the vulnerable and patched builds - the fix does not
+  break the real functionality.
+
+This directly matches the CVE's own description (missing `return`
+after a 404 write -> the delete runs regardless) and is now confirmed
+against the real upstream binary at runtime, not just by static/compile
+review. Full evidence bundle (`manifest.json`, `verdict.json`,
+`patch.diff`, `vulnerable_response.log`, `patched_response.log`,
+`vulnerable_process.log`, `patched_process.log`,
+`build_vulnerable.log`, `build_patched.log`) is saved under
+`free5gc_runtime_case/`.
+
+This upgrades the free5GC case from "patch compile-verified" to
+"vulnerability runtime-confirmed and patch runtime-validated" in the
+FYP report.
+
 Proceeding directly to harness implementation now.
