@@ -6,7 +6,7 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
-- **2026-09-27 (Phase 2 implementation completed - CVE-2026-40246
+- **2026-09-27 (Phase 2 implementation completed - CVE-2026-40248
   runtime-confirmed and patch runtime-validated)** — Continued the
   free5GC harness after native MongoDB (8.3.11) finished installing via
   winget and was verified reachable at `mongodb://localhost:27017`
@@ -35,6 +35,16 @@ one's opening move is unambiguous.
   compile-time review. Full evidence bundle saved under
   `free5gc_runtime_case/` (`manifest.json`, `verdict.json`,
   `patch.diff`, `*_response.log`, `*_process.log`, `build_*.log`).
+  Caught and fixed one own mistake before writing anything into the
+  report: this case was initially labeled CVE-2026-40246, but that
+  identifier already belongs to a *different* existing free5GC case
+  in this project (a hand-written reproduction with no fix commit on
+  record); the fix commit this harness actually exercises is the same
+  one this project's own reachability work already established as
+  CVE-2026-40248 - corrected in artifacts and re-run to confirm an
+  identical result under the right identifier (see
+  `docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md`'s "Correction, 2026-09-27:
+  CVE identifier" note).
   Exit criteria met: one real, non-inconclusive free5GC runtime
   validation case, produced without any paid/model backend
   (`NO_PAID_BACKEND=1` held throughout). Not yet done: folding this

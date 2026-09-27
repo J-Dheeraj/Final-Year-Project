@@ -28,7 +28,15 @@ attempt was made against the real free5GC UDR service",
 
 ## The exact vulnerability
 
-- **CVE**: CVE-2026-40246 (GHSA-g9cw-qwhf-24jp, CVSS 7.5, CWE-285 Improper Authorization)
+- **CVE**: CVE-2026-40248 (CVSS 7.5, CWE-285 Improper Authorization) - the
+  same commit was initially cross-referenced against GHSA-g9cw-qwhf-24jp
+  under the sibling identifier CVE-2026-40246, but this project's own
+  established records (`docs/REACHABILITY.md`,
+  `src/reachability/verify_against_real_upstream.py`'s `FIX_COMMIT`
+  constant, `docs/BENCHMARK_PROTOCOL.md`) already fix this exact commit
+  and file to CVE-2026-40248, so that identifier is used here for
+  consistency with the rest of this project (see the "Correction,
+  2026-09-27: CVE identifier" note below).
 - **Component**: free5GC UDR (Unified Data Repository), `github.com/free5gc/udr`
 - **File**: `internal/sbi/api_datarepository.go`
 - **Handler**: `HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete`
@@ -307,7 +315,26 @@ introduced. Built once (`go build`) into `stub_nrf.exe` and launched as
 a subprocess by `run_harness.py` around each of the two `run_case()`
 calls.
 
-## Result, 2026-09-27: CVE-2026-40246 runtime-confirmed, patch runtime-validated
+## Correction, 2026-09-27: CVE identifier
+
+This document and the first harness run mislabeled this case
+CVE-2026-40246. That identifier already refers to a *different*
+existing case in this project (a hand-written Go reproduction in
+`free5gc_lab/`, with no fix commit on record, per
+`docs/BENCHMARK_PROTOCOL.md` and the FYP report's data-sources table).
+The exact fix commit this harness actually uses
+(`86686276a7e226183ee786e3dd6714ec56c78fda`, in
+`internal/sbi/api_datarepository.go`) is the same commit this project's
+own reachability work (`docs/REACHABILITY.md`,
+`src/reachability/verify_against_real_upstream.py`) already established
+as **CVE-2026-40248**. This runtime case is therefore not a new,
+seventh free5GC identifier - it is the same, already-known
+CVE-2026-40248 case, upgraded from compile-only verification to runtime
+confirmation. All artifacts (`manifest.json`, `verdict.json`,
+`run_harness.py`) were corrected and the harness re-run to confirm the
+result is identical under the corrected identifier.
+
+## Result, 2026-09-27: CVE-2026-40248 runtime-confirmed, patch runtime-validated
 
 With the h2c stub NRF in place, both runs completed with real,
 non-inconclusive verdicts:

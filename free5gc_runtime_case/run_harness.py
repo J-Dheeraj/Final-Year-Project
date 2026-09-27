@@ -1,4 +1,4 @@
-"""free5GC UDR runtime validation harness: CVE-2026-40246
+"""free5GC UDR runtime validation harness: CVE-2026-40248
 (HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete,
 missing `return` after a 404 write -> the delete runs regardless).
 
@@ -224,7 +224,7 @@ def main():
         (HERE / f"{label}_response.log").write_text(json.dumps(r, indent=2), encoding="utf-8")
 
     manifest = {
-        "cve_id": "CVE-2026-40246",
+        "cve_id": "CVE-2026-40248",
         "component": "free5GC UDR (internal/sbi/api_datarepository.go)",
         "handler": "HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete",
         "vulnerable_commit": VULN_COMMIT,
@@ -242,7 +242,7 @@ def main():
     (HERE / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     verdict = {
-        "cve_id": "CVE-2026-40246",
+        "cve_id": "CVE-2026-40248",
         "patch_exploit_blocked": patched_result.get("patch_exploit_blocked"),
         "patch_function_preserved": patched_result.get("patch_function_preserved"),
         "patch_verdict": patched_result.get("verdict"),
