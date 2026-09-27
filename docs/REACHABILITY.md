@@ -111,16 +111,30 @@ could ever prove even for C.
   project; real triage/verification/patch generation; and — new this
   session — real compile verification against the actual upstream
   module's real dependency graph, not a synthetic stand-in.
-- **Is not** a full dynamic PoV against the running free5GC UDR service.
-  That needs a MongoDB backend, NRF registration, TLS certs, and the rest
-  of a 5G core's other network functions running alongside it — running
-  the actual service end-to-end was out of scope for this session, the
-  same kind of honestly-stated boundary as the SSRF probe's real network
-  limitation elsewhere in this repo. `go build` succeeding proves the
-  patch doesn't break compilation against the real codebase; it does not
-  by itself prove the patch closes the vulnerability at runtime the way
-  Stage 3.6/3.8's HTTP-level dynamic confirmation does for the main CVE
-  pipeline.
+- **Is not**, for three of the four reachable handlers, a full dynamic PoV
+  against the running free5GC UDR service. That needs a MongoDB backend,
+  NRF registration, TLS certs, and the rest of a 5G core's other network
+  functions running alongside it — running the actual service end-to-end
+  was out of scope for this session, the same kind of honestly-stated
+  boundary as the SSRF probe's real network limitation elsewhere in this
+  repo. `go build` succeeding proves the patch doesn't break compilation
+  against the real codebase; it does not by itself prove the patch closes
+  the vulnerability at runtime the way Stage 3.6/3.8's HTTP-level dynamic
+  confirmation does for the main CVE pipeline.
+  **Update, 2026-09-27**: the fourth handler, the DELETE subscription
+  endpoint (CVE-2026-40248), no longer carries this limitation — a
+  minimal runtime harness (`free5gc_runtime_case/`, see
+  `docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md`) built and ran the real
+  vulnerable and fixed commits against a real local MongoDB instance and
+  a minimal stand-in NRF (satisfying only UDR's own startup registration
+  call, not full NF discovery), and confirmed by direct HTTP exchange
+  that the vulnerable build deletes a targeted record despite returning a
+  404 to the caller, that the real fix commit prevents this while
+  preserving the legitimate delete path, and that this holds under the
+  pipeline's own `confirmed_fix` verdict. This is real dynamic
+  confirmation for that one handler specifically, not for the other
+  three, and not evidence that the full free5GC core network stack (AMF,
+  SMF, and the rest) would behave the same way under a fuller deployment.
 - **Is not** fully merged into the main `cve_pipeline.py` orchestration.
   It's a separate, standalone module with its own entry points, the same
   relationship `free5gc_lab/` and `ssrf_lab/` already have to the main

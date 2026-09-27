@@ -1,6 +1,6 @@
 info:
   version: 1.1.0
-  description: UDR runtime validation local configuration (CVE-2026-40246)
+  description: UDR runtime validation local configuration (CVE-2026-40248)
 
 configuration:
   sbi:
