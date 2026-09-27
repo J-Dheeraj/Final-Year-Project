@@ -373,3 +373,21 @@ This upgrades the free5GC case from "patch compile-verified" to
 FYP report.
 
 Proceeding directly to harness implementation now.
+
+## Correction, 2026-09-27: stale CVE ID at artifact level (config + process logs)
+
+An external review of the report caught what the earlier CVE-identifier
+correction above missed: `free5gc_runtime_case/udrcfg.yaml`'s
+`info.description` field still read `CVE-2026-40246` after the
+identifier was corrected everywhere else (`run_harness.py`,
+`manifest.json`, `verdict.json`, this plan document). Because UDR logs
+its own config description at startup, both `vulnerable_process.log` and
+`patched_process.log` had inherited the stale ID too - the runtime
+result itself was never wrong, but an examiner reading the raw process
+logs would have seen a CVE number that didn't match the rest of the
+evidence bundle. Fixed the config description and re-ran the harness
+(`NO_PAID_BACKEND=1`, no cost, ~15 seconds) to regenerate both process
+logs and `manifest.json` under the corrected string, confirming an
+identical result: `patch_verdict: confirmed_fix`,
+`vulnerable_run_confirmed_exploit: true`. Committed at `70281e5`, which
+supersedes `f09de67` as this case's evidence source of truth.
