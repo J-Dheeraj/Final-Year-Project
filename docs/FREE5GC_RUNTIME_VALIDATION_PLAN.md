@@ -175,3 +175,61 @@ anything, as a defense-in-depth measure even though it never imports
    "no live HTTP exploit attempt" caveat for this one case.
 
 Not started: this document is the read-only design deliverable only.
+
+## Implementation attempt, 2026-09-27: blocked on Docker Desktop itself
+
+Implementation was started per the approved instruction (harness only,
+`NO_PAID_BACKEND=1`, no scope broadening). Docker Desktop's daemon was
+not running (`docker ps` failed with
+`failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`).
+Docker Desktop was launched (the already-installed application, not a
+new install) and given time to initialize.
+
+**It does not come up.** Its own startup log shows a real internal
+failure, not a slow cold start:
+
+```
+starting services: initializing Inference manager: listening on
+unix://C:\Users\dheer\AppData\Local\Docker\run\dockerInference: remove
+C:\Users\dheer\AppData\Local\Docker\run\dockerInference: The file
+cannot be accessed by the system. (listener: The filename, directory
+name, or volume label syntax is incorrect.)
+```
+
+Docker Desktop's own "Inference manager" component (its local AI/model-
+runner feature, unrelated to this project and unrelated to running a
+plain MongoDB container) fails to clean up a stale socket file at
+`C:\Users\dheer\AppData\Local\Docker\run\dockerInference` on this
+specific machine, and this failure blocks the whole application from
+reaching a working state - `docker ps` continued failing with the
+identical named-pipe error for the entire wait window, confirming this
+is not a transient cold-start delay.
+
+**No native MongoDB fallback is available either** (`mongod`, `mongosh`,
+`mongo` are all absent from PATH on this machine).
+
+**Stopping here, per instruction**, rather than attempting to repair
+Docker Desktop's own internal state (deleting its AppData files,
+reinstalling it, etc.) - that is a machine-configuration fix unrelated
+to this project's own code or research question, not a harness design
+choice.
+
+**Exact required action** (one of, needed before this specific Phase 2
+case can proceed):
+1. Manually delete or rename
+   `C:\Users\dheer\AppData\Local\Docker\run\dockerInference` (the
+   specific file/path named in Docker's own error) and retry starting
+   Docker Desktop, or disable the "Docker AI"/model-runner feature in
+   Docker Desktop's own settings if that avoids the Inference manager
+   entirely, or repair/reinstall Docker Desktop if neither resolves it; or
+2. Install a native MongoDB Community Server binary directly (no
+   Docker needed at all) and point the harness's `mongodb.url` at
+   `mongodb://localhost:27017` as already specified above - this avoids
+   the Docker dependency entirely and is likely the faster path to
+   unblock this specific case, since the harness needs nothing else
+   Docker-specific (it does not need `docker-compose`, only a running
+   MongoDB it can connect to).
+
+The harness code itself (steps 1-9 of the execution plan above) is
+still unimplemented, blocked on either of the two options above being
+resolved first.
