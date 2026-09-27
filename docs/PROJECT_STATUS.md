@@ -6,6 +6,25 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-27 (Phase 2 implementation attempt - blocked on Docker
+  Desktop, not this project's code)** — Started implementing the
+  free5GC runtime harness per the approved plan (`NO_PAID_BACKEND=1`
+  kept, no scope broadening). Docker Desktop's daemon wasn't running;
+  launched the already-installed application and waited. It never came
+  up: its own log shows its "Inference manager" component failing to
+  clean up a stale socket at
+  `C:\Users\dheer\AppData\Local\Docker\run\dockerInference`
+  ("filename... syntax is incorrect"), blocking the whole app - `docker
+  ps` failed identically for the full wait window, not a slow cold
+  start. No native `mongod`/`mongosh`/`mongo` on PATH either. Stopped
+  here per explicit instruction rather than repairing Docker Desktop's
+  own internal state (a machine-configuration issue, not a harness
+  design choice). Documented the exact blocker and two concrete unblock
+  options (fix/reinstall Docker Desktop, or install a native MongoDB
+  binary instead) in `docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md`.
+  Committed `c12d257`, pushed to `fyp`. Harness code itself: not yet
+  written, blocked on one of the two options above.
+
 - **2026-09-26 (Phase 2 read-only design pass - free5GC runtime
   validation plan, DONE)** — Per explicit user instruction: read-only
   target-selection pass only, no paid LLM calls, no OpenEMR yet, and an
