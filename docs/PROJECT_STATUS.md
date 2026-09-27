@@ -6,6 +6,19 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-28 (OpenEMR healthcare transfer case scoped on branch)** —
+  Started a non-main branch, `openemr-transfer-scope`, to explore the
+  professor's suggestion of particularising the AI-CVE workflow to another
+  DARPA-relevant industry without destabilising the now-stable free5GC report.
+  Added `docs/OPENEMR_TRANSFER_CASE_PLAN.md`, a source-backed scoping document
+  for OpenEMR as a healthcare transfer case. The plan selects GHSA-q366-cv5v-83w8
+  (unauthenticated `admin.php` information disclosure, fixed in OpenEMR 8.3.0)
+  as the safest first candidate because it should be testable with harmless
+  request/response evidence, while deferring RCE/file-write candidates until a
+  repeatable harness exists. No report text, exploit implementation, or
+  main-branch state was changed. Exit criteria met: branch contains a concrete
+  OpenEMR plan, with go/no-go criteria, candidate advisories, dependencies, and
+  next-step design tasks.
 - **2026-09-27 (Post-review cleanup - artifact-level CVE hygiene and stale
   doc framing)** — An external review of the updated FYP report found
   the case was genuinely valid but flagged three remaining loose ends:
@@ -1341,3 +1354,4 @@ a direction that may have already been ruled out for a documented reason.
   `cve_pipeline.py` + `src/reachability/`'s existing capability.
 - Don't claim `llm-live` provenance for any result until a real API key
   or `claude` CLI is actually configured and used in this environment.
+
