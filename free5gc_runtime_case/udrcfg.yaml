@@ -1,0 +1,20 @@
+info:
+  version: 1.1.0
+  description: UDR runtime validation local configuration (CVE-2026-40246)
+
+configuration:
+  sbi:
+    scheme: http
+    registerIPv4: 127.0.0.1
+    bindingIPv4: 127.0.0.1
+    port: 8000
+  dbConnectorType: mongodb
+  mongodb:
+    name: free5gc_runtime_case
+    url: mongodb://localhost:27017
+  nrfUri: http://127.0.0.10:8000
+
+logger:
+  enable: true
+  level: info
+  reportCaller: false

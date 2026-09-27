@@ -1,0 +1,7 @@
+{
+  "cve_id": "CVE-2026-40246",
+  "patch_exploit_blocked": true,
+  "patch_function_preserved": true,
+  "patch_verdict": "confirmed_fix",
+  "vulnerable_run_confirmed_exploit": true
+}

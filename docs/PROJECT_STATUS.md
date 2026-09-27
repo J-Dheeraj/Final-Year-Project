@@ -6,6 +6,42 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-27 (Phase 2 implementation completed - CVE-2026-40246
+  runtime-confirmed and patch runtime-validated)** — Continued the
+  free5GC harness after native MongoDB (8.3.11) finished installing via
+  winget and was verified reachable at `mongodb://localhost:27017`
+  (real pymongo ping + `server_info()`). First run failed: the
+  vulnerable UDR process never bound to port 8000, diagnosed via its
+  process log as an infinite NRF-registration retry loop (a genuine
+  correction to this project's own earlier plan-doc conclusion that
+  NRF failure was "logged, not fatal" - see
+  `docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md`'s "Correction" section).
+  Built a stub NRF satisfying only the one `RegisterNFInstance` call
+  UDR needs at startup. A first (Python `http.server`) version of that
+  stub still failed, with a *different* real error: free5gc's NRF
+  client dials HTTP/2 cleartext (h2c) with prior knowledge, and a plain
+  HTTP/1.1 responder makes the client fail client-side with `http2:
+  frame too large`. Fixed by writing a small standalone Go binary
+  (`free5gc_runtime_case/stub_nrf/main.go`, using
+  `golang.org/x/net/http2/h2c`, an existing indirect dependency - no
+  new dependency added) that speaks real h2c. With that in place, both
+  the vulnerable and patched commits produced real, non-inconclusive
+  verdicts: the vulnerable build's malicious DELETE returns 404 to the
+  caller but still deletes the record server-side (no `return` after
+  the 404 write); the patched build returns 404 and leaves the record
+  intact; the legitimate benign DELETE path works identically on both.
+  This exactly matches the CVE's own description and is now confirmed
+  against the real upstream binary at runtime, not just by static or
+  compile-time review. Full evidence bundle saved under
+  `free5gc_runtime_case/` (`manifest.json`, `verdict.json`,
+  `patch.diff`, `*_response.log`, `*_process.log`, `build_*.log`).
+  Exit criteria met: one real, non-inconclusive free5GC runtime
+  validation case, produced without any paid/model backend
+  (`NO_PAID_BACKEND=1` held throughout). Not yet done: folding this
+  result into `FYP_Report_main.tex`; scope intentionally still excludes
+  OpenEMR, Codex/Claude comparisons, and OSS-CRS integration per
+  explicit instruction.
+
 - **2026-09-27 (Phase 2 implementation attempt - blocked on Docker
   Desktop, not this project's code)** — Started implementing the
   free5GC runtime harness per the approved plan (`NO_PAID_BACKEND=1`

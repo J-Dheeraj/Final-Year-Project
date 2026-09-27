@@ -1,0 +1,128 @@
+2026-09-27T13:05:14.444172600+08:00[36m [INFO][UDR][Main] [0mUDR version:  
+	Not specify ldflags (which link version) during go build
+	go version: go1.26.3 windows/amd64
+2026-09-27T13:05:14.464942500+08:00[36m [INFO][UDR][CFG] [0mRead config from [C:\Users\dheer\Downloads\AI-exploit-CVE\free5gc_runtime_case\udrcfg.yaml]
+2026-09-27T13:05:14.464942500+08:00[36m [INFO][UDR][Util] [0mudrconfig Info: Version[1.1.0] Description[UDR runtime validation local configuration (CVE-2026-40246)]
+2026-09-27T13:05:14.464942500+08:00[36m [INFO][UDR][Main] [0mLog enable is set to [true]
+2026-09-27T13:05:14.464942500+08:00[36m [INFO][UDR][Main] [0mLog level is set to [info]
+2026-09-27T13:05:14.464942500+08:00[36m [INFO][UDR][Main] [0mReport Caller is set to [false]
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /nudr-dr/v2/              --> github.com/free5gc/udr/internal/sbi.Index (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/amf-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleAmfContext3gpp-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/amf-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateAmfContext3gpp-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/amf-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryAmfContext3gpp-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/amf-non-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleAmfContextNon3gpp-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/amf-non-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateAmfContextNon3gpp-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/amf-non-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryAmfContextNon3gpp-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/provisioned-data/am-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryAmData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/authentication-status --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryAuthenticationStatus-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/authentication-status --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateAuthenticationStatus-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/authentication-subscription --> github.com/free5gc/udr/internal/sbi.(*Server).HandleModifyAuthentication-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/authentication-subscription --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryAuthSubsData-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/sor-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateAuthenticationSoR-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/sor-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryAuthSoR-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/application-data/influenceData --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataGet-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/application-data/influenceData/:influenceId/:subscriptionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/application-data/influenceData/:influenceId/:subscriptionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdGet-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/application-data/influenceData/:influenceId/:subscriptionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdPut-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/application-data/pfds/:appId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataPfdsAppIdDelete-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/application-data/pfds/:appId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataPfdsAppIdGet-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/application-data/pfds/:appId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataPfdsAppIdPut-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/application-data/pfds --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataPfdsGet-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/policy-data/bdt-data/:bdtReferenceId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataBdtDataBdtReferenceIdDelete-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/bdt-data/:bdtReferenceId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataBdtDataBdtReferenceIdGet-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/policy-data/bdt-data/:bdtReferenceId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataBdtDataBdtReferenceIdPut-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/bdt-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataBdtDataGet-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/plmns/:plmnId/ue-policy-set --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataPlmnsPlmnIdUePolicySetGet-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/sponsor-connectivity-data/:sponsorId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataSponsorConnectivityDataSponsorIdGet-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/policy-data/subs-to-notify --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataSubsToNotifyPost-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/policy-data/subs-to-notify/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataSubsToNotifySubsIdDelete-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/policy-data/subs-to-notify/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataSubsToNotifySubsIdPut-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/ues/:ueId/am-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdAmDataGet-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/ues/:ueId/operator-specific-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdOperatorSpecificDataGet-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/policy-data/ues/:ueId/operator-specific-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdOperatorSpecificDataPatch-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/policy-data/ues/:ueId/operator-specific-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdOperatorSpecificDataPut-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/ues/:ueId/sm-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdSmDataGet-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/policy-data/ues/:ueId/sm-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdSmDataPatch-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/policy-data/ues/:ueId/sm-data/:usageMonId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdSmDataUsageMonIdDelete-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/ues/:ueId/sm-data/:usageMonId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdSmDataUsageMonIdGet-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/policy-data/ues/:ueId/sm-data/:usageMonId --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdSmDataUsageMonIdPut-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/policy-data/ues/:ueId/ue-policy-set --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdUePolicySetGet-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/policy-data/ues/:ueId/ue-policy-set --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdUePolicySetPatch-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/policy-data/ues/:ueId/ue-policy-set --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePolicyDataUesUeIdUePolicySetPut-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/provisioned-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryProvisionedData-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/sdm-subscriptions/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleRemovesdmSubscriptions-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/sdm-subscriptions/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleUpdatesdmsubscriptions-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/sdm-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateSdmSubscriptions-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/sdm-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerysdmsubscriptions-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smf-registrations/:pduSessionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateSmfContextNon3gpp-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smf-registrations/:pduSessionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleDeleteSmfContext-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smf-registrations/:pduSessionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmfRegistration-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smf-registrations --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmfRegList-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/provisioned-data/smf-selection-subscription-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmfSelectData-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smsf-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateSmsfContext3gpp-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smsf-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleDeleteSmsfContext3gpp-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smsf-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmsfContext3gpp-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smsf-non-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateSmsfContextNon3gpp-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smsf-non-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleDeleteSmsfContextNon3gpp-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/smsf-non-3gpp-access --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmsfContextNon3gpp-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/provisioned-data/sms-mng-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmsMngData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/provisioned-data/sms-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmsData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/provisioned-data/sm-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySmData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/provisioned-data/trace-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryTraceData-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateAMFSubscriptions-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleModifyAmfSubscriptionInfo-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleRemoveAmfSubscriptionsInfo-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/:servingPlmnId/ee-subscriptions/:subsId/amf-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleGetAmfSubscriptionInfo-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/shared-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleGetSharedData-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/subscription-data/subs-to-notify --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePostSubscriptionDataSubscriptions-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/subs-to-notify/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleRemovesubscriptionDataSubscriptions-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/ee-profile-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryEEData-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/subscription-data/:ueId/operator-specific-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandlePatchOperSpecData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/operator-specific-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryOperSpecData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/pp-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleGetppData-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/subscription-data/:ueId/pp-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleModifyPpData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/identity-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleGetIdentityData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/operator-determined-barring-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleGetOdbData-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/subscription-data/group-data/:ueGroupId/ee-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateEeGroupSubscriptions-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/group-data/:ueGroupId/ee-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryEeGroupSubscriptions-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/subscription-data/:ueId/context-data/ee-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateEeSubscriptions-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/subscription-data/:ueId/context-data/ee-subscriptions --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryeesubscriptions-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/:ueId/context-data/ee-subscriptions/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleRemoveeeSubscriptions-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/:ueId/context-data/ee-subscriptions/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleUpdateEesubscriptions-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/subscription-data/group-data/:ueGroupId/ee-subscriptions/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleUpdateEeGroupSubscriptions-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/subscription-data/group-data/:ueGroupId/ee-subscriptions/:subsId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleRemoveEeGroupSubscriptions-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/exposure-data/:ueId/session-management-data/:pduSessionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateSessionManagementData-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/exposure-data/:ueId/session-management-data/:pduSessionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleDeleteSessionManagementData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/exposure-data/:ueId/session-management-data/:pduSessionId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQuerySessionManagementData-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/exposure-data/:ueId/access-and-mobility-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleCreateAccessAndMobilityData-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/exposure-data/:ueId/access-and-mobility-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleDeleteAccessAndMobilityData-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/exposure-data/:ueId/access-and-mobility-data --> github.com/free5gc/udr/internal/sbi.(*Server).HandleQueryAccessAndMobilityData-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/exposure-data/subs-to-notify --> github.com/free5gc/udr/internal/sbi.(*Server).HandleExposureDataSubsToNotifyPost-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/exposure-data/subs-to-notify/:subId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleExposureDataSubsToNotifySubIdDelete-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/exposure-data/subs-to-notify/:subId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleExposureDataSubsToNotifySubIdPut-fm (5 handlers)
+[GIN-debug] GET    /nudr-dr/v2/application-data/influenceData/subs-to-notify --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataSubsToNotifyGet-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/application-data/influenceData/subs-to-notify --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataSubsToNotifyPost-fm (5 handlers)
+[GIN-debug] DELETE /nudr-dr/v2/application-data/influenceData/:influenceId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataInfluenceIdDelete-fm (5 handlers)
+[GIN-debug] PATCH  /nudr-dr/v2/application-data/influenceData/:influenceId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataInfluenceIdPatch-fm (5 handlers)
+[GIN-debug] PUT    /nudr-dr/v2/application-data/influenceData/:influenceId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataInfluenceIdPut-fm (5 handlers)
+[GIN-debug] POST   /nudr-dr/v2/application-data/influenceData/:influenceId --> github.com/free5gc/udr/internal/sbi.(*Server).HandleApplicationDataInfluenceDataInfluenceIdPost-fm (5 handlers)
+[GIN-debug] GET    /nudr-group-id-map/v1/    --> github.com/free5gc/udr/internal/sbi.Index (5 handlers)
+[GIN-debug] GET    /nudr-group-id-map/v1/nf-group-ids --> github.com/free5gc/udr/internal/sbi.(*Server).HTTPGetNfGroupIDs-fm (5 handlers)
+[GIN-debug] GET    /nhss-ims-sdm/v1/         --> github.com/free5gc/udr/internal/sbi.Index (5 handlers)
+2026-09-27T13:05:14.474210100+08:00[36m [INFO][UDR][Init] [0mregister to NRF successfully
+2026-09-27T13:05:14.474210100+08:00[36m [INFO][UDR][Init] [0mServer started
+2026-09-27T13:05:14.474210100+08:00[36m [INFO][UDR][Init] [0mUDR Config Info: Version[1.1.0] Description[UDR runtime validation local configuration (CVE-2026-40246)]
+2026-09-27T13:05:14.476783600+08:00[36m [INFO][UDR][SBI] [0mStarting server...
+2026-09-27T13:05:14.963015100+08:00[36m [INFO][UDR][GIN] [0m| 404 |       127.0.0.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/runtimecase-sub-001 |  |
+2026-09-27T13:05:14.983814700+08:00[36m [INFO][UDR][GIN] [0m| 200 |       127.0.0.1 | PUT     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/runtimecase-sub-001 |  |
+2026-09-27T13:05:14.998803700+08:00[36m [INFO][UDR][GIN] [0m| 200 |       127.0.0.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/runtimecase-sub-001 |  |
+[GIN-debug] [WARNING] Headers were already written. Wanted to override status code 404 with 204
+2026-09-27T13:05:15.000019700+08:00[36m [INFO][UDR][GIN] [0m| 404 |       127.0.0.1 | DELETE  | /nudr-dr/v2/application-data/influenceData/attacker-controlled-id/runtimecase-sub-001 |  |
+2026-09-27T13:05:15.013964200+08:00[36m [INFO][UDR][GIN] [0m| 404 |       127.0.0.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/runtimecase-sub-001 |  |
+2026-09-27T13:05:15.029107300+08:00[36m [INFO][UDR][GIN] [0m| 200 |       127.0.0.1 | PUT     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/runtimecase-sub-001 |  |
+2026-09-27T13:05:15.044973100+08:00[36m [INFO][UDR][GIN] [0m| 204 |       127.0.0.1 | DELETE  | /nudr-dr/v2/application-data/influenceData/subs-to-notify/runtimecase-sub-001 |  |
+2026-09-27T13:05:15.046485600+08:00[36m [INFO][UDR][GIN] [0m| 404 |       127.0.0.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/runtimecase-sub-001 |  |
