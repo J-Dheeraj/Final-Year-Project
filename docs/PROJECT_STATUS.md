@@ -6,6 +6,29 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-27 (Post-review cleanup - artifact-level CVE hygiene and stale
+  doc framing)** — An external review of the updated FYP report found
+  the case was genuinely valid but flagged three remaining loose ends:
+  (1) `free5gc_runtime_case/udrcfg.yaml`'s config description still read
+  `CVE-2026-40246`, and since UDR logs that description at startup, both
+  process logs had inherited the stale ID even after the earlier
+  identifier correction; (2) the report's Future Work still said the
+  free5GC case "could be extended from compile-time to runtime
+  verification" in general, no longer accurate now that one handler has
+  runtime evidence; (3) `docs/REACHABILITY.md` and
+  `docs/BENCHMARK_PROTOCOL.md` still framed CVE-2026-40248 as
+  compile-verified only. Fixed all three: corrected `udrcfg.yaml` and
+  re-ran the harness (no cost, `NO_PAID_BACKEND=1`) to regenerate clean
+  logs under an identical result; rewrote the Future Work sentence to
+  scope the remaining work to the other three handlers or a fuller
+  deployment; updated both docs to state the current evidence tier (3 of
+  4 handlers compile-verified, the DELETE handler additionally
+  runtime-confirmed). Recompiled the report PDF twice (71 pages, no
+  undefined references). Committed `70281e5`, which supersedes `f09de67`
+  as the evidence source of truth; the report's own citation was updated
+  to match. Exit criteria met: no known stale CVE-2026-40246 references
+  remain anywhere in the evidence bundle, docs, or report.
+
 - **2026-09-27 (Phase 2 implementation completed - CVE-2026-40248
   runtime-confirmed and patch runtime-validated)** — Continued the
   free5GC harness after native MongoDB (8.3.11) finished installing via
