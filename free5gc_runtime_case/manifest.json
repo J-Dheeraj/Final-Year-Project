@@ -1,5 +1,5 @@
 {
-  "cve_id": "CVE-2026-40246",
+  "cve_id": "CVE-2026-40248",
   "component": "free5GC UDR (internal/sbi/api_datarepository.go)",
   "handler": "HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete",
   "vulnerable_commit": "86686276a7e226183ee786e3dd6714ec56c78fda^",
@@ -8,7 +8,7 @@
     "mongodb": "mongodb://localhost:27017 (real, local)",
     "nrf": "stub h2c server (stub_nrf/main.go) required to unblock UDR's blocking registration retry loop at startup; not a real NRF (no discovery, no NF tracking), has no bearing on the vulnerability under test"
   },
-  "generated_at": "2026-09-27T05:05:17.335448+00:00",
+  "generated_at": "2026-09-27T05:24:26.853278+00:00",
   "vulnerable_run": {
     "label": "vulnerable",
     "commit": "ce36d00028def38a98c1bf4e2be97645b544e93d",
