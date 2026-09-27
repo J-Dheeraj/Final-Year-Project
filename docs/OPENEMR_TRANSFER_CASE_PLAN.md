@@ -109,3 +109,154 @@ If this branch continues, the next step is a read-only technical design pass for
 5. write an evidence-bundle schema before running anything.
 
 No exploit implementation should be written until those five facts are known.
+
+## Design pass, 2026-09-28: five facts above, now answered
+
+Read-only. No harness code was written and no HTTP requests were made
+against a running OpenEMR instance. Everything below was verified
+against the real GitHub repository (`openemr/openemr`) via the GitHub
+API, following the same "verify before use" discipline established for
+the free5GC case.
+
+### 1. Exact vulnerable and fixed commits (no CVE assigned)
+
+- **Advisory**: GHSA-q366-cv5v-83w8, "Unauthenticated Information
+  Disclosure in `admin.php` Exposes Database Names and Versions" (CWE-200,
+  CWE-306; CVSS 3.1 5.3, medium). Fetched directly via
+  `gh api repos/openemr/openemr/security-advisories/GHSA-q366-cv5v-83w8`.
+  Its `cve_id` field is `null` - this advisory has **no CVE number**,
+  only a GHSA ID; the earlier candidate table's "GHSA only" framing was
+  correct and should not be paired with an invented CVE number.
+- **Fixed commit**: `50f789fad45ada625fe8d0faf0c7a9c15ef52aa5` (PR #13133,
+  merged 2026-07-25), commit message: "admin.php: gate behind opt-in
+  `OPENEMR_ADMIN_PHP_ENABLED` env var (matches existing Docker + wiki
+  guidance)."
+- **Vulnerable commit**: `b5313ea25f7928538eb793d4b4184ed4601d9afd` (the
+  fixed commit's direct parent).
+- **Release cross-check**: the `v8_3_0` tag (commit `ebb62eb3...`) is 223
+  commits ahead of and 0 commits behind the fix commit, confirming the
+  fix commit is a genuine ancestor of the `8.3.0` release the advisory
+  cites as the patched version.
+- **The actual fix** (read directly from the commit's diff): a
+  guard block added at the very top of `admin.php`, before any other
+  `require_once` or logic runs:
+  ```php
+  if (
+      filter_input(INPUT_SERVER, 'OPENEMR_ADMIN_PHP_ENABLED') !== '1'
+      && (getenv('OPENEMR_ADMIN_PHP_ENABLED') ?: '') !== '1'
+  ) {
+      http_response_code(403);
+      header('Content-Type: text/plain');
+      echo "admin.php is disabled by default. See the header comment in this file to enable.\n";
+      exit;
+  }
+  ```
+  This is structurally the same class of fix as free5GC's missing
+  `return` (an early-exit guard added before the sensitive code path),
+  which strengthens the case that this project's evidence-gated
+  methodology transfers across languages, not just across the one Go
+  fix pattern it was built against.
+
+### 2 and 3. Docker status: still broken, documented immediately
+
+Re-tested live on 2026-09-28: relaunched Docker Desktop and re-ran
+`docker ps`. Identical failure to the one recorded during the free5GC
+work, same root cause, confirmed from Docker's own backend log
+(`%LOCALAPPDATA%\Docker\log\host\com.docker.backend.exe.log`):
+```
+backend cancelling with error: starting services: initializing Inference manager:
+listening on unix://<HOME>\AppData\Local\Docker\run\dockerInference:
+remove <HOME>\AppData\Local\Docker\run\dockerInference: The file cannot be
+accessed by the system. (listener: The filename, directory name, or volume
+label syntax is incorrect.)
+```
+Per the same standing decision as the free5GC work, this was not
+debugged further - Docker Desktop is not being repaired for this
+project. The question this raises, per item 3, is whether OpenEMR's own
+official Docker Compose route is worth chasing anyway. It is not: the
+next section shows this specific vulnerability does not require it.
+
+**Reassessed native-dependency footprint (lower than first scoped)**:
+reading `admin.php`'s actual source at the vulnerable commit shows its
+real dependency graph is much narrower than "the whole OpenEMR
+application":
+- It `require_once`s exactly two files, both side-effect-free and
+  DB-free: `src/Common/Compatibility/Checker.php` (a pure PHP-version
+  string check) and `version.php` (pure constant definitions, minimum
+  PHP version required: `8.2.0`).
+- It does **not** bootstrap the full framework
+  (`interface/globals.php` is deliberately not required - this is the
+  advisory's own stated root cause).
+- It lists `sites/` for any directory containing a `sqlconf.php`, reads
+  that file for `$config`/`$host`/`$login`/`$pass`/`$dbase`/`$port`, and
+  if `$config` is truthy, connects via `mysqli_connect` and runs exactly
+  two queries: `SELECT gl_value FROM globals WHERE gl_name =
+  'openemr_name' LIMIT 1` and `SELECT * FROM version LIMIT 1` (columns
+  `v_major`, `v_minor`, `v_patch`, `v_tag`, `v_realpatch`).
+
+This means a faithful, real-source demonstration does **not** need the
+full OpenEMR application, its Composer install, Apache, or its setup
+wizard - only: (a) a real clone of the repo at the two commits (for
+`admin.php`, `Checker.php`, `version.php`, served directly), (b) PHP's
+own built-in development server (`php -S`, no Apache/Docker needed) with
+the `mysqli` extension enabled, (c) a hand-written `sites/default/sqlconf.php`
+pointing at a real, local MariaDB instance, and (d) a **minimal** schema
+in that database - just a `globals` table and a `version` table with one
+row each, not OpenEMR's full multi-hundred-table schema. This is the same
+minimal-dependency-scoping principle already applied to the free5GC
+harness (only UDR's own MongoDB connection was needed, not a full 5G
+core), now shown to transfer to a second language and framework. PHP
+8.2+ and MariaDB are both installable via `winget`, the same tool used
+to install MongoDB natively for the free5GC case. **Revised conclusion**:
+native PHP + MariaDB is not a "bigger lift" than the free5GC MongoDB
+substitution as first assumed when this plan was scoped against Docker -
+it is comparably minimal, provided the harness stays scoped to this one
+file rather than attempting full-application functional testing.
+
+### 4. Exact harmless HTTP request/response assertions
+
+Two requests against the same running `admin.php`, distinguished only by
+an environment variable, mirroring the free5GC harness's
+malicious/benign pair:
+
+- **Default-config request** (the vulnerability's own default state,
+  before an operator has opted in): `GET /admin.php` with
+  `OPENEMR_ADMIN_PHP_ENABLED` unset.
+  - Vulnerable commit: expect HTTP `200`, `Content-Type: text/html`,
+    body contains the literal string `Multi Site Administration` and a
+    `<td>` cell with the configured site's database name - real
+    information disclosure, exactly as the advisory's PoC describes.
+  - Patched commit: expect HTTP `403`, `Content-Type: text/plain`, body
+    exactly `admin.php is disabled by default. See the header comment in
+    this file to enable.\n` - no site, database, or version data present
+    anywhere in the response.
+- **Opt-in benign request** (an operator who deliberately re-enables the
+  page, per the fix's own documented instructions): `GET /admin.php`
+  with `OPENEMR_ADMIN_PHP_ENABLED=1` set.
+  - Vulnerable commit: identical `200` disclosure page (this commit has
+    no gate at all, so enabling the env var changes nothing - recorded
+    as expected, not a defect).
+  - Patched commit: expect HTTP `200`, same disclosure page as the
+    vulnerable commit's default response - proving the fix is a
+    default-closed gate, not a removal of the underlying admin
+    functionality, the same "legitimate use still works" standard
+    applied to free5GC's benign delete.
+
+### 5. Evidence-bundle schema (design only - not yet implemented)
+
+Proposed layout, mirroring `free5gc_runtime_case/`'s existing bundle
+under a new `openemr_transfer_case/` directory:
+
+| File | Contents |
+| --- | --- |
+| `run_harness.py` | Starts PHP's built-in server against each commit's checkout, sends the three requests above, records results. |
+| `sites/default/sqlconf.php` | The hand-written minimal site config pointing at the local MariaDB instance. |
+| `schema.sql` | The two-table minimal schema (`globals`, `version`) and its one seed row each. |
+| `manifest.json` | `{"advisory": "GHSA-q366-cv5v-83w8", "vulnerable_commit": "b5313ea2...", "fixed_commit": "50f789fa...", "services_used": {...}, "vulnerable_run": {...}, "patched_run": {...}}` |
+| `verdict.json` | `{"advisory": "GHSA-q366-cv5v-83w8", "default_request_blocked": bool, "optin_request_preserved": bool, "verdict": "confirmed_fix" \| "not_blocked" \| "regression_broke_route" \| "inconclusive_crash"}`, reusing the free5GC case's four-outcome verdict vocabulary rather than inventing a new one. |
+| `vulnerable_response.log`, `patched_response.log` | Full status/headers/body for all three requests against each commit. |
+| `vulnerable_process.log`, `patched_process.log` | Raw stdout/stderr from each `php -S` process. |
+
+This schema is written but **not yet implemented or run** - per the
+instruction this design pass was scoped to, implementation is a
+separate, later step.

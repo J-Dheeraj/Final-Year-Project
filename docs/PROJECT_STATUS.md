@@ -6,6 +6,37 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-28 (OpenEMR read-only design pass, on `openemr-transfer-scope`
+  only - `main` untouched)** — Answered the five design questions the
+  branch's own plan doc had deferred, per explicit instruction to design
+  only, not implement. (1) Verified GHSA-q366-cv5v-83w8's exact fix
+  commit (`50f789fad45ada625fe8d0faf0c7a9c15ef52aa5`, PR #13133) and its
+  parent as the vulnerable commit (`b5313ea25f7928538eb793d4b4184ed4601d9afd`)
+  via the real GitHub API, cross-checked against the `v8_3_0` release
+  tag; noted this advisory has no CVE number assigned (`cve_id: null`).
+  (2)-(3) Re-tested Docker Desktop live: identical "Inference manager"
+  socket failure as the free5GC blocker, confirmed from its own backend
+  log; not repaired, per the same standing decision. Reading
+  `admin.php`'s real source at the vulnerable commit found its actual
+  dependency graph is much narrower than assumed when the branch was
+  first scoped - no full app bootstrap, just two side-effect-free
+  requires and a two-table DB read - so a native PHP (`php -S`, no
+  Apache) + MariaDB harness is realistically comparable in effort to
+  free5GC's native-MongoDB substitution, not a bigger lift as first
+  guessed. (4) Defined the exact default-vs-opt-in HTTP request/response
+  assertions (403 plain-text block by default, 200 disclosure restored
+  under the documented opt-in env var on both commits - the same
+  "legitimate use preserved" standard as free5GC's benign delete). (5)
+  Wrote the evidence-bundle schema, reusing the free5GC case's four-
+  outcome verdict vocabulary rather than inventing a new one. All of
+  this is written to `docs/OPENEMR_TRANSFER_CASE_PLAN.md` on this branch
+  only. Exit criteria met: no harness code written, no HTTP requests
+  made against a running OpenEMR instance, `main` unchanged. Also
+  discovered mid-session an unrelated branch on the same remote,
+  `claude/intelligent-hypatia-1u5yvf`, from an apparently different,
+  stale session - it deletes this session's entire free5GC evidence
+  bundle - flagged to the user, not touched, not merged.
+
 - **2026-09-28 (OpenEMR healthcare transfer case scoped on branch)** —
   Started a non-main branch, `openemr-transfer-scope`, to explore the
   professor's suggestion of particularising the AI-CVE workflow to another
