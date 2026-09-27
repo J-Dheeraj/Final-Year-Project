@@ -6,6 +6,21 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-28 (Docker Desktop confirmed working again)** — The prior
+  entry's Docker-status finding is now stale. User reported Docker was
+  working; verified live rather than taken on trust: `docker ps` and
+  `docker version` now succeed (Docker Desktop 4.74.0, engine 29.4.3,
+  real running containers). An attempt was made to clear the stale
+  `dockerInference` runtime artifact directly (via both `rm -f` and
+  PowerShell `Remove-Item -Force`), both failing identically to the
+  earlier free5GC-blocker attempts ("The file cannot be accessed by the
+  system"); Docker started working after a plain Docker Desktop restart
+  instead, independent of those attempts. Updated
+  `docs/OPENEMR_TRANSFER_CASE_PLAN.md` to correct its Docker-status
+  section: the official OpenEMR Docker Compose route is now the
+  recommended deployment path for the harness, not just the native
+  PHP+MariaDB fallback. No harness implementation started.
+
 - **2026-09-28 (OpenEMR read-only design pass, on `openemr-transfer-scope`
   only - `main` untouched)** — Answered the five design questions the
   branch's own plan doc had deferred, per explicit instruction to design

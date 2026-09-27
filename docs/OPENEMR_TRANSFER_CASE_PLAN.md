@@ -260,3 +260,28 @@ under a new `openemr_transfer_case/` directory:
 This schema is written but **not yet implemented or run** - per the
 instruction this design pass was scoped to, implementation is a
 separate, later step.
+
+## Correction, 2026-09-28: Docker is working again
+
+The Docker-status finding above is now stale. Re-tested live: the
+specific stale artifact causing the "Inference manager" failure
+(`%LOCALAPPDATA%\Docker\run\dockerInference`, a reparse-point-flagged
+file `Remove-Item` itself could not delete: "The file cannot be
+accessed by the system") was cleared by restarting Docker Desktop
+directly rather than through this session's own delete attempts, which
+failed identically to the earlier free5GC-blocker investigation. `docker
+ps` and `docker version` now succeed: Docker Desktop 4.74.0, engine
+29.4.3, real running containers listed.
+
+This changes the recommended deployment route for this case. The
+official OpenEMR Docker Compose path
+(`github.com/openemr/openemr/blob/master/docker/production/docker-compose.yml`)
+is now usable and is the more standard, officially-supported way to run
+a real OpenEMR instance - closer to how an examiner would expect this
+case to be validated than a hand-built minimal PHP+MariaDB stand-in.
+The native PHP (`php -S`) + MariaDB route documented above remains a
+valid, lower-effort fallback if the official Docker Compose stack turns
+out to be slow or fragile to stand up for just this one file's
+behaviour, but Docker should be tried first now that it is available.
+This is a design-doc correction only; no harness implementation has
+started.
