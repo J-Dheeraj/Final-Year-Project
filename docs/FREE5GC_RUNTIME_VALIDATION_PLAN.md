@@ -233,3 +233,32 @@ case can proceed):
 The harness code itself (steps 1-9 of the execution plan above) is
 still unimplemented, blocked on either of the two options above being
 resolved first.
+
+## Resolved, 2026-09-27: native MongoDB installed instead of repairing Docker
+
+Per explicit direction, Docker Desktop was abandoned rather than
+repaired: this experiment only ever needed a real, reachable MongoDB at
+`mongodb://localhost:27017`, not Docker itself, so Docker was removed
+from the dependency chain entirely rather than debugged.
+
+**Installed MongoDB Community Server 8.3.11** via `winget install
+MongoDB.Server` (package verified against its published installer
+hash by winget itself before installing). It registers and starts
+automatically as a Windows service (`sc query MongoDB` ->
+`STATE: RUNNING`), no manual `mongod` invocation needed.
+
+**Verified real, end-to-end, not just "service running"**:
+- `netstat -ano` confirms something is genuinely listening on
+  `127.0.0.1:27017`.
+- A real `pymongo` client (installed via `pip install pymongo`) connected
+  and ran `client.admin.command("ping")` -> `{"ok": 1.0}`, and
+  `client.server_info()["version"]` -> `"8.3.11"`, confirming a real,
+  responsive MongoDB server, not just an open port.
+
+This is the engineering choice to state plainly in the eventual report:
+the runtime validation harness uses a local MongoDB instance directly
+rather than Docker, because the experiment's only real dependency was
+UDR's own database connection - this reduces infrastructure complexity
+without changing what's actually under test.
+
+Proceeding directly to harness implementation now.
