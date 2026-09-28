@@ -2,6 +2,35 @@
 
 ## Session log
 
+- **2026-09-28 (free5GC full-deployment extension, on `free5gc-full-deployment`
+  only - `main` untouched) - all four CRUD handlers runtime-confirmed,
+  stronger vulnerability characterization found** — After Docker Desktop
+  started working again, extended CVE-2026-40248's runtime confirmation
+  from the one handler on `main` (DELETE) to all four of the reachability
+  engine's originally-flagged handlers (GET single, PUT single, DELETE
+  single, GET collection), using the official `free5gc-compose` stack
+  (real MongoDB, real free5GC NRF v4.2.3, OAuth2 disabled - see the
+  results doc for why) instead of the minimal stand-in harness. Caught
+  and immediately corrected one mistake before it produced a false
+  result: the OpenEMR case's commit hashes (from earlier in this same
+  session) were accidentally passed to the free5GC UDR Docker build;
+  the build failed cleanly since that commit doesn't exist in
+  `free5gc/udr`'s history, and the correct hashes were used instead.
+  **Finding, materially stronger than what's in the frozen report**: all
+  three newly-tested handlers share the same missing-`return` root cause
+  as the already-documented DELETE bug, and two are more severe than
+  previously known - the collection GET leaks every subscription in the
+  system in a response that looks like a plain 400 rejection, and the
+  single PUT actually creates/stores an attacker's data despite
+  returning 404 (an unauthorized write, not just a leak). All four close
+  cleanly on the patched build with the benign path preserved. Automated
+  by `free5gc_full_deployment/run_full_deployment_harness.py`;
+  `verdict.json`'s `overall_verdict` is `confirmed_fix_all_four_handlers`.
+  Full write-up in `docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md`. Exit
+  criteria met: real evidence bundle captured, `main` and the frozen
+  report untouched. Whether to fold this stronger characterization into
+  the report is left as a separate decision, not made here.
+
 Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.

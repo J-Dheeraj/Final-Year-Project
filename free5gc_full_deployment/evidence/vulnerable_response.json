@@ -1,0 +1,89 @@
+{
+  "label": "vulnerable",
+  "seed": {
+    "status_code": 200,
+    "headers": {
+      "Content-Type": "application/json; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "69"
+    },
+    "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+  },
+  "collection_get_empty_query": {
+    "status_code": 400,
+    "headers": {
+      "Content-Type": "application/json; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "174"
+    },
+    "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}[{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}]"
+  },
+  "collection_get_leaked_data": true,
+  "single_get_wrong_influence_id": {
+    "status_code": 404,
+    "headers": {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "87"
+    },
+    "body": "404 page not found{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+  },
+  "single_get_leaked_data": true,
+  "single_put_wrong_influence_id": {
+    "status_code": 404,
+    "headers": {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "96"
+    },
+    "body": "404 page not found{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+  },
+  "confirm_unauthorized_write": {
+    "status_code": 200,
+    "headers": {
+      "Content-Type": "application/json; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "78"
+    },
+    "body": "{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+  },
+  "single_put_unauthorized_write": true,
+  "delete_seed": {
+    "status_code": 200,
+    "headers": {
+      "Content-Type": "application/json; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "69"
+    },
+    "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+  },
+  "single_delete_wrong_influence_id": {
+    "status_code": 404,
+    "headers": {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "18"
+    },
+    "body": "404 page not found"
+  },
+  "post_delete_check": {
+    "status_code": 404,
+    "headers": {
+      "Content-Type": "application/json; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "64"
+    },
+    "body": "{\"title\":\"User not found\",\"status\":404,\"cause\":\"USER_NOT_FOUND\"}"
+  },
+  "single_delete_confirmed_exploit": true,
+  "benign_get_correct_influence_id": {
+    "status_code": 200,
+    "headers": {
+      "Content-Type": "application/json; charset=utf-8",
+      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Content-Length": "69"
+    },
+    "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+  },
+  "benign_path_preserved": true
+}
