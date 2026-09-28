@@ -1,0 +1,15 @@
+# Scopes the official free5gc-compose stack down to exactly what
+# CVE-2026-40248's remaining three handlers need: a real MongoDB, a
+# real NRF (not a stub), and UDR built from a pinned commit. AMF, SMF,
+# UPF, and the rest of the mesh are not exercised by this vulnerability
+# (a data-repository HTTP handler bug) and are intentionally omitted -
+# `docker compose up db free5gc-nrf free5gc-udr` brings up only these
+# three services and their dependencies.
+#
+# UDR_IMAGE_TAG selects which locally-built image
+# (free5gc-udr-custom:vulnerable or :patched) the udr service runs.
+services:
+  free5gc-udr:
+    image: free5gc-udr-custom:${UDR_IMAGE_TAG:-vulnerable}
+    ports:
+      - "127.0.0.1:8080:8000"

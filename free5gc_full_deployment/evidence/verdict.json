@@ -1,0 +1,14 @@
+{
+  "cve_id": "CVE-2026-40248",
+  "collection_get_leak_confirmed_vulnerable": true,
+  "collection_get_leak_fixed": true,
+  "single_get_leak_confirmed_vulnerable": true,
+  "single_get_leak_fixed": true,
+  "single_put_unauthorized_write_confirmed_vulnerable": true,
+  "single_put_unauthorized_write_fixed": true,
+  "single_delete_confirmed_exploit_vulnerable": true,
+  "single_delete_fixed": true,
+  "benign_path_preserved_vulnerable": true,
+  "benign_path_preserved_patched": true,
+  "overall_verdict": "confirmed_fix_all_four_handlers"
+}
