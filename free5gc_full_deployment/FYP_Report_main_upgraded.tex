@@ -1,0 +1,947 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{microtype}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{fontspec}
+\setmonofont{Consolas}[Scale=0.85]
+\usepackage{fancyvrb}
+\usepackage{fvextra}
+\sloppy
+
+\onehalfspacing
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue}
+\usepackage{xurl}
+\usepackage{needspace}
+
+\title{Agentic AI for Vulnerability Confirmation and Patch Validation in Open-Source Software}
+\author{Dheeraj \\ College of Computing and Data Science \\ Nanyang Technological University}
+\date{\today}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\LARGE \textbf{Agentic AI for Vulnerability Confirmation and Patch Validation in Open-Source Software} \par}
+\vspace{1.5cm}
+{\large SC4079 \par}
+\vspace{1.5cm}
+{\Large Dheeraj \par}
+\vspace{1cm}
+{\large College of Computing and Data Science \par}
+{\large Nanyang Technological University \par}
+\vspace{1.5cm}
+{\large Supervisor: Assoc Prof.\ Chee Wei Tan \par}
+\vspace{1.5cm}
+{\large A Final Year Project Report \par}
+{\large Academic Year 2026/2027 \par}
+\vfill
+{\large \today \par}
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+An artificial intelligence system's ability to exploit software does not establish that it can reliably secure it. This project extended an existing exploit-confirmation prototype into a two-part, evidence-gated system for using large language models to secure open-source software: (1) dynamic confirmation and patch validation for already-published CVEs, and (2) reachability-filtered static analysis on real upstream free5GC source. Across five evolving pipeline rounds and a 36-run hosted-Claude comparison, dynamic exploit confirmation proved consistently achievable: all six catalogue classes were confirmed at least once, and every hosted model confirmed all six exploits. Patch validation proved substantially harder, and its own acceptance criterion needed correction twice. The original two-check criterion was found, by trace-level inspection, to accept a patch whose vulnerable route had merely crashed, indistinguishable to the automated check from a genuine fix; this was corrected into a four-outcome verdict. External review then found that corrected verdict itself still only checked for crash-absence on a benign request, not correct legitimate behaviour --- a limitation this project reproduced, quantified, and closed for the cases it could.
+
+Two independent real-upstream cases reached this project's strongest standards of evidence: a real, pinned-version PyPI package (\texttt{jaraco.context}, CVE-2026-23949), the strongest result among the Python-based main catalogue; and all four reachable handlers of a real, disclosed free5GC vulnerability (CVE-2026-40248), the strongest result among the compiled, real-upstream reachability work --- a harness running the actual vulnerable and patched \texttt{free5gc/udr} binaries inside a fuller deployment (a real MongoDB instance and a real free5GC NRF, not a minimal stand-in) confirmed, by direct HTTP exchange, that the vulnerable build permits an unauthorized read of a single record, an unauthorized read of the entire subscription collection, an unauthorized write, and an unauthorized delete, all through the same one-line missing-\texttt{return} defect, and that the real fix commit closes all four while preserving legitimate behaviour. This project's contribution is not a single confirmation or patch-acceptance rate; it is an account of how far an agentic, evidence-gated workflow can progress from a suspected vulnerability to reproducible evidence, and where its own validation judgments can fail without a strong, content-verified functional test --- a limitation this project discovered in its own tooling, corrected into a stronger verdict, and then further narrowed after independent review showed that the corrected check still did not fully establish benign-path correctness.
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\clearpage
+\pagenumbering{arabic}
+
+\chapter{Introduction}
+
+\section{Background}
+
+An artificial intelligence (AI) system's ability to exploit software does not establish that it can reliably secure it. Recently in July 2026, OpenAI models undergoing cybersecurity evaluation with reduced safeguards bypassed isolation controls and compromised parts of Hugging Face's infrastructure \cite{openai-incident}. The incident reminded us why advances in automated exploitation must be followed up with careful evaluation of their defensive use.
+
+Agentic AI offers one approach to automated security testing. An agent uses a Large Language Model (LLM), which processes text and code in order to select tools as well as revise its actions using feedback \cite{anthropic-agents}. For example, it would generate a test for a suspected vulnerability, run it, and investigate an unsuccessful attempt. Weiss and Khayet developed a pipeline that generates exploits from published vulnerability information and checks them against both vulnerable and patched software versions \cite{weiss-khayet}. Their method formed the basis of AI-exploit-CVE, a prototype developed and presented at DEFCON Singapore.
+
+Broader capabilities have emerged from the Defense Advanced Research Projects Agency's AI Cyber Challenge (AIxCC), which discovered 54 of 63 synthetic vulnerabilities and patched 43, approximately 86\% and 68\% of the total \cite{aixcc}. Its winning system, ATLANTIS, combines language models with program analysis to discover vulnerabilities and generate fixes \cite{atlantis}. The Open Source Cyber Reasoning System framework (OSS-CRS) provides a common interface for building and running automated vulnerability discovery and fixing systems \cite{osscrs}. These developments provide a foundation for extending the prototype beyond individual, disclosed vulnerabilities.
+
+\section{Research Gap}
+
+However, applying these capabilities requires evidence that the tests represent the software being assessed. An exploit that succeeds against a simplified reproduction may not work against the real application. Likewise, a patch that compiles may leave the vulnerability unresolved or disrupt legitimate functions. The question for this project is therefore how to extend the prototype to confirm suspected vulnerabilities and evaluate fixes in selected software targets.
+
+\section{Objectives}
+
+This study aims to develop and evaluate an agentic workflow for confirming disclosed vulnerabilities and validating candidate patches with executable evidence, using the stage vocabulary and evidence-gating philosophy of ATLANTIS and OSS-CRS as a conceptual frame rather than integrating their implementations directly (Chapter~2 states precisely where this project's stages align with theirs and where they do not). The workflow is evaluated on two tracks: a catalogue of six disclosed CVEs reproduced as minimal local targets, and free5GC, an open-source implementation of a 5G wireless network core used for research and testing \cite{free5gc}, where one disclosed vulnerability is analysed and patched against the real, cloned upstream source rather than a reproduction, and evaluated as a real upstream runtime case: alongside compile-time verification of the broader four-handler patch set, the specific handler responsible for the disclosed CVE (CVE-2026-40248) was additionally run and exercised live, against a real local MongoDB instance, to confirm the exploit and the fix by direct HTTP exchange rather than by compilation alone. A further, narrower integration links the pipeline to ProvTrail, a companion student's tool for identifying JavaScript and TypeScript code resembling known vulnerable implementations; this integration is limited to SARIF-based ingestion plumbing and one hand-authored, dynamically confirmed demonstration case, not a systematic evaluation of ProvTrail's own flagged findings. SARIF, the Static Analysis Results Interchange Format \cite{sarif}, is the interchange format between ProvTrail's static findings and this project's dynamic-confirmation pipeline.
+
+\section{Scope}
+
+Evaluation covers the six-CVE reproduction catalogue described above, run across multiple verification rounds and across a comparison of eight locally hosted models plus a later 36-run comparison of six hosted Claude models, and the one free5GC case study, in controlled local environments; within that case study, all four analysed handlers (CVE-2026-40248) were additionally evaluated at runtime against a fuller deployment (a real, locally hosted MongoDB backend and a real free5GC NRF), rather than by compile-time verification alone, with OAuth2 enforcement explicitly disabled and out of scope for this evaluation. This assesses whether suspected vulnerabilities can be dynamically reproduced and whether a proposed patch causes the original exploit to fail under an automated criterion. Full functional preservation --- whether a patch also preserves the affected route's behaviour for a legitimate, non-malicious request, verified against its exact expected content rather than merely the absence of a crash --- was not part of the original broad synthetic evaluation across the full catalogue and every model compared; it was added later as a stronger, content-verified reassessment for six recoverable patched artifacts (Section~\ref{sec:corrected-validator}) and for one real-upstream package case (Section~\ref{sec:real-upstream-validation}), not as a check performed uniformly across every result in this evaluation. Results obtained from simplified reproduction are distinguished from those obtained using actual software, with unsuccessful and inconclusive tests recorded. The findings are intended to help developers judge the evidence supporting an automated vulnerability report or proposed patch, including where that evidence, or the criterion used to produce it, was found to be incomplete.
+
+\section{Ethics and Responsible Use}
+\label{sec:ethics}
+
+All exploitation and patch testing in this project was carried out against locally hosted, self-controlled targets --- either generated reproductions run on a private development machine, or a real upstream package (\texttt{jaraco.context}) and a real upstream repository (\texttt{free5gc/udr}) exercised entirely within isolated local environments the author controlled, never against a public or third-party service. No exploit generated by this project was deployed against, or tested on, any system outside the author's own local infrastructure, and no live production service, public deployment, or third party's data was accessed, probed, or affected at any stage. Every CVE and CWE studied is a real, already-published, publicly disclosed advisory (verified against NVD, GHSA, and the relevant upstream project's own advisory or fix commit before use, per Appendix~\ref{app:reproducibility}); this project did not discover, disclose, or otherwise handle any previously unknown vulnerability, so no responsible-disclosure obligation to a vendor arose during this work. Local HTTP servers used to serve crafted archives or payloads (for example, the real-upstream \texttt{jaraco.context} case, Section~\ref{sec:real-upstream-validation}) were bound to \texttt{127.0.0.1} only and never exposed beyond the local machine. Should this project's methodology be extended to a previously undisclosed finding in future work, the author commits to following standard coordinated/responsible disclosure practice --- privately notifying the affected project or vendor, allowing a reasonable remediation window, and withholding public detail until a fix is available --- rather than the immediate, open reporting appropriate for the already-published CVEs studied here.
+
+\chapter{Literature Review}
+
+\section{Overview}
+
+This project sits at the intersection of three bodies of work: agentic AI systems that use large language models (LLMs) to carry out multi-step security tasks, Cyber Reasoning Systems (CRSs) that automate vulnerability discovery and repair at scale, and reachability-based static analysis techniques that narrow the scope of what such systems must examine. This chapter reviews each in turn, moves from isolated per-system description toward the themes that connect them, and closes by identifying the specific gap --- evidence-gated confirmation of both exploits and patches against representative targets --- that motivates this project's objectives, introduced in Chapter~1.
+
+\section{Agentic AI for Automated Security Testing}
+
+An agent, in the sense used throughout this literature, is a system in which an LLM processes text and code, selects among available tools, and revises its own actions based on feedback from their results, rather than following a fixed script \cite{anthropic-agents}. This feedback loop is what distinguishes an agentic approach from a single-shot LLM query: an agent that generates a candidate exploit can, in principle, run it, observe whether it succeeded, and try again with the failure in hand.
+
+Weiss and Khayet demonstrated this loop concretely for vulnerability exploitation, showing that an agent could take a published CVE's advisory text and generate a working exploit against it in under fifteen minutes \cite{weiss-khayet}. Their pipeline formed the direct basis for AI-exploit-CVE, the prototype this project extends. What Weiss and Khayet's work established, and what it left open, both matter for how this project is scoped: they showed that advisory-to-exploit generation is tractable for an agent, but their evaluation, like much of the broader "AI can hack" literature this project's Introduction opens with \cite{openai-incident}, centres on the offensive capability itself rather than on how confidently a defender could trust the result. An exploit that an agent reports as successful and an exploit that has actually been shown to work against a representative target are not the same claim, and the literature reviewed here does not consistently distinguish between them.
+
+\section{Cyber Reasoning Systems and the AIxCC/OSS-CRS Ecosystem}
+
+A Cyber Reasoning System generalises the single-exploit agentic loop into a full pipeline: discover an unknown vulnerability in a codebase, triage it, generate a proof of vulnerability, and generate and validate a patch, all without a human specifying the bug in advance. DARPA's AI Cyber Challenge (AIxCC) evaluated seven finalist CRSs (Atlantis, Buttercup, RoboDuck, FuzzingBrain, Bug Buster, Artiphishell, and Lacrosse) against a shared benchmark of synthetic vulnerabilities seeded into real open-source projects, with the finalists collectively discovering 54 of 63 seeded bugs (86\%) and patching 43 (68\%) \cite{aixcc}. The winning system, ATLANTIS, combined LLM-driven reasoning with traditional program-analysis techniques across its discovery, triage, and patch-generation stages \cite{atlantis}, and the Open Source Cyber Reasoning System project (OSS-CRS) subsequently generalised several AIxCC-era systems into a common runtime so they could be pointed at real OSS-Fuzz projects rather than only the competition's own challenge problems \cite{osscrs}.
+
+Two things follow from reading AIxCC and OSS-CRS alongside Weiss and Khayet's narrower exploit-generation work, stated as an observation and a hypothesis rather than an established finding. AIxCC's aggregate 86\%-discovery/68\%-patch split, reported across seven finalist systems on a large competition benchmark, is not directly comparable in task, scale, or denominator to this project's own six-CVE confirmation/patch-validation results (Section~\ref{sec:aixcc-comparison}), and this project's own patch-validation numbers have themselves been shown, by trace-level inspection, to include at least one false acceptance (Chapter~4) --- so neither figure should be read as an independently reliable measurement to compare against the other. What both bodies of work do suggest, more cautiously, is that generating a working patch may plausibly be harder than discovering or confirming the underlying bug across genuinely different systems and scales; this project's own results are consistent with that hypothesis without independently proving it holds as a general property of the task. Second, AIxCC and OSS-CRS finalists are primarily full discovery systems --- they find vulnerabilities nobody has previously identified --- though this is not absolute: FuzzingBrain, one AIxCC finalist, includes a documented mode for assessing externally supplied findings (for example, from static-analysis tools) rather than only its own discoveries \cite{fuzzingbrain}, which is closer in spirit to a known-finding confirmation task than a pure discovery system. This project's own scope remains narrower still and more specific: it confirms and patches already-published CVE advisories specifically, with dynamic execution evidence for every case, rather than triaging static findings of unstated provenance. Within the small, non-systematic set of sources reviewed for this chapter, this specific combination --- disclosed-CVE confirmation via real subprocess/HTTP execution, evaluated with the same evidence-gating discipline AIxCC-class systems apply to their own outputs --- is not something this review found duplicated elsewhere; this is stated as a gap in the material reviewed, not a claim about the full field.
+
+\section{Reachability-Filtered Vulnerability Triage}
+
+A separate line of work addresses a different bottleneck: even once a codebase is the analysis target, an LLM or static analyser cannot practically reason over every function in a large real-world project. OpenAnt addresses this by decomposing a codebase into a call graph and performing breadth-first reachability analysis from attacker-controlled entry points, reporting scope reductions of up to 97\% on real projects including OpenSSL, WordPress, and Flowise, before applying LLM-driven adversarial verification and sandboxed dynamic testing to the reduced candidate set \cite{openant}. An independently reported AIxCC finalist system, FuzzingBrain \cite{fuzzingbrain} (competition repository name \texttt{afc-crs-all-you-need-is-a-fuzzing-brain}), converges on a similar three-stage shape --- static reachability partitioning, LLM-based "suspicious point" triage, then fuzzing-driven verification --- arrived at separately from OpenAnt's own design.
+
+Read together, OpenAnt's and FuzzingBrain's independently-arrived-at similarity is at least suggestive that reachability-first filtering is not an idiosyncratic design choice specific to one system, though this observation rests on the small, non-systematic set of sources reviewed for this chapter rather than a comprehensive survey of the field, and should be read with that scope in mind. Patch validation rigour in this literature varies: FuzzingBrain's own published validation criteria require a patch to compile successfully and to pass a supplied regression-test suite before being accepted \cite{fuzzingbrain}, which is at least as strong as, and in the regression-testing respect stronger than, this project's own two-check acceptance criterion (Section~\ref{sec:patch-generation-validation}). What distinguishes this project's own reachability work (Chapter~3) is not a general gap in the literature's rigour, but a specific combination: applying reachability-filtered triage to an already-disclosed CVE and verifying the resulting patch by cloning the actual upstream repository and rebuilding it against that project's real, unmodified dependency graph, rather than against a synthetic or sandboxed target. This project's free5GC case study demonstrates that specific combination for one real vulnerability, detailed further in Chapter~3; it is offered as this project's own contribution, not as evidence that the wider literature lacks compile-time verification altogether.
+
+\section{Research Gap}
+
+Three observations from the small set of sources reviewed above, taken together, motivate this project's objectives; they are offered as a rationale drawn from a limited, non-systematic review, not as a claim about the full field. First, agentic exploit generation (Weiss and Khayet, and the broader capability the Hugging Face incident illustrates \cite{openai-incident}) has been demonstrated as tractable, but the evaluations reviewed here do not consistently separate "the agent reports success" from "the exploit was dynamically confirmed against a representative target" --- a distinction this project treats as a first-class requirement rather than an afterthought. Second, AIxCC-class systems are primarily oriented toward discovering previously unknown vulnerabilities at competition scale (with FuzzingBrain's external-finding assessment mode a partial exception); this project instead studies a narrower, everyday situation --- triaging a dependency's already-disclosed CVE --- with a lighter-weight, dynamic-evidence workflow scoped specifically to that task, without claiming from the small set of sources reviewed here that this situation is underserved by the field as a whole. Third, reachability-filtered triage (OpenAnt, FuzzingBrain) is established as an effective scope-reduction technique with, in FuzzingBrain's case, genuinely rigorous compile-and-regression-test patch validation; what remains specific to this project is combining that filtering technique with compile verification against a real, live-cloned upstream project's dependency graph for an already-disclosed CVE, rather than a claim that the wider literature omits compile-time verification.
+
+This project studies the following combination under its own stated conditions, distinct from each source reviewed above in a specific, statable way: unlike Weiss and Khayet's exploit-generation work, it extends generation with dynamic execution evidence and a two-check patch-acceptance criterion, evaluated with real subprocess and HTTP evidence rather than static description (Chapter~3); unlike OpenAnt's published evaluation, it verifies a reachability-filtered patch by cloning and rebuilding the actual upstream repository rather than an isolated file or sandbox (Chapter~3); and unlike the AIxCC-aggregate figures, it reports its own exploit-confirmation and patch-acceptance rates across multiple models and multiple verification rounds on a small, fully described catalogue (Chapter~4), so its own discovery/patch pattern can be inspected directly rather than assumed to match AIxCC's aggregate. Findings for JavaScript and TypeScript, via the ProvTrail integration introduced in Chapter~1, extend this same evidence-gated approach to a second ecosystem, using SARIF \cite{sarif} as the interchange format between ProvTrail's static findings and this project's dynamic-confirmation pipeline.
+
+\chapter{Methodology}
+
+\section{Project Context}
+
+This project extends an existing single-vulnerability exploit-confirmation prototype, AI-exploit-CVE, into a two-part evidence-gated system for using large language models (LLMs) to secure open-source software: (1) LLM-assisted exploit confirmation and patch validation for already-published CVEs, and (2) reachability-filtered static analysis on real upstream source, applied to a disclosed vulnerability in free5GC, an open-source 5G core network implementation \cite{free5gc}. ATLANTIS and OSS-CRS (Chapter~2) inform this project's stage vocabulary and evidence-gating philosophy rather than being integrated as code: no component of ATLANTIS or OSS-CRS is imported, called, or run by this project, and Appendix~\ref{app:crs-mapping} states explicitly where the analogy between this project's stages and theirs holds and where it does not. A secondary integration links the pipeline to ProvTrail, a companion project that statically identifies JavaScript/TypeScript code resembling known-vulnerable implementations; this integration currently consists of SARIF ingestion plumbing (\texttt{provtrail\_bridge.py}) and one hand-authored, dynamically confirmed JavaScript case (CVE-2024-48910, Prototype Pollution), not a systematic evaluation of ProvTrail's own flagged findings against real scanned projects, and this narrower scope is stated here rather than implied by the architecture description alone. The system falls under the Software System/Application category, with a Data Analytics component in its reachability-filtering and metrics stages.
+
+\section{Methodology Overview}
+
+This project was carried out in four main stages. First, the existing CVE-driven exploit-confirmation pipeline (advisory intake, vulnerability classification, exploit-artifact generation, dynamic execution, self-improvement on failure, and patch generation with regression validation) was extended and hardened against a catalogue of six published CVEs spanning six vulnerability classes. Next, a reachability-filtering engine --- ported from an earlier, standalone prototype developed for the same project before its scope was redirected --- was applied to a real, disclosed CVE in free5GC, producing an AST-based call graph reduction and a patch verified to compile against the actual upstream dependency graph. This was followed by the integration of ProvTrail's SARIF/AI-text export as an additional advisory source, allowing the pipeline to be driven by statically located JavaScript/TypeScript findings rather than only by NVD/GHSA feed entries. Finally, the system was evaluated across multiple rounds of live, locally hosted LLM verification (using Ollama-served open-weight models \cite{ollama}), during which two implementation defects were identified, fixed, and re-verified, and the pipeline's evidentiary claims were independently confirmed to hold under live model generation, not only under stubbed responses.
+
+\subsection*{High-level workflow}
+\begin{enumerate}
+  \item Advisory intake --- fetch a CVE/GHSA advisory, or consume a ProvTrail-flagged finding, as the unit of work.
+  \item Vulnerability classification --- categorise the advisory into one of six classes (SSRF, SQL injection, OS command injection, XSS, path traversal, deserialisation) or route it to the reachability engine for memory-safety-class C/C++/Go targets.
+  \item Exploit-artifact generation --- synthesise a proof-of-concept and a minimal reproduction target from the advisory's described bug pattern.
+  \item Dynamic execution --- run the generated artifact against the reproduction target and record a real process exit code / HTTP response as evidence.
+  \item Self-improvement --- on a genuine, executed failure, attempt a fix via a persisted lesson, then an LLM-generated revision, then a rule-based fallback, bounded to three iterations.
+  \item Patch generation and validation --- generate a candidate patch and accept it only if the original exploit now fails against it and the target's health check still passes.
+  \item Reachability analysis (parallel track) --- parse real upstream source into an AST-derived call graph, perform breadth-first reachability from stated entry points, and generate and compile-verify a patch against the real dependency graph.
+  \item Reporting and metrics --- aggregate per-CVE outcomes into structured reports and summary metrics (confirmation rate, patch-acceptance rate, reachability reduction, wall-clock time, LLM call count).
+\end{enumerate}
+
+\section{Alternative Approach Considered}
+
+Before continuing with the existing advisory-driven architecture, a proposed redesign was evaluated and deliberately not adopted: replacing CVE-driven exploit confirmation with a pipeline in which an LLM reads raw source code with no prior knowledge of any specific advisory, hypothesises a vulnerability from scratch, synthesises a triggering input purely by reasoning rather than by search or mutation, and validates the hypothesis by replaying that input once against an instrumented build. This alternative was rejected for four reasons. First, its own proposed validation plan --- a single smoke test against one example file --- was judged insufficient grounds to commit to restructuring the project's architecture before that assumption was independently tested. Second, this project's existing exploit-artifact generation is always guided by an advisory's own stated root cause, a materially easier task than zero-shot vulnerability hypothesis generation with no prior knowledge, so this project's own results do not transfer as evidence that the alternative's harder, blind variant would work. Third, the proposal would have introduced a second, disconnected system rather than extending the existing, already-validated pipeline. Fourth, it required setting up new local model infrastructure for a speculative direction while the existing, evidence-gated pipeline was already in a documented, working state. This alternative remains available to revisit as a bounded, separately-evaluated extension, but was not adopted as the basis for this project.
+
+\section{System Architecture}
+
+\subsection{System Description}
+
+The system consists of two loosely coupled subsystems sharing a common advisory-driven design philosophy. The first, the main exploit-confirmation pipeline, is orchestrated by \texttt{cve\_pipeline.py} and driven by a feed poller (\texttt{cve\_watcher.py}) that dispatches pipeline runs for newly observed advisories from NVD, GHSA, or ProvTrail. The second, the reachability-filtering engine (\texttt{src/reachability/}), operates independently on real upstream source rather than on advisory text, and is invoked directly against a stated set of entry-point functions. A supporting bridge module (\texttt{provtrail\_bridge.py}) converts ProvTrail's SARIF output into advisories the main pipeline can consume, and two standalone dynamic-exploitation labs (\texttt{ssrf\_lab/}, \texttt{free5gc\_lab/}) provide locally hosted, self-controlled targets for live confirmation where a generic Flask stand-in would not suffice.
+
+\subsection{Major System Components}
+
+\begin{table}[H]
+\centering
+\caption{Major system components and their functions.}
+\label{tab:components}
+\begin{tabular}{@{}p{4cm}p{9cm}@{}}
+\toprule
+\textbf{Component / Module} & \textbf{Function} \\
+\midrule
+\texttt{cve\_pipeline.py} & Orchestrates advisory fetch, classification, artifact generation, dynamic execution, self-improvement, and patch generation/validation for a single CVE. \\
+\texttt{cve\_watcher.py} & Polls NVD, GHSA, and ProvTrail feeds on a fixed interval and dispatches pipeline runs across parallel workers. \\
+\texttt{provtrail\_bridge.py} & Converts ProvTrail's SARIF/AI-text export into advisories consumable by the main pipeline, falling back to NVD/GHSA when no scan is available. \\
+\texttt{src/reachability/} & Performs tree-sitter-based AST parsing, call-graph construction, breadth-first reachability filtering, adversarial triage, and rule-based or LLM-based patch generation on real upstream source. \\
+\texttt{src/pipeline/patch.py} & Generates a candidate patch for a confirmed exploit and validates it via a two-check regression test. \\
+\texttt{src/metrics.py} & Aggregates confirmation rate, patch-acceptance rate, wall-clock time, and LLM call count across the report catalogue. \\
+\texttt{free5gc\_lab/} & A dependency-free Go reproduction of a disclosed free5GC vulnerability, dynamically exploited and patched in isolation from the main pipeline. \\
+\texttt{ssrf\_lab/} & A local FastAPI target providing genuine live-traffic confirmation for the SSRF vulnerability class. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Architecture Diagram}
+
+A system architecture diagram is included as Figure~\ref{fig:architecture} below (landscape orientation, for legibility), illustrating the flow from advisory intake through classification, artifact generation, dynamic execution, self-improvement, and patch validation. Figures~\ref{fig:interpreter-branch} and~\ref{fig:model-backend} detail two supporting mechanisms: the interpreter branch that routes Stage 3.6 execution to \texttt{python} or \texttt{node} depending on target file extension, and the shared live-model backend used by Stages 3.5, 3.7, and 3.8. All three diagrams are rendered directly from this project's own \texttt{architecture.html} source, not redrawn.
+
+\begin{landscape}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/architecture.png}
+\caption{System architecture: advisory-driven exploit confirmation pipeline, from advisory intake through classification, dynamic execution, self-improvement, and patch generation/acceptance.}
+\label{fig:architecture}
+\end{figure}
+\end{landscape}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/interpreter_branch.png}
+\caption{The Stage 3.6 interpreter branch: routes execution to \texttt{python} or \texttt{node} depending on target file extension.}
+\label{fig:interpreter-branch}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/model_backend.png}
+\caption{The shared live-model backend used across Stages 3.5, 3.7, and 3.8, including the persisted-lesson store.}
+\label{fig:model-backend}
+\end{figure}
+
+\section{Data Sources and Preprocessing}
+
+\subsection{Advisory and Source Data}
+
+\begin{table}[H]
+\centering
+\caption{Advisory and source data used in evaluation.}
+\begin{tabular}{@{}p{4cm}p{9cm}@{}}
+\toprule
+\textbf{Item} & \textbf{Description} \\
+\midrule
+Advisory sources & NVD API v2, the GHSA feed, and ProvTrail's SARIF/AI-text export \\
+Advisory volume (main catalogue) & Six CVEs, spanning six vulnerability classes (SQL injection, OS command injection, XSS, path traversal, deserialisation, SSRF) \\
+free5GC: CVE-2026-40246 & Evaluated separately as a hand-written Go reproduction (\texttt{free5gc\_lab/}), dynamically exploited and patched at runtime; no fix commit documented for this CVE in this project's own records \\
+free5GC: CVE-2026-40248 & Evaluated against the real, cloned \texttt{free5gc/udr} upstream source at four selected handlers, with a documented fix commit and a build check at the pre-fix revision for all four; all four handlers additionally run at runtime against a fuller deployment (a real MongoDB instance and a real free5GC NRF, OAuth2 disabled) (Section~\ref{sec:free5gc-runtime-harness}) \\
+Upstream source data & Real, verbatim free5GC/UDR source (\texttt{internal/\allowbreak sbi/\allowbreak api\_datarepository.go}), fetched at the commit before and the commit of the disclosed fix, approximately 86~KB, 102 parseable functions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Preprocessing Steps}
+
+Advisory text was parsed to extract the vulnerability class, affected package, and any code-diff snippet included in the advisory. Where a code diff was present, it was used for static pattern matching during classification. For the reachability track, the fetched Go source file was parsed using a tree-sitter grammar into an abstract syntax tree, from which function definitions and call edges were extracted to construct a directed call graph. A stated list of four real HTTP entry-point handlers was then used as the seed set for breadth-first reachability traversal.
+
+\section{Algorithms and Models Used}
+
+\subsection{Model and Algorithm Selection}
+
+\begin{table}[H]
+\centering
+\caption{Representative models and algorithms invoked by the pipeline (not the full eight-model comparison, which is reported in full in Table~\ref{tab:multi-model}).}
+\begin{tabular}{@{}p{5.5cm}p{7.5cm}@{}}
+\toprule
+\textbf{Model / Algorithm} & \textbf{Purpose} \\
+\midrule
+Claude CLI / pydantic-ai agent backend & Advisory analysis, exploit-artifact generation, and patch generation when a hosted API or CLI session is available \\
+Ollama-served \texttt{qwen2.5-coder:7b} (local, no API key) & Live-model verification of exploit-artifact generation and self-improvement revision \\
+Ollama-served \texttt{qwen2.5-coder:1.5b} and \texttt{mistral:7b} (local) & Comparative live-model backends evaluated across verification rounds \\
+Rule-based heuristics (e.g.\ \texttt{find\_\allowbreak missing\_\allowbreak return\_\allowbreak after\_\allowbreak response}) & Deterministic, offline fallback patch generation requiring no LLM call \\
+Tree-sitter AST parsing + breadth-first search & Reachability filtering: construction of a call graph and traversal from stated entry points \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Key Parameters and Settings}
+
+\begin{table}[H]
+\centering
+\caption{Key parameters and settings.}
+\begin{tabular}{@{}p{4cm}p{2.5cm}p{6cm}@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Reason} \\
+\midrule
+Self-improvement iteration bound & 3 & Prevents unbounded LLM cost or looping past a signature with no known fix \\
+Feed poll interval & 60 minutes & Balances advisory freshness against feed rate limits \\
+Parallel workers & 2 & Bounds concurrent LLM/API load while allowing cross-CVE parallelism \\
+Reachability entry-point set & 4 handlers & Reflects the real, externally reachable surface of the analysed free5GC module \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implementation Details}
+
+\subsection{Programming Environment}
+
+Table~\ref{tab:prog-env} summarises the languages, libraries, and hardware the system was implemented and evaluated with.
+
+\begin{table}[H]
+\centering
+\caption{Programming environment.}
+\label{tab:prog-env}
+\begin{tabular}{@{}p{4cm}p{9cm}@{}}
+\toprule
+\textbf{Item} & \textbf{Details} \\
+\midrule
+Programming languages & Python (pipeline orchestration, pydantic data models, reachability engine); Go (free5GC target reproduction and the real upstream module under test) \\
+Libraries / frameworks & pydantic-ai (agent orchestration), tree-sitter (AST parsing), Flask (main-catalogue reproduction targets), FastAPI (\texttt{ssrf\_lab/}), Go's standard-library \texttt{net/http} (dependency-free lab server) \\
+Hardware & Local workstation; Ollama-served models were run on locally available CPU/GPU resources, with no dedicated accelerator required for the classes of models evaluated \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Implementation Procedure}
+\label{sec:implementation-procedure}
+
+The system was implemented incrementally, in the following order. First, the pre-existing exploit-confirmation pipeline was extended with dynamic execution, replacing an earlier design in which generated exploit artifacts were written to disk but never actually run. Self-improvement was then added as a bounded retry loop consulting, in order, a persisted-lesson store, an LLM-generated revision, and a rule-based fallback. Patch generation and validation was implemented next, gated on two simultaneous conditions: the original exploit failing against the patched target, and the target's health check continuing to pass. The reachability engine was subsequently ported from an earlier standalone prototype and re-validated against its own prior results before being applied to real free5GC source, first as an isolated file parse and later against the actual cloned upstream repository to confirm compile-compatibility with its full dependency graph. The ProvTrail bridge and the free5GC dynamic-exploitation lab were implemented as independent, loosely coupled additions, following the same dual vulnerable/patched-mode convention already established elsewhere in the system. Finally, the system was run across successive live-model verification rounds; two defects surfaced during this process --- an unstripped markdown code fence in model-generated output, and stale execution-state fields left over from a prior run --- were each isolated with a standalone targeted test, fixed, and the full catalogue was re-run to confirm the fix.
+
+\section{Testing and Validation}
+\label{sec:testing-validation}
+
+\subsection{Testing Strategy}
+
+The system was tested by executing every generated exploit artifact as a real subprocess against a real, locally deployed target and recording its actual exit code or HTTP response, rather than treating generation as evidence of exploitability by itself. Patch validation was tested by re-running the original, unmodified exploit against the patched target and independently confirming a separate \texttt{/health} endpoint still responded correctly, so that a patch which crashed the target process entirely would be rejected. This check does not confirm that the vulnerable route itself still behaves correctly for a legitimate request, only that the application as a whole is still running; Chapter~4 reports a case where this specific gap allowed a patch containing an unrelated crash bug to be marked validated. For the reachability track, the generated patch was tested for compile-compatibility by cloning the actual upstream repository at the pre-fix commit, applying the patch to the real source file, and rebuilding against the module's genuine dependency graph. All four handlers within that track, CVE-2026-40248, were tested one tier further, at runtime, using a purpose-built harness --- first a minimal local stand-in, then a fuller Docker-based deployment with a real NRF --- rather than compilation alone.
+
+\subsection{free5GC Runtime Validation Harness}
+\label{sec:free5gc-runtime-harness}
+
+The real, cloned \texttt{free5gc/udr} module was built twice from source, once at the vulnerable commit and once at its immediate successor, the real upstream fix commit. Both builds require a reachable MongoDB instance to start; a native MongoDB Community Server instance, run locally rather than inside a container, was used, since the experiment's only real infrastructure dependency was UDR's own database connection, not full containerisation. Both builds also require a reachable Network Repository Function (NRF) to complete their own startup: UDR's registration call to the NRF blocks its HTTP server from starting at all if it never succeeds, an infinite retry with no timeout, so a minimal stand-in NRF, answering only the one registration call UDR needs and asserting no broader NF-discovery capability, was required purely to let each build reach the point of serving real HTTP traffic. This stand-in had itself to be implemented as a small compiled Go program communicating over cleartext HTTP/2 with prior knowledge (h2c), rather than a simpler HTTP/1.1 script, because free5GC's own NRF client negotiates HTTP/2 unconditionally and rejects an HTTP/1.1 responder outright; this was discovered empirically; an initial HTTP/1.1 stand-in failed with a client-side framing error rather than a connection error, and was replaced once the cause was identified. With both dependencies satisfied, each build was driven through an identical request sequence over real HTTP: seed a subscription record, issue the CVE's malicious delete request, check whether the record still exists, reseed, issue a legitimate delete request for the same record, and check again --- with every request, response, and process log captured as part of the resulting evidence bundle rather than only the final pass/fail outcome.
+
+This minimal harness was subsequently extended to a fuller deployment and to the three remaining reachable handlers, using the official \texttt{free5gc-compose} Docker stack rather than the hand-written stand-in above: a real, official MongoDB image and a real, official free5GC NRF image (not a minimal stub), with a custom-built UDR image compiled from the same pinned vulnerable and fixed commits. OAuth2 enforcement, which the real NRF enables by default and which would otherwise require a full OAuth2 client-credentials flow unrelated to the vulnerability under test, was explicitly disabled in the NRF's configuration for this harness; this is a real, supported free5GC configuration option, not a synthetic bypass, but it means this result says nothing about whether OAuth2 enforcement would affect an attacker's ability to reach these handlers in a deployment that has it enabled. Under this fuller deployment, all four of the reachability engine's originally-flagged handlers --- not only the DELETE handler --- were driven through the same seed/malicious-request/benign-request pattern, again with every request, response, and container log captured.
+
+This project does not use a conventional training/testing split or k-fold cross-validation, as it is not a statistical learning system being evaluated for generalisation; alternative validation designs considered included purely static rule-checking (rejected, as it cannot demonstrate an exploit actually succeeds) and reliance on a single verification run (rejected in favour of repeated rounds, since two genuine implementation defects were only surfaced by re-running the full catalogue after each fix). Instead, validation proceeded through repeated verification rounds across the CVE catalogue --- five successive rounds of live-model runs --- with each round's failures traced to a specific, named cause before the next round was attempted, rather than accepted as unexplained noise.
+
+\section{Evaluation Metrics}
+
+\begin{table}[H]
+\centering
+\caption{Evaluation metrics and their justification.}
+\begin{tabular}{@{}p{4cm}p{9cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{What It Measures} \\
+\midrule
+Confirmation rate & Proportion of catalogued CVEs whose described bug pattern was dynamically confirmed exploitable (5 of 6) \\
+Two-check patch acceptance rate & Proportion of confirmed exploits for which a generated patch met both conditions of the pipeline's own \texttt{patch\_validated} field --- the original PoC no longer succeeds, and a separate health endpoint still responds --- first achieved in round 4, after zero acceptances across three prior rounds; this metric does not measure benign-route preservation or repair correctness, and is superseded as this project's headline patch metric by the corrected \texttt{patch\_verdict} field (Section~\ref{sec:corrected-validator}), retained here and throughout for continuity with earlier rounds \\
+Reachability reduction & Percentage reduction in functions requiring analysis after BFS filtering (96.1\%, 102 reduced to 4) \\
+Wall-clock time per CVE & Runtime cost of a full pipeline run, as a practicality indicator \\
+LLM call count, wall-clock time, and recorded API cost (USD) & Real, per-call figures read directly from the Claude CLI's or Ollama's own token/duration fields (not estimated). Every Ollama-backend call in this evaluation records \$0.0000, a genuine zero \emph{billed API charge} from local, unmetered inference, not zero underlying compute cost, which was not separately measured. Claude CLI calls initially recorded no cost figure at all, since the CLI's plain-text output mode exposes no usage metadata; switching to its structured JSON output mode (Section~\ref{sec:claude-multi-model-comparison}) exposes a real, non-zero, provider-reported \texttt{total\_cost\_usd} per call, used directly in Table~\ref{tab:claude-multi-model} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These metrics were selected to mirror the vocabulary used by DARPA's AI Cyber Challenge and the OpenSSF's OSS-CRS project to report cyber-reasoning-system results --- bugs confirmed against bugs attempted, proof-of-vulnerability confirmation rate, and patch-acceptance rate --- so that this project's results can be read against the same benchmark context introduced in Chapter~1, rather than against an ad hoc scale.
+
+To keep these terms precise across the results reported in Chapter~4, evidence tiers are distinguished explicitly rather than collapsed into a single pass/fail label. \textbf{Dynamically confirmed} means a real subprocess exit code from a real HTTP exchange, or a real compiled-harness run, not a static description. \textbf{Patch accepted by the two-check criterion} means the original, unmodified proof-of-concept no longer meets its success condition against the patched local target, while a separate \texttt{/health} request still succeeds. This checks exactly one attack input and application liveness; it does not establish that the affected route handles a legitimate request correctly, that other attack inputs are blocked, or that the named upstream package has been repaired. This project does not use the term ``plausible patch'' or claim ``regression-safety'' for this flag: Chapter~4 reports a specific case (CVE-2026-78683, round 5) where the tested exploit request crashed the patched route with an unrelated import error, and this satisfied the exact criterion above, which is why a stronger label would overstate what it proves. This criterion is also weaker than the patch-validation bar used by at least one real AIxCC finalist system, FuzzingBrain, whose own published criteria require a patch to compile, eliminate all known proofs of the vulnerability, and pass a supplied regression-test suite \cite{fuzzingbrain} --- a three-part bar this project's own two-check criterion does not match. A further tier, \textbf{correct} patch --- one independently checked against the real upstream fix's own intent, or against benign-request and multi-payload behaviour, rather than only against the one exploit that triggered it --- is explicitly not measured by this project; no diff-similarity scoring, second-reader adjudication, or benign-path regression test exists here, and this project's own patch-validation investigation (Section~4.1.2) shows why that distinction matters in practice. \textbf{Compile-verified} describes the free5GC reachability case study's original compile-only evidence and means \texttt{go build} succeeds against the real, live-cloned upstream module with the patch applied --- explicitly weaker evidence than dynamic confirmation, and never reported in the same column without this qualification. All four of that case study's reachable handlers (CVE-2026-40248) were subsequently \textbf{runtime-confirmed}: the real, cloned module was built, run, and exercised over real HTTP for both the vulnerable and fixed commits, first against a minimal MongoDB-only stand-in (Section~\ref{sec:free5gc-runtime-harness}) for the DELETE handler, then against a fuller deployment (real MongoDB and a real free5GC NRF, OAuth2 disabled) for all four handlers, meeting the same \textbf{dynamically confirmed} bar defined above rather than the weaker compile-verified one.
+
+\section{Limitations and Assumptions (Method-Related)}
+\label{sec:limitations-method-related}
+
+The methodology assumes that a faithful reproduction of an advisory's described bug pattern is representative evidence of that bug class, even where the reproduction target is a minimal stand-in rather than the actual named upstream package. For the six main-catalogue CVEs, the exploited target is a generated Flask application reproducing the described pattern; a confirmed exploit therefore demonstrates that the described pattern is exploitable as written, not that the real, named package is exploitable when actually installed and run. The live dynamic probe is genuine only for the SSRF class; the remaining five classes rely on static pattern matching at that stage, with dynamic evidence instead attributed to the execution step. A patch accepted by this project's two-check criterion has only been shown to make one known exploit request fail while a separate health endpoint still succeeds; this is not general correctness, not freedom from all other exploitable inputs, and --- established by direct trace inspection in Chapter~4 --- not even reliably regression-safe, since the criterion cannot distinguish a deliberate security fix from an unrelated crash bug in the generated patch, both of which produce the same observable pattern (the exploit request fails, the separate \texttt{/health} endpoint still returns 200). Neither check currently confirms that the patched route itself still behaves correctly for a legitimate, non-malicious request --- only that the application process as a whole remains alive --- which is a concrete direction for strengthening the validation criterion, not merely a hypothetical one, since Chapter~4 reports a case where this exact gap produced a false acceptance. A corrected validator, introduced later in Chapter~4 (Section~\ref{sec:corrected-validator}), strengthens the exploit side of exactly this gap by distinguishing a deliberate rejection from a crash; its own benign-route check, however, was itself found to require only crash-absence rather than correct behaviour, so this limitation is narrowed, not resolved, and the same caution applies to reading its own results. The free5GC reachability case study's four handlers were originally verified only to compile against the real upstream dependency graph, which is a real but bounded result: it does not by itself constitute dynamic confirmation, and one handler is additionally known to be only partially correct under the project's own rule-based patcher (Chapter~4), fully preserving compilation but not fully closing its handler's vulnerability under that generated patch (the real upstream fix used for runtime testing does not share this limitation). All four handlers were subsequently taken further, by a narrower route than a full core-network deployment: neither the minimal MongoDB-only harness nor its fuller successor stands up free5GC's other network functions (AMF, SMF, and the rest), and the fuller deployment's real NRF was run with OAuth2 enforcement disabled, so this remains real dynamic confirmation for this one file's four handlers under that specific configuration, not evidence that free5GC's broader core-network behaviour, or this same vulnerability under OAuth2 enforcement, would confirm the same way under this stronger standard. Finally, LLM-dependent pipeline stages were first verified using stubbed model responses to establish that the surrounding logic functioned correctly, and were subsequently confirmed to operate under live, locally hosted model generation for exploit-artifact generation, self-improvement, and patch generation alike --- every patch attempt reported in Chapter~4 used real, metered Ollama calls, not a stub. Only the reachability engine's own separate LLM-based patch fallback remains verified via stub in this environment, since the free5GC case study's patches were produced by its rule-based path instead; this narrower limitation is stated explicitly rather than left implicit.
+
+\chapter{Results and Discussion}
+
+\section{Results}
+
+\subsection{Exploit Confirmation Across the CVE Catalogue}
+
+The five rounds reported in this section are five evolving pipeline runs, not repeated trials of one constant, held-fixed system: code, prompts, the persisted-lesson store, and (for round 5) sampling parameters all changed between at least some rounds, as detailed alongside each round's own description below. They should not be read as a controlled model comparison in the way Section~\ref{sec:multi-model-comparison}'s single-protocol, single-snapshot eight-model comparison can be. Table~\ref{tab:confirmation-rounds} shows the number of catalogued CVEs dynamically confirmed exploitable across five successive verification rounds, each run against the same six CVEs (one per vulnerability class) under a fixed, single-shot-per-CVE protocol within that round. Throughout this chapter, a ``confirmed'' flag means the described bug pattern was reproduced and dynamically triggered in a generated stand-in target (Section~\ref{sec:limitations-method-related}); it is not independent evidence that the corresponding named upstream package is exploitable when actually installed and run.
+
+\begin{table}[H]
+\centering
+\caption{Dynamic confirmation rate by round.}
+\label{tab:confirmation-rounds}
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+\textbf{Round} & \textbf{Confirmed} & \textbf{Change from previous round} \\
+\midrule
+Round 1 & 1/6 (17\%) & --- \\
+Round 2 & 2/6 (33\%) & net +1: gained SSRF and XSS, lost SQLi (confirmed round 1) \\
+Round 3 & 1/6 (17\%) & $-1$ (net; Path Traversal newly confirmed, two prior confirmations lost) \\
+Round 4 & 4/6 (67\%) & +3 \\
+Round 5 & 5/6 (83\%) & +1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Considered across all five rounds rather than any single round in isolation, all six vulnerability classes in the catalogue confirmed dynamically at least once; no class was permanently unconfirmable. Round 4 corrected two implementation defects that had been suppressing round 3's result: an unstripped markdown code fence in model-generated output, present in the execution log of four of round 3's five unconfirmed cases, and a stale exit-code/confirmation field that was not reset when a target crashed before its health check. Zero of round 4's six reports and zero of round 5's six reports contained the fence-crash signature, checked programmatically against every execution log.
+
+\subsection{Patch Generation and Validation}
+\label{sec:patch-generation-validation}
+
+Across rounds 1--3 of the main pipeline's live-LLM catalogue runs, zero of the attempted patches were accepted by both required conditions of the two-check criterion (the original exploit failing against the patched target, and the target's health check continuing to pass). Round 4 and round 5 each produced one patch accepted by this criterion, in both cases for CVE-2026-78683 (Insecure Deserialization) and in both cases resulting in the patched target returning HTTP 500 when the original exploit was re-run against it, satisfying the pipeline's first condition.
+
+Trace-level inspection of both patches found that the two HTTP 500 responses have different, and differently trustworthy, causes. Round 4's patched handler deliberately raises \texttt{ValueError("Deserialization only allowed for safe classes")} from an added class whitelist --- consistent with the patch summary's own description and plausibly a genuine security fix, though this project's evidence for it stops at that trace-level reading, not an independent oracle confirming the fix is correct. Round 5's patched handler, by contrast, raises \texttt{NameError: name 'io' is not defined} --- the generated patch called \texttt{io.BytesIO(...)} without importing the \texttt{io} module, a plain implementation bug in the generated code, not a security check of any kind. Both traces are reproduced in full in Appendix~\ref{app:trace-excerpts}. Because the pipeline's two-check acceptance criterion treats \emph{any} exception on the vulnerable route, deliberate or accidental, identically to a successful block, it could not and did not distinguish these two cases: round 5's \texttt{patch\_validated: true} flag is a \textbf{false acceptance} by trace-level inspection, not a verified repair, and this project's own automated pipeline cannot currently tell the two apart on its own. This is a genuine, structural limitation of the Stage 3.8 acceptance criterion's design.
+
+Round 5's patch was genuinely re-probed with its two recorded alternate payloads: the run's raw terminal log records two separate \texttt{Multi-payload re-probe} calls, each returning ``still blocked.'' This does not, however, establish a robust fix. The JSON report preserves only the original payload's full trace, not an individual trace per alternate payload, so the specific mechanism behind each ``still blocked'' result cannot be independently confirmed from the report alone; and the preserved trace shows the \texttt{NameError} occurs in a line that constructs the unpickler before any payload-specific branching is reached, which is consistent with the crash being independent of payload content; this reading is a logical inference from the traceback's location in the code, not something separately confirmed by a preserved benign-request trace or the generated patched source itself, which is not preserved outside its temporary sandbox path (Appendix~\ref{app:repo-access}). The two alternate-payload probes therefore ran, but at minimum re-confirm the same crash rather than demonstrating the underlying vulnerability was closed.
+
+\subsubsection*{A corrected validator}
+\label{sec:corrected-validator}
+
+The false-acceptance finding above was addressed directly, not merely documented. The two-check criterion was extended, additively, with two new checks and a headline verdict field on the same underlying report object: \texttt{patch\_exploit\_blocked} (did the exploit fail \emph{without} an unhandled exception in the target's own process log, checked via a crash-signature pattern over that log rather than a separate instrumentation channel), \texttt{patch\_function\_preserved} (did a fixed, non-malicious benign request to the same route complete \emph{without} that same crash-signature pattern appearing --- precisely what this field does and does not establish is stated below, since it is weaker than it may first appear), and a headline \texttt{patch\_verdict} taking one of four outcomes: \texttt{confirmed\_fix} (blocked and preserved), \texttt{regression\_broke\_route} (blocked but the benign request also now fails), \texttt{inconclusive\_crash} (the exploit request itself crashed the route, so blocking cannot be attributed to a deliberate check), and \texttt{not\_blocked} (the exploit still succeeds). The original \texttt{patch\_validated} flag is left completely unchanged so every prior round's reported number stays under its original criterion; the new fields are read only where explicitly cited. Replaying the round 5 false-acceptance trace from Appendix~\ref{app:trace-excerpts} through the corrected validator (with execution mocked to reproduce the exact preserved log) reproduces \texttt{patch\_validated: true} as before, while the new \texttt{patch\_verdict} field correctly reads \texttt{inconclusive\_crash} --- confirming the corrected criterion catches, automatically and without manual trace inspection, exactly the case that previously required it.
+
+\textbf{What \texttt{patch\_function\_preserved} does and does not establish.} The benign probe reuses the same generated proof-of-concept script with a fixed, generic non-malicious payload substituted for the exploit's own payload, rather than a class-specific request with a known-correct expected response. \texttt{patch\_function\_preserved} is set to true when that probe's target process executes and the same crash-signature pattern used for \texttt{patch\_exploit\_blocked} does not appear in its log --- it does \emph{not} require the benign request to return HTTP 200, does not require the reused proof-of-concept script to itself report success, and does not check any class-specific expected output. A direct audit of every \texttt{confirmed\_fix} verdict in the 36-run hosted-Claude comparison (Section~\ref{sec:claude-multi-model-comparison}), prompted by external review, found that all 27 such verdicts' benign probes were reported as failed by the reused proof-of-concept script's own logic (since a generic payload does not trigger that script's exploit-specific success marker), and that only 13 of those 27 returned HTTP 200 on the benign request's final response, with the remaining 14 returning 401, 403, or 400 --- a clean HTTP-level rejection, not a crash, but also not confirmation that the route handled the legitimate request as intended. A closely related, narrower case in the same dataset: one \texttt{confirmed\_fix} verdict (Haiku~4.5, CVE-2026-42208) followed an exploit re-probe whose own log read \texttt{[-] Target unreachable} rather than a clean HTTP rejection or a crash signature; a separate, later benign probe against the same patched target started and responded normally, indicating the ``unreachable'' reading was most likely a transient startup race in the reused script's own health check rather than a deliberate block, which the crash-signature check --- built to separate a deliberate rejection from a crash --- does not distinguish from either. This is a genuine limitation of the corrected validator, not a claim it does not have, and every reading of \texttt{patch\_verdict} = \texttt{confirmed\_fix} in this project from Section~\ref{sec:claude-multi-model-comparison} onward should be understood as ``the exploit was rejected without a detected crash, and a generic benign request to the same route also completed without a detected crash,'' not as independent confirmation that the route's legitimate behaviour is correct.
+
+\textbf{A stronger, content-verified reassessment.} This limitation was addressed directly, not left as a stated gap: for each of the six main-catalogue vulnerability classes, a real expected malicious result and a real expected legitimate result (specific HTTP status and exact response content, read from the actual generated target/proof-of-concept source rather than assumed) were defined and re-tested against surviving patched artifacts from the 36-run comparison. Locating those artifacts surfaced a further, previously undocumented harness gap: Stage 3.5/3.8's artifact writer saves generated files to a shared, non-model-specific path regardless of a run's own output destination, so every model that touched the same CVE in the comparison overwrote the same file --- only 6 of the original 36 patched targets survive on disk, one per CVE (whichever model happened to run last for it), not all 36. Re-testing those 6 survivors under the stronger, content-verified criterion, every one passed: each malicious request received a clean, class-appropriate rejection distinct from the vulnerable version's response, and each legitimate request received its exact expected content, not merely a crash-free one. This reassessment also explained an apparent contradiction found while building it: \texttt{claude-opus-4-8}'s surviving CVE-2026-46492 patch was originally recorded as \texttt{not\_blocked}, yet directly tested here as genuinely correct against the proof-of-concept's default payload; the original multi-payload bypass check's alternate payload was found, on inspection, to trigger the generated target's own vulnerability-signalling self-check (a keyword-pattern regex over already-escaped, inert output) without the underlying markup ever being capable of executing in a real browser --- a fidelity limitation of the generated target's own signal, not a real bypass of the patch. Full methodology, per-CVE expected values, and this finding: \texttt{reports/\allowbreak patch\_reassessment\_2026-09-26/\allowbreak RESULTS.md}. This reassessment does not extend to the other 30 of 36 original attempts, whose patched source no longer exists and cannot be reassessed without new generation cost, and the 6 survivors are not a representative sample of the full comparison.
+
+A second, genuine implementation gap was found while first exercising the corrected validator against live, varied data rather than only the two originally planned synthetic test cases: the code path taken when a patched target's health check fails \emph{entirely} (the target process never becomes reachable at all, the clearest possible crash signature) returned before reaching the new verdict-computation block, leaving \texttt{patch\_verdict} blank instead of classified. This was fixed by explicitly setting \texttt{patch\_verdict = inconclusive\_crash} in that specific early-return branch, and verified by re-running the affected case and confirming the corrected output. This is reported here as a further instance of the same pattern already established in Sections~\ref{sec:confirmation-rate-progression} and~\ref{sec:patch-validation-lag}: a validation harness's own correctness is not established merely by writing it, only by exercising it against real, varied failure modes and checking the result by hand at least once.
+
+The corrected validator was then applied to a sixth full-catalogue verification round, run under the same isolated-lessons-store protocol as rounds 1--5 (Appendix~\ref{app:reproducibility}) and intended, in its original design, to compare the Ollama backend against a hosted Claude Code CLI session as a second live-model backend. That specific comparison did not succeed: the \texttt{claude} CLI's authentication session had silently expired between the CLI's own version check (which does not require authentication and reported success) and its actual generation calls (which failed with an authentication error on every attempt), and the pipeline's existing backend-selection logic treated this as an ordinary unavailable-backend condition and silently substituted the local Ollama backend for every call, with no warning surfaced anywhere in the run's own logs. This was caught only by manually auditing the \texttt{generation\_backend} field recorded on each report against the run's own stated protocol, after the run had already completed and been reported once as a Claude Code comparison. The pipeline's silent-fallback behaviour was subsequently hardened so that a caller requesting a specific model explicitly is no longer silently substituted without a visible warning; the round's real, honest-but-mislabelled data was kept and reported as a sixth Ollama round rather than discarded, once relabelled correctly. Under the corrected validator, this round's four confirmed exploits each received a patch attempt, and every one of those four patches failed to close the vulnerability under the new criterion: three as a clean \texttt{not\_blocked} and one as \texttt{inconclusive\_crash} --- the same qualitative pattern as round 5, now distinguished explicitly rather than collapsed into a single flag, and zero \texttt{confirmed\_fix} results in this specific round.
+
+A separate, dedicated investigation was carried out specifically to test whether a patch accepted by the two-check criterion could still be bypassed by a different payload for the same vulnerability class, rather than trusting a single-payload pass as sufficient. This investigation surfaced and fixed four further implementation defects in the patch-generation and acceptance path, distinct from the exploit-generation defects described in Section~4.1.1: an unstripped markdown code fence in the model's patched-file response, causing an immediate syntax error; a patched file that omitted Flask's required \texttt{app.run()} startup block, causing a silent, traceback-free crash; a diagnostic log that discarded the patched process's real standard-error output, making the first two defects undiagnosable until fixed; and a \texttt{localhost} hostname that resolved to two different locally bound services (IPv4 and IPv6) on the development machine, causing model-availability checks to return inconsistent answers from call to call. After fixing all four, a full eight-model, six-CVE re-test found 11/48 exploits confirmed, 9/48 patches attempted, and 3/48 accepted by the two-check criterion --- a substantial rise from the 0/48 accepted in the original, pre-fix comparison (Section~4.1.3).
+
+This 3/48 figure requires one further, essential qualification before it is reported: all three nominally accepted patches had an empty \texttt{payload\_variants} field, meaning the multi-payload bypass check --- built specifically to catch a patch that blocks only the one payload tried --- had no alternate payload to probe them with, because the small model that produced them (\texttt{qwen2.5-coder:1.5b}) did not successfully generate the alternate-payload section in those cases. A controlled synthetic test independently confirmed the bypass check itself works correctly: a deliberately narrow patch that blocklisted only the literal default payload passed the single-payload check but was correctly rejected once a structurally different payload was tried. The honest, precise headline for this specific 48-run retest is therefore not ``3/48 patches validated,'' but \textbf{0/48 patches in this retest have been validated against more than their own original payload} --- the bypass-testing mechanism is built and proven correct, but no patch in this particular dataset was exercised against it with a real alternate payload. This is narrower than a claim about the whole project: the main catalogue's own round-5 patch genuinely was re-probed with two alternate payloads, though that probe turned out to be uninformative for a different reason (Section~\ref{sec:patch-generation-validation}).
+
+\subsection{Real-Upstream Validation: CVE-2026-23949}
+\label{sec:real-upstream-validation}
+
+Every result reported so far in this chapter, aside from the free5GC case study, exploits a generated Flask reproduction of an advisory's described bug pattern, not the actual named upstream package (Section~\ref{sec:limitations-method-related}). One case was carried out instead against the real, pinned-version package, to close part of that stated gap directly rather than leave it purely as a limitation. CVE-2026-23949 (\texttt{jaraco.context}, a path-traversal defect in its \texttt{tarball()} helper) was selected as a tractable candidate: the advisory names a specific vulnerable range and a specific fixed version, and the vulnerable function's real behaviour could be exercised without any special deployment beyond a Python virtual environment.
+
+Two isolated virtual environments were built, one installing the real, unmodified \texttt{jaraco.context==5.3.0} (inside the advisory's own stated vulnerable range) from PyPI, the other installing the real, unmodified \texttt{jaraco.context==6.1.0} (the advisory's own stated fixed version). The installed source in both environments was read directly to confirm the mechanism rather than assumed from the advisory text alone: \texttt{5.3.0}'s \texttt{strip\_first\_component} filter splits a tar member's path on its first \texttt{/} and keeps everything after it, including any \texttt{../} sequences in the remainder, while \texttt{6.1.0}'s filter composes Python's own standard-library \texttt{tarfile.data\_filter} (PEP 706) ahead of the same function. A real malicious tar archive (a legitimate-looking entry alongside one crafted to escape the extraction directory by two levels) and a real, non-malicious tar archive were built and served from a local, self-controlled HTTP server, exactly matching the local-target discipline used throughout the rest of this project's dynamic evaluation; the real, unmodified \texttt{jaraco.context.tarball()} function was then called directly from each environment's own interpreter, with no mocking of the library under test.
+
+Table~\ref{tab:real-upstream} reports the full four-way result. Read against the vocabulary introduced in Section~\ref{sec:corrected-validator}: \texttt{patch\_exploit\_blocked} is true on \texttt{6.1.0} because the block is a named, documented standard-library exception (\texttt{tarfile.OutsideDestinationError}) raised deliberately by PEP 706's own extraction-safety filter, not an unrelated crash signature; \texttt{patch\_function\_preserved} is true because the tested legitimate archive's extracted file content was independently read back and confirmed to match the expected content on both versions, a stronger, content-verified check than the generic crash-absence probe used for this same field name in the main-catalogue comparisons (Section~\ref{sec:corrected-validator}) --- this stronger check was practical here specifically because the legitimate-use behaviour of a tar-extraction function has one clear, checkable expected output, which is not true of every vulnerability class in the main catalogue. The case therefore reaches \texttt{patch\_verdict = confirmed\_fix} on this project's strongest evidence tier among the Python-based main catalogue's cases, since the ``patch'' here is the real upstream maintainers' own released fix rather than an LLM-generated one, and the benign check is content-verified rather than merely crash-absent; this remains one tested legitimate-archive case, not exhaustive proof the fix preserves every legitimate use.
+
+\begin{table}[H]
+\centering
+\caption{Real-upstream four-way validation result: CVE-2026-23949 (\texttt{jaraco.context}).}
+\label{tab:real-upstream}
+\begin{tabular}{@{}p{2.6cm}p{3.4cm}p{7cm}@{}}
+\toprule
+\textbf{Version} & \textbf{Test} & \textbf{Result} \\
+\midrule
+\texttt{5.3.0} (vulnerable) & Malicious archive & Escaped: canary file written outside the extraction directory, exit 0 \\
+\texttt{5.3.0} (vulnerable) & Legitimate archive & Extracts correctly \\
+\texttt{6.1.0} (patched) & Malicious archive & Blocked: \texttt{tarfile.OutsideDestinationError}, exit 1 \\
+\texttt{6.1.0} (patched) & Legitimate archive & Extracts identically to the vulnerable version \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This result does not generalise to the other five main-catalogue CVEs, whose targets remain generated reproductions, and it does not involve any LLM-generated patch: it validates this project's own \emph{evaluation methodology} --- that a real exploit can be demonstrated and a real fix confirmed against real, named, installed software using this project's own evidence-gating discipline --- independently of whether an LLM can produce a patch this good, which remains the separate, harder question this chapter's other results address.
+
+\subsection{Multi-Model Comparison}
+\label{sec:multi-model-comparison}
+
+Table~\ref{tab:multi-model} summarises results from running the identical, sampling-pinned protocol (temperature = 0, fixed seed) across eight local Ollama-served models, 48 runs in total.
+
+\begin{table}[H]
+\centering
+\caption{Confirmation rate by model (6 CVEs each).}
+\label{tab:multi-model}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model} & \textbf{Confirmed} & \textbf{Patch accepted} & \textbf{Total LLM call time (s)} \\
+\midrule
+qwen2.5-coder:1.5b & 3/6\textsuperscript{*} & 0/6 & 37.3 \\
+qwen2.5-coder:3b & 1/6 & 0/6 & 38.4 \\
+qwen2.5-coder:7b & 5/6 & 0/6 & 114.9 \\
+llama3.1:8b & 2/6 & 0/6 & 94.3 \\
+mistral:7b & 0/6 & 0/6 & 106.8 \\
+gemma2:9b & 0/6 & 0/6 & 763.7 \\
+codellama:13b & 2/6 & 0/6 & 1544.1 \\
+deepseek-coder-v2:16b & 4/6 & 0/6 & 176.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textsuperscript{*}All three of qwen2.5-coder:1.5b's confirmations came from the pipeline's template fallback path, not from the model's own live-generated output --- every one of its six generation attempts was recorded as \texttt{llm\_live\_failed}.
+
+Patch acceptance was 0/48 across every model in this comparison. This specific comparison run predates four patch-acceptance harness bugs found and fixed in a dedicated follow-up investigation, detailed in Section~\ref{sec:patch-generation-validation}; a later, separate 48-run re-test with those fixes applied found a different confirmed-exploit count (11/48, not 17/48) and 3/48 nominally accepted patches, with the important caveat, also detailed in Section~\ref{sec:patch-generation-validation}, that trace-level inspection of nominally accepted patches from the same round elsewhere in this project found at least one to be a false acceptance rather than a genuine fix. LLM call time did not scale monotonically with parameter count: codellama:13b's total call time (1544.1s) exceeded deepseek-coder-v2:16b's (176.6s) despite the latter having more parameters, and gemma2:9b recorded one single-CVE call time of 608.7s against a 24.8--40.5s range for its other five runs, with no correspondingly large output-token count. This column measures model generation time specifically, not each run's full pipeline wall-clock, which also includes subprocess execution, health checks, and I/O outside the model call itself.
+
+\subsection{Multi-Model Comparison: Hosted Claude Models}
+\label{sec:claude-multi-model-comparison}
+
+The eight-model comparison above evaluates only locally hosted, open-weight models; no hosted API or CLI session was available in this project's environment at the time. A second, later comparison became possible once a Claude Code CLI session was authenticated in this environment, and was carried out across six named Claude model snapshots --- Haiku~4.5, Sonnet~4.6, Sonnet~5, and Opus~4.6/4.7/4.8 --- against the same six-CVE catalogue, under the same one-shot-per-CVE, isolated-lessons-store protocol as every Ollama round, with the corrected validator's \texttt{patch\_verdict} (Section~\ref{sec:corrected-validator}) as its headline patch metric from the outset --- read throughout this subsection as heuristic patch-screening (exploit rejected without a detected crash, and a generic benign probe also completing without a detected crash), not as confirmed functional correctness, per the precise scope stated in Section~\ref{sec:corrected-validator}.
+
+\begin{table}[H]
+\centering
+\caption{Confirmation and patch outcomes by hosted Claude model (6 CVEs each, 36 runs total).}
+\label{tab:claude-multi-model}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Model} & \textbf{Confirmed} & \textbf{Fix} & \textbf{Not blocked} & \textbf{Crash} & \textbf{Cost (USD)} \\
+\midrule
+Haiku 4.5 & 6/6 & 5 & 1 & 0 & \$1.81 \\
+Sonnet 4.6 & 6/6 & 4 & 2 & 0 & \$4.50 \\
+Sonnet 5 & 6/6 & 4 & 2 & 0 & \$4.26 \\
+Opus 4.6 & 6/6 & 4 & 1 & 1 & \$8.04 \\
+Opus 4.7 & 6/6 & 5 & 1 & 0 & \$5.52 \\
+Opus 4.8 & 6/6 & 5 & 1 & 0 & \$9.04 \\
+\midrule
+\textbf{Total (36 runs)} & & & & & \textbf{\$33.18} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every one of the 36 runs dynamically confirmed its assigned exploit, so --- unlike the eight-model local comparison, where confirmation rate itself varied substantially by model --- exploit generation is not the differentiator among these six hosted models at this task's scale; passing the heuristic patch-screening criterion is. Two findings stand out beyond the raw \texttt{confirmed\_fix} counts in Table~\ref{tab:claude-multi-model}, both read under the scope stated in Section~\ref{sec:corrected-validator} rather than as confirmed patch correctness. First, cost and screening-pass rate are not monotonically related: Haiku~4.5, the cheapest model evaluated, matched the best \texttt{confirmed\_fix} rate (5/6) at roughly one third the total real cost of every other model compared, while Opus~4.6, a mid-tier-cost model, produced the single worst outcome in the entire matrix --- its one miss is \texttt{inconclusive\_crash}, the only crash-class failure across all 36 runs, despite Opus~4.6 being neither the cheapest nor the fastest model tested. Second, one vulnerability class --- Cross-Site Scripting (CVE-2026-46492) --- was the sole class every one of the six models failed to pass even this heuristic screen (\texttt{not\_blocked} in every case), a consistent, cross-model finding rather than one model's individual weakness, suggesting whatever makes this specific class's patch harder to generate is a property of the task or the prompt, not of any one model in this comparison.
+
+Table~\ref{tab:claude-multi-model} reports only per-model totals across all six CVEs; Table~\ref{tab:claude-per-cve} in Appendix~\ref{app:reproducibility} gives the full per-CVE breakdown --- individual cost and wall-clock time for every one of the 36 model--CVE cells --- since a per-model total alone hides real variation across CVEs within the same model (for example, Opus~4.8's cost per CVE ranges from \$0.81 to \$2.13, and Sonnet~4.6's wall-clock time ranges from 80.3s to 257.8s, both within a single model's own six runs).
+
+This comparison surfaced its own harness defects, in keeping with this project's established pattern of validation issues surfacing only once a harness is actually exercised against real, varied data (Section~\ref{sec:corrected-validator}). The Claude CLI backend had never previously exposed real per-call cost or token counts: its plain-text output mode returns no usage metadata at all, so every prior Claude-CLI call in this project's history recorded \texttt{cost\_usd: None}. Switching to the CLI's structured JSON output mode exposes a real \texttt{total\_cost\_usd} and token breakdown directly from the provider, which is what makes Table~\ref{tab:claude-multi-model}'s cost column possible at all. Two further defects were found and fixed while running this specific comparison: the same silent-fallback behaviour that had already affected the round-6 catalogue run (Section~\ref{sec:corrected-validator}) recurred under a genuine account rate-limit condition mid-comparison, hardened at the source rather than merely documented a second time; and two of the six models (Opus~4.7 and Opus~4.8) initially failed the majority of their assigned generation calls because they sometimes attempted to invoke an interactive file-write tool rather than returning plain text, which stalls indefinitely in this pipeline's non-interactive calling context --- resolved by explicitly disabling tool use and cross-call session persistence for every Claude CLI invocation, after which both models completed their full six-CVE run cleanly. As with the eight-model local comparison, this is a single deterministic-in-intent but not sampling-pinned shot per CVE per model (the Claude CLI exposes no temperature or seed control), and should be read as one data point per model rather than a statistically powered ranking.
+
+\subsection{Reachability Filtering on Real Upstream Source}
+
+Applied to a real, 86~KB free5GC/UDR source file, the reachability engine parsed 102 functions and identified 4 as reachable from four HTTP entry-point handlers selected manually as the module's externally callable surface, a 96.1\% reduction in the function count requiring further analysis. All four reachable functions were flagged by the rule-based pattern matcher and classified as CWE-285 (improper authorisation check), matching the real, disclosed bug class; this classification was checked against the advisory's own CWE label, not confirmed by an independent second reviewer. A patch was generated for all four; applying all four patches to a live clone of the actual \texttt{free5gc/udr} repository at the pre-fix commit, \texttt{go build ./...} completed successfully against the module's genuine dependency graph, both before and after the patches were applied. One of the four generated patches is only partially correct: its target handler (\texttt{HandleApplicationDataInfluenceDataSubsToNotifyGet}) requires two separate \texttt{return} insertions in the real, disclosed fix, while the rule-based patcher inserts only the first match per function body, so that handler's vulnerability is not fully closed even though the module still compiles. This partial-correction limitation is specific to this project's own rule-based auto-patcher, not to the real upstream fix used for the runtime testing described next: all four handlers were subsequently taken beyond this original compile-time verification to real runtime confirmation, as described below.
+
+A fourth handler, the DELETE subscription endpoint disclosed as CVE-2026-40248 (\texttt{HandleApplicationDataInfluenceDataSubsToNotifySubscriptionIdDelete}), was subsequently taken one evidence tier further using the harness described in Section~\ref{sec:free5gc-runtime-harness}. The real, cloned upstream module was built and run twice --- once at the vulnerable commit, once at the real fix commit --- against a real local MongoDB instance, and driven with real HTTP requests rather than compiled but never executed. At the vulnerable commit, the malicious delete request (using an invalid \texttt{influenceId} path segment) received a \texttt{404} response, matching the handler's own validation check, but a follow-up read confirmed the targeted subscription record had been deleted regardless: the vulnerable code writes the \texttt{404} response but does not \texttt{return} afterward, so execution falls through and performs the deletion anyway. At the real fix commit, the identical malicious request again received \texttt{404}, but the follow-up read confirmed the record was still present --- the added \texttt{return} statement stops execution before the deletion path is reached. A legitimate delete request, using the correct \texttt{influenceId} value, succeeded and removed the record on both builds, confirming the fix does not break the handler's intended function. This gives a real, non-inconclusive verdict under the pipeline's own \texttt{patch\_verdict} field --- \texttt{confirmed\_fix} --- for this one handler, obtained by direct runtime evidence rather than compilation alone. This result upgrades the free5GC case from compile-time evidence to runtime evidence. The vulnerable UDR commit was shown to execute the unintended deletion despite returning a 404 response to the client, while the patched commit returned before the deletion path and preserved the record. The benign deletion path remained functional, giving this case the project's strongest patch-validation evidence among its compiled, real-upstream reachability work. The full evidence bundle --- process logs, HTTP request/response logs, the build logs for both commits, the generated \texttt{manifest.json} and \texttt{verdict.json}, and the real upstream diff between the two commits --- is described in Appendix~\ref{app:reproducibility}. At the time this minimal harness was run, this remained a single-handler result, not evidence that the other three reachable handlers would behave identically under the same runtime standard; that gap was subsequently closed, as described next.
+
+All three remaining handlers were then run against the fuller Docker-based deployment described in Section~\ref{sec:free5gc-runtime-harness} (real MongoDB, real free5GC NRF, OAuth2 disabled), and were found to share the DELETE handler's exact root cause --- the same missing \texttt{return} after a non-2xx write --- with two of the three found to be more severe than the DELETE case on direct empirical inspection of the raw HTTP response bytes. The single-record \texttt{GET} handler, queried with an invalid \texttt{influenceId}, returns \texttt{404 Not Found} with the literal body \texttt{"404 page not found"} on the patched build, but on the vulnerable build the same literal text is immediately followed, in the same response, by the real subscription's JSON content: Go's \texttt{net/http} frames each handler \texttt{Write()} call as its own chunk when no explicit \texttt{Content-Length} is set, so the vulnerable handler's fall-through second write is not silently dropped, it is delivered to the client. The collection-level \texttt{GET} handler (queried with no filter parameters at all, its own documented error condition) shows the same pattern at larger scale: the vulnerable build's \texttt{400 Bad Request} error body is followed by a JSON array of \emph{every} subscription record in the system, since an empty filter matches every stored record --- a full, unauthenticated collection dump inside what looks like a rejected request. The single-record \texttt{PUT} handler goes further still: the request again returns \texttt{404 Not Found}, but a follow-up read confirms the submitted data was genuinely written to the in-memory store --- an unauthorized \emph{write}, not only a read leak. All three close cleanly on the patched build (the response body contains only the expected error text, and the follow-up read for the \texttt{PUT} case confirms nothing was stored), with the legitimate, correct-\texttt{influenceId} request path unaffected on both builds. Combined with the DELETE result above, this constitutes a full CRUD bypass --- unauthorized read of one record, unauthorized read of the entire collection, unauthorized write, and unauthorized delete --- through one shared, one-line root cause, confirmed and closed across all four reachable handlers rather than one. This work is recorded on a separate branch (\texttt{free5gc-full-deployment}, commit \texttt{e59ee4e}) with its own evidence bundle (\texttt{free5gc\_full\_deployment/evidence/}), kept isolated from the single-handler result's own evidence bundle so the two can be distinguished; both are cited in Appendix~\ref{app:reproducibility}.
+
+\subsection{Classification Ablation}
+
+A separate ablation isolated Stage 2 (vulnerability classification) from the generation stages evaluated above, testing three conditions against the six-CVE catalogue's ground-truth CWE labels: full advisory content (prose description plus structured CWE field), prose description only, and the CVE identifier alone with no advisory content. Table~\ref{tab:ablation} reports class-level match (does the predicted vulnerability class match ground truth) and exact-CWE match (does the predicted CWE code match exactly) as separate metrics, since collapsing them into a single accuracy figure would obscure a real, informative difference between the two.
+
+\begin{table}[H]
+\centering
+\caption{Stage 2 classification ablation (n=6).}
+\label{tab:ablation}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Condition} & \textbf{Class-level match} & \textbf{Exact-CWE match} \\
+\midrule
+Prose description only & 5/6 & 4/6 \\
+Full advisory (structured CWE field) & 6/6 & 6/6 \\
+CVE identifier only (no content) & 0/6 (no classification) & 0/6 (no classification) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Prose-only classification correctly identified the vulnerability class for 5 of 6 CVEs, with one full miss (CVE-2026-42208, SQL Injection): its NVD summary describes the SQL injection's mechanism without ever using the words ``SQL'' or ``injection,'' so keyword-based prose matching returned no classification at all. Among the 5 classified correctly at the class level, one (CVE-2026-46492) was assigned the wrong exact CWE: prose matching returned the general CWE-79 for any detected cross-site-scripting pattern, while the CVE's actual, analyst-assigned code was the more specific CWE-80. Supplying the structured CWE field already present in the advisory (rather than relying on regex matching against free-text prose) resolved both cases, reaching 6/6 on both metrics. This full-condition result should be read precisely: it demonstrates that the classifier correctly reads a ground-truth field already present in the advisory, which is metadata recovery, not independent classification of unseen content --- the genuinely informative result of this ablation is the 5/6 and 4/6 figures under prose-only matching, and the specific, narrower failure mode (family-level mapping losing subtype precision) that the structured-field condition helps isolate, not the 6/6 figure on its own. The CVE-identifier-only condition, which received no advisory content at all, correctly produced no classification for every entry, ruling out identifier-based hardcoding in either classifier.
+
+A cross-check against GitHub's independent advisory database found CWE agreement with NVD's structured field for all six catalogue entries (one entry, CVE-2026-46492, lists an additional CWE alongside the matching one), indicating the structured-CWE signal is consistent across both databases the ingestion stage can consult, though this agreement should not be read as independent replication of the underlying vulnerability analysis, since advisories are commonly shared or ingested between the two databases.
+
+\section{Discussion}
+
+\subsection{Interpreting the Confirmation-Rate Progression}
+\label{sec:confirmation-rate-progression}
+
+The rise from 1/6 in round 1 to 5/6 in round 5 is not evidence of a steadily improving model or pipeline in the way the raw trend line might suggest. Round 3's drop to 1/6, despite a genuine bug fix being introduced in that round (self-improvement's LLM-revision path was wired to the live backend for the first time), shows that a working retry mechanism is not the same thing as a mechanism that reliably finds the correct fix. It is clearer, and more defensible, to attribute most of round 4's jump specifically to the two implementation-defect fixes rather than to any change in model capability --- a plausible reading, given that the same model and largely the same prompt were used across rounds 3 and 4, and the round-4 improvement coincides precisely with the fence-crash signature disappearing from every report. This is a correlational reading, not a causal proof: the round-3-to-round-4 comparison in this project's own records cannot isolate the fixes' individual contribution from other differences between the two runs, and it is offered here as the more plausible explanation rather than an established one. What the records do support is a more general caution, reinforced by the patch-validation false-acceptance finding in Section~\ref{sec:patch-generation-validation}: a harness defect of this kind can distort a reported result in either direction, suppressing a genuine confirmation (as the markdown-fence crash plausibly did in round 3) or manufacturing a false one, so neither a low nor a high raw count in this project's own catalogue should be read as a reliable floor or ceiling on the pipeline's true capability without independent trace verification of the specific cases involved.
+
+The SQL Injection class's behaviour across rounds --- confirmed in round 1, unconfirmed in rounds 2--4, confirmed again in round 5 --- is consistent with the project's own stated caveat that a single-shot, non-averaged protocol can flip for the same CVE between runs, since prompt content still varies by CVE and neither the model's sampling nor the surrounding pipeline state is guaranteed identical run-to-run even with a fixed seed. This should be read as a property of the evaluation protocol, not as evidence that any one class is inherently harder than another.
+
+\subsection{Why Patch Validation Lagged Confirmation}
+\label{sec:patch-validation-lag}
+
+The single most important finding on patch acceptance is not a rate but a design flaw, established in Section~\ref{sec:patch-generation-validation} by direct trace inspection: the pipeline's two-check acceptance criterion (original exploit fails, health check passes) cannot distinguish a deliberate security fix from an unrelated crash bug in the generated patch, because both produce an HTTP 500 response that satisfies the first check identically. Round 5's ``validated'' patch for CVE-2026-78683 is a confirmed false acceptance on this basis. This reframes every raw patch-acceptance count reported in this chapter: a nonzero count should be read as ``the automated criterion was satisfied,'' not as ``a correct fix was produced,'' until each individual case has been traced by hand as round 4 and round 5 were here. Round 4's own accepted patch is plausibly a genuine fix on trace-level reading, but this project's evidence for that claim is the same kind of manual inspection that caught round 5's false acceptance, not an independently stronger automated guarantee.
+
+Two distinct 48-run datasets are reported in this chapter and should not be collapsed into one figure. The initial eight-model comparison (Section~\ref{sec:multi-model-comparison}) found 17/48 exploits confirmed and 0/48 patches accepted. A later, separate re-test, carried out after four implementation bugs in the patch-validation harness were found and fixed (an unstripped markdown fence, a patch missing Flask's \texttt{app.run()} block, a discarded diagnostic log, and a \texttt{localhost} resolution ambiguity), found 11/48 exploits confirmed and 3/48 patches nominally accepted --- a different run, with a different confirmed-exploit count, not the same 48 records re-scored. Given the false-acceptance finding above, even the corrected 3/48 figure should be read cautiously rather than as a straightforward improvement: the two runs contain different confirmed-exploit cases under an acceptance criterion that can, as shown for round 5, still accept a patch whose vulnerable route simply crashes. The four bug fixes changed specific, observed behaviours --- patches no longer crash on a stray markdown fence or a missing \texttt{app.run()} block, and diagnostic output is retained instead of discarded --- but this project has not independently re-run the retest's predecessor attempts under the corrected harness to measure how many of them would have flipped, so no overall reliability gain is claimed or measured here, only the specific behavioural changes listed. The honest, defensible headline across both datasets combined, including round 5's genuinely multi-payload-probed result: zero patches in this project's evaluation have both passed the two-check acceptance criterion \emph{and} been confirmed correct by trace-level inspection. Multi-payload re-probing happened in one case (round 5) but was uninformative there because the same crash most plausibly recurs regardless of payload content (Section~\ref{sec:patch-generation-validation}); it never happened at all for the retest's three nominally accepted patches.
+
+The corrected validator introduced in Section~\ref{sec:corrected-validator} directly addresses the specific failure mode this subsection describes, but only partially, and its own results should be read with the same care applied to every other number in this project. Replaying the round-5 trace through the corrected criterion reclassifies the false acceptance as \texttt{inconclusive\_crash} rather than a pass, without needing a second manual trace inspection to catch it --- the corrected criterion, not a human re-reading a log, now distinguishes a deliberate rejection from a crash on the exploit side. It does not, however, close the equivalent gap on the benign side: Section~\ref{sec:corrected-validator} documents, from a direct audit prompted by external review, that \texttt{patch\_function\_preserved} requires only the absence of a crash signature on the benign probe, not a correct HTTP response or a class-specific correctness check, and that 14 of 27 \texttt{confirmed\_fix} verdicts in the 36-run hosted comparison returned a non-200 status on that probe without being flagged. This is a genuine improvement to the validation harness's exploit-side discrimination, not a claim that patch \emph{quality} or benign-side correctness has been independently confirmed: applying the corrected validator to a full sixth catalogue round found zero \texttt{confirmed\_fix} results (three \texttt{not\_blocked}, one \texttt{inconclusive\_crash}, out of four patch attempts against four confirmed exploits), and a later 36-run hosted-model comparison (Section~\ref{sec:claude-multi-model-comparison}) found \texttt{confirmed\_fix} rates of only 4--5 of 6 per model under this same heuristic screening criterion, even with substantially more capable models than the locally hosted comparison in this section. The corrected validator makes this project's exploit-side patch-acceptance numbers more trustworthy; it does not, by itself, make patch generation succeed more often, and its benign-side check remains a screen for gross regressions, not a correctness proof.
+
+A separate, more procedural finding reinforces the same caution: three of the four harness defects found during the patch-validation investigation (the markdown fence, the missing \texttt{app.run()} block, and the discarded diagnostic) were pure implementation bugs, not model failures. It is plausible, given their nature, that they suppressed some patch-attempt and two-check acceptance counts in earlier rounds and comparisons, but this project did not re-run those specific earlier attempts under the corrected harness, so this remains a plausible effect of the identified bugs rather than a measured, counterfactually confirmed historical count. This is consistent with the pattern already observed for exploit confirmation in Section~\ref{sec:confirmation-rate-progression}: a nontrivial share of this project's apparent capability gaps has turned out on inspection to be harness defects rather than fundamental model limitations. The corollary, given the false-acceptance finding above, is that this cuts in \emph{both} directions --- a harness defect can suppress a real success (as with the round-3 markdown-fence crashes) or manufacture a false one (as with round 5's \texttt{NameError}) --- so neither a low nor a high raw count can be taken as a reliable lower bound without independent trace verification.
+
+\subsection{Runtime and Model-Size Findings}
+
+It is clear from Table~\ref{tab:multi-model} that confirmation rate did not track parameter count: the 7B qwen2.5-coder model outperformed both the 9B (gemma2, 0/6) and 13B (codellama, 2/6) models evaluated. This is consistent with the general finding in the wider LLM literature that code-specialised training and fine-tuning can matter more than raw parameter count for narrow, structured generation tasks, though this project's comparison --- a single deterministic shot per CVE per model, with qwen2.5-coder:7b carrying prior prompt-tuning exposure the other models did not have --- is a real confound and should not be read as a general-purpose model ranking. The codellama:13b and gemma2:9b runtime anomalies (respectively far slower than a larger model, and one 15--25x single-run outlier) were not root-caused in this project; they are reported as observed rather than explained by an unverified guess, consistent with this project's evidence-gating discipline applied to its own reported findings, not only to its exploit-confirmation claims.
+
+\subsection{Classification Reliability and the Structured-Data Advantage}
+
+It is clear from Table~\ref{tab:ablation} that preferring an advisory's own structured CWE field over free-text keyword matching removed every classification error observed in this catalogue, which supports treating this precedence rule as a deliberate design choice rather than an arbitrary implementation detail. The one full miss under prose-only matching (CVE-2026-42208) suggests that keyword-based classification is fragile specifically when an advisory describes a vulnerability's mechanism without using the vulnerability class's own common vocabulary --- a gap a structured field sidesteps entirely, since it does not depend on any particular choice of words in the prose description. The single exact-CWE mismatch, however, points to a narrower and more specific limitation than ``keyword matching is unreliable'' in general: a fixed family-to-representative-CWE mapping cannot reproduce an analyst's more specific subtype judgment (here, CWE-80 assigned instead of the mapping's default CWE-79 for any detected cross-site-scripting pattern), which is a property of how the mapping was hand-encoded, not of prose matching as a technique. This distinction matters for how the result should be read: it does not establish that prose-based classification is unreliable in general, only that a coarse family mapping loses subtype precision that a structured field preserves.
+
+\subsection{Relationship to the AIxCC/OSS-CRS Benchmark Context}
+\label{sec:aixcc-comparison}
+
+The 86\% discovery / 68\% patch figures introduced in Chapter~1 are DARPA's own aggregate across all seven AIxCC finalist systems combined, not a per-system figure and not specifically ATLANTIS's own result; the source material available for this review does not report an ATLANTIS-specific patch rate. Direct numerical comparison between that aggregate figure and this project's own confirmation and patch-acceptance rates would also be comparing results obtained under materially different tasks, software, and evaluation conditions: AIxCC's finalists discovered previously \emph{unknown} bugs seeded into large, real competition codebases under a shared, adjudicated benchmark, while this project confirms and reproduces \emph{already-published} bugs against six small, generated stand-in targets. The two results are not on the same scale or the same denominator, and no numerical comparison between them is drawn here.
+
+What is fair to say is qualitative rather than quantitative: both AIxCC-class systems and this project treat an unverified claim as insufficient on its own and require executable evidence before a discovery or a patch is trusted. FuzzingBrain, a real AIxCC finalist system, uses a comparable staged reachability-then-triage architecture and reports that its call-graph analysis narrows a codebase from thousands of functions to a more tractable reachable subset \cite{fuzzingbrain}, which is qualitatively consistent with this project's own reachability-filtering result; however, FuzzingBrain's own published paper does not report a specific percentage reduction figure comparable to this project's 96.1\%, so no quantitative comparison between the two is drawn here, only the shared qualitative design choice.
+
+\subsection{Limitations, Trade-offs, and Sources of Uncertainty}
+
+The exploit-artifact generation results above were obtained against a generated Flask stand-in reproducing each advisory's described bug pattern, not the actual named upstream package; a confirmed exploit therefore demonstrates that the described pattern is exploitable as reproduced, not that the real package is exploitable when actually installed and run. This limitation is now partially, not fully, closed: Section~\ref{sec:real-upstream-validation} demonstrates the same evidence-gating discipline against a real, pinned-version PyPI package (CVE-2026-23949) rather than a reproduction, reaching this project's strongest evidence tier among the Python-based main catalogue's cases, but this remains one case chosen for tractability out of six, not a claim that the remaining five could be validated the same way without comparable additional effort. The reachability result avoids the reproduction-vs-real-package limitation by a different route, since it operates on the real, cloned upstream free5GC source, and its original compile-only bound (\texttt{go build} succeeding proves syntactic validity and compile-compatibility, not runtime correctness) has since been closed for all four handlers rather than left standing: a harness satisfying only UDR's own MongoDB and NRF dependencies (Section~\ref{sec:free5gc-runtime-harness}), first minimally and then via a fuller Docker deployment with a real NRF, confirmed, over real HTTP against both the vulnerable and fixed commits, that the fix blocks all four handlers' exploitable behaviour (an unauthorized single-record read, an unauthorized collection-wide read, an unauthorized write, and an unauthorized delete) while preserving legitimate function --- this project's second real-upstream, runtime-confirmed case after \texttt{jaraco.context}, and the only one where all of a component's reachable handlers, not a single case, reached this standard. Deploying and testing the full free5GC core network stack (AMF, SMF, and the rest) remains out of scope, as does OAuth2 enforcement, which the fuller deployment's real NRF enables by default and which this harness explicitly disabled to reach the handlers under test. The multi-model comparison's single-shot, non-repeated design (one run per CVE per model, even with sampling pinned) means individual model rankings in Table~\ref{tab:multi-model} should be read as one data point rather than a statistically powered result --- this was an explicit, acknowledged design trade-off, made to keep the eight-model, 48-run comparison tractable within the project's timeframe rather than to claim more statistical confidence than the design supports.
+
+\section{Summary and Implications}
+
+Overall, these findings suggest that an evidence-gated, dynamically-confirmed pipeline of this kind can produce useful confirmation evidence on a small, fixed catalogue of already-disclosed vulnerabilities, but that patch generation and validation remain substantially harder to achieve reliably with locally hosted, moderately sized open-weight models than exploit confirmation does, and harder still to trust once a validation criterion is checked by trace-level inspection rather than taken at its own flag. No numerical comparison to AIxCC finalist systems is drawn here, per the discussion in Section~\ref{sec:aixcc-comparison}; the two bodies of work share only a qualitative commitment to executable evidence over unverified claims. This may have implications for how future work in this space allocates effort: rather than treating exploit confirmation and patch generation as symmetric problems solvable by the same prompt-and-model combination, the results here suggest patch generation may benefit from separate, class-specific tuning, or from a larger/more capable model tier, before it can be trusted as a validated pipeline output rather than an experimental one. For practitioners considering a similar system, the reachability-filtering result offers a more immediately transferable takeaway: narrowing an LLM's analysis scope via real, AST-based call-graph reachability --- rather than asking a model to reason over an entire source file --- produced a large, real reduction in analysis scope (96.1\%) and, for three of the four reachable handlers, a patch independently verified to compile against the genuine upstream dependency graph, without requiring the more resource-intensive dynamic confirmation that the main pipeline relies on; the fourth handler shows that reachability filtering and dynamic confirmation are not mutually exclusive, since a minimal, dependency-scoped harness (Section~\ref{sec:free5gc-runtime-harness}) was enough to add runtime evidence for one filtered-in handler without deploying the full upstream stack.
+
+\chapter{Conclusion}
+
+\section{Summary of the Project}
+
+This project set out to extend an existing exploit-confirmation prototype so that suspected vulnerabilities could be confirmed and candidate fixes evaluated with genuine evidence, rather than accepted on the strength of a plausible-sounding generated artifact alone. Two complementary capabilities were built and evaluated toward this goal. The main pipeline advanced a CVE from advisory intake through classification, exploit-artifact generation, dynamic execution, self-improvement, and patch generation and validation, evaluated across five rounds against a six-CVE catalogue and, separately, across eight locally hosted models. A second, independent capability ported and extended an earlier reachability-filtering prototype to operate on real, disclosed free5GC source, narrowing a real 102-function file to 4 relevant functions and verifying a generated patch against the genuine upstream project; all four of those handlers (CVE-2026-40248) were subsequently runtime-confirmed, first against a minimal MongoDB-only stand-in and then against a fuller deployment with a real free5GC NRF, rather than compiled but never executed, making free5GC the project's most complete demonstration of the full exploit-confirmation-and-patch-validation methodology against a real, disclosed, compiled upstream vulnerability.
+
+\section{Objective Closure}
+
+Table~\ref{tab:objective-closure} maps this project's stated objectives (Chapter~1) directly onto the evidence that closes each one, so the status of each is stated once, explicitly, rather than left for a reader to reconstruct from Chapter~4's narrative.
+
+\begin{table}[H]
+\centering
+\caption{Objective-by-objective closure.}
+\label{tab:objective-closure}
+\begin{tabular}{@{}p{3.3cm}p{2.1cm}p{7.1cm}@{}}
+\toprule
+\textbf{Objective} & \textbf{Status} & \textbf{Evidence} \\
+\midrule
+Dynamic exploit confirmation (six-CVE catalogue) & Met & All six vulnerability classes confirmed at least once across five Ollama rounds; every one of six hosted Claude models confirmed all six exploits (36/36) in the later comparison (Section~\ref{sec:claude-multi-model-comparison}). \\
+Patch generation and validation & Partially met & The real-upstream \texttt{jaraco.context} case (Section~\ref{sec:real-upstream-validation}) and the 6 recoverable, content-verified synthetic patches (Section~\ref{sec:corrected-validator}) are confirmed correct; the broader 36-run comparison's \texttt{confirmed\_fix} rate (4--5/6 per model) remains heuristic patch-screening, not confirmed correctness, at that scale. \\
+free5GC reachability filtering \& patch verification & Partially met & 102 real functions reduced to 4 reachable (96.1\%), all classified correctly; all four generated patches verified to compile against the real, live-cloned upstream dependency graph, and all four handlers (CVE-2026-40248) subsequently runtime-confirmed via a fuller Docker deployment with a real MongoDB instance and a real free5GC NRF (Section~\ref{sec:free5gc-runtime-harness}) --- OAuth2 enforcement was disabled to reach the handlers under test, and no live HTTP exploit was run against a fully deployed free5GC core network (AMF, SMF, and the rest) (Section~\ref{sec:limitations-method-related}). \\
+ProvTrail/SARIF integration & Partially met & SARIF ingestion plumbing (\texttt{provtrail\_bridge.py}) is functional and one hand-authored JavaScript case (CVE-2024-48910) is dynamically confirmed; this is not a systematic evaluation of ProvTrail's own flagged findings against real scanned projects. \\
+Multi-model comparison under a fixed protocol & Met & Eight locally hosted models (48 runs) and six hosted Claude models (36 runs), both under a frozen, single-protocol comparison with real cost/time accounting. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Key Findings}
+
+Seven findings stand out from the results reported in Chapter~4.
+
+\begin{enumerate}
+\item Dynamic exploit confirmation against local reproductions reached 5 of 6 CVEs in the best single Ollama round, and every class in the catalogue confirmed at least once across all rounds combined --- evidence that the underlying generation-and-execution approach is viable across a range of vulnerability classes on the reproductions tested, not just the one it was originally tuned against, and not independent evidence about the named upstream packages themselves (Section~\ref{sec:limitations-method-related}).
+
+\item Two of the confirmation-rate swings observed across rounds were traced to specific, fixable implementation defects rather than to model capability, underscoring that a pipeline's reported ``confirmation rate'' is only as trustworthy as its own surrounding plumbing, and that this distinction is worth checking explicitly rather than assumed.
+
+\item Patch generation and acceptance lagged exploit confirmation substantially throughout the local-model rounds: at most one of six catalogue CVEs was flagged as accepted by the two-check criterion in any round; zero of forty-eight runs in the initial eight-model comparison; and three of forty-eight in a later, separate retest run after four harness bugs were fixed, none of which was tested against more than its own original payload.
+
+\item Most important for how the first three findings should be read: the validation criterion behind that ``passing'' flag was itself found, by trace-level inspection, to accept a patch for the wrong reason at least once --- a generated patch whose vulnerable route crashed on a missing import was flagged as validated identically to a patch that deliberately blocked the exploit, because the automated criterion cannot tell the two apart. This is reported as a genuine capability gap discovered during this evaluation, not a pre-existing flaw papered over, and it means every raw pass/fail count in this project, not only the patch-validation ones, should be read as what the harness reported, subject to the same kind of trace-level check that surfaced this specific case, rather than as an automatically trustworthy final verdict.
+
+\item Once that criterion was corrected into a four-outcome verdict (Section~\ref{sec:corrected-validator}) and applied at greater scale --- a full sixth Ollama catalogue round and a 36-run comparison across six hosted Claude models (Section~\ref{sec:claude-multi-model-comparison}) --- patch generation remained the project's principal unresolved capability gap rather than a solved one: even the strongest hosted models reached only 4--5 of 6 \texttt{confirmed\_fix} outcomes under the corrected criterion's heuristic patch-screening (itself found, on direct audit, to require only crash-absence on the benign probe rather than a correct HTTP response), and cost tracked model tier without tracking screening-pass rate, with the cheapest hosted model tested matching the best rate at roughly a third of every other model's real cost.
+
+\item One real-upstream case (Section~\ref{sec:real-upstream-validation}) demonstrated this project's full evidence-gating discipline --- real exploit, real published fix, real benign-use check --- against an actual, pinned-version PyPI package rather than a generated reproduction, partially closing a limitation stated since this project's earliest results, though as one case out of six, not a systematic replacement for the reproduction-based catalogue.
+
+\item The same standard was independently reached for a second, structurally different real-upstream case: the free5GC reachability work's compile-time-only limitation was closed for all four of its handlers (CVE-2026-40248), first for the DELETE handler by building and running the real, cloned \texttt{free5gc/udr} module against a real MongoDB instance and a minimal stand-in NRF, then for the remaining three handlers against a fuller Docker deployment with a real free5GC NRF. The fuller deployment found the same root cause to be more severe than the DELETE case alone suggested: the vulnerable commit permits an unauthorized read of a single record, an unauthorized read of the entire subscription collection, and an unauthorized write, in addition to the already-confirmed unauthorized delete, with the real fix commit closing all four while preserving legitimate behaviour --- this project's only case combining reachability filtering, exploit confirmation, and patch validation against a real, compiled, non-Python upstream target, and the only case where every one of a component's reachable handlers reached this standard.
+\end{enumerate}
+
+\section{Contributions}
+
+This project's contributions are: (1) a dynamic-execution and self-improvement extension to an existing exploit-confirmation pipeline, evaluated with real subprocess and HTTP evidence rather than static description; (2) a two-check, evidence-gated patch-acceptance mechanism, and an honest, quantified account of where it does and does not currently succeed, including a corrected four-outcome verdict (Section~\ref{sec:corrected-validator}) built specifically in response to a confirmed false acceptance the original criterion could not detect on its own, and itself subsequently audited to state precisely what its own benign-route check does and does not establish; (3) a reachability-filtering capability applied for the first time to real, disclosed free5GC source, including compile-time verification against the actual upstream project's dependency graph for all four handlers and runtime confirmation, for all four (CVE-2026-40248), first against a real, locally hosted MongoDB backend and a minimal stand-in NRF, then against a fuller Docker deployment with a real free5GC NRF that found the underlying bug to be a full CRUD bypass (unauthorized read, collection-wide read, write, and delete) rather than a single-record issue --- a result neither this project's own predecessor nor any prior version of this pipeline had previously demonstrated for a Go target, and this project's most complete real-system case, combining reachability filtering, exploit confirmation, and patch validation against a single disclosed vulnerability in genuine upstream source; (4) a reproducible, sampling-pinned, eight-model comparison quantifying how confirmation rate and patch-acceptance rate vary with model choice under an identical protocol, and a second, 36-run comparison extending the same protocol to six hosted Claude model snapshots with real, metered per-call cost and token accounting; and (5) a real-upstream validation case (Section~\ref{sec:real-upstream-validation}) demonstrating this project's full exploit-confirmation-and-patch-verification methodology against an actual, pinned-version, publicly distributed package rather than a generated reproduction.
+
+\section{Limitations}
+
+The results in this project should be read within stated bounds. The main pipeline's exploited targets are generated reproductions of each advisory's described bug pattern for five of the six main-catalogue CVEs; a confirmed exploit for those five demonstrates the described pattern is exploitable as reproduced, not that the real package is exploitable when installed and run. One case, CVE-2026-23949, is now validated against the real, pinned-version package instead (Section~\ref{sec:real-upstream-validation}), but this remains a single case selected for tractability, not evidence that the remaining five reproductions could be replaced the same way without comparable additional effort. The free5GC reachability result avoids the reproduction-versus-real-package limitation by a different route, operating on real, cloned source; all four of its handlers' patches were verified to compile against the real dependency graph, and all four (CVE-2026-40248) were additionally confirmed at runtime, using harnesses satisfying only UDR's own MongoDB and NRF dependencies, without deploying the rest of the core network stack (AMF, SMF, and the rest) or enabling OAuth2 enforcement on the real NRF used in the fuller deployment --- giving this project's strongest patch-validation evidence among its compiled, real-upstream reachability work, and the only case where every reachable handler in a component reached this standard. The eight-model local comparison used a single deterministic shot per CVE per model rather than repeated trials, and the strongest-confirming model in that comparison carried prior prompt-tuning exposure the others did not, a real confound acknowledged rather than hidden; the later 36-run hosted-model comparison (Section~\ref{sec:claude-multi-model-comparison}) shares the same single-shot design and adds its own: the Claude CLI backend exposes no temperature or seed control at all, so even ``deterministic in intent'' is a weaker guarantee there than the Ollama comparison's pinned sampling. Patch generation, the project's clearest capability gap, was evaluated with every model this project had access to across both comparisons, including several hosted models substantially larger than the local eight-model set, and the gap persisted at 4--5 of 6 \texttt{confirmed\_fix} outcomes even at that larger scale; whether per-class prompt tuning specifically, rather than raw model scale, would close it further was not tested.
+
+\Needspace{8\baselineskip}
+\section{Future Work}
+
+Four directions follow directly from the limitations above.
+
+\begin{enumerate}
+\item Patch generation would benefit from the same bounded, per-class tuning process already applied successfully to exploit-artifact generation in this project, repeated one vulnerability class at a time rather than attempted generically across all six at once; the cross-model finding that every model in the 36-run comparison failed to patch the same one class (Cross-Site Scripting) specifically motivates starting there.
+
+\item The free5GC reachability work's runtime validation (Section~\ref{sec:free5gc-runtime-harness}), now confirmed for all four of its handlers (CVE-2026-40248) under a fuller deployment with a real NRF, could be taken further still by enabling OAuth2 enforcement on that NRF (disabled for this project's harness) and building the client-credentials flow needed to test the same handlers under it, or by standing up additional network functions (AMF, SMF, and the rest) to test behaviour beyond UDR's own component boundary, unifying the reachability engine's real-source analysis with the main pipeline's dynamic-confirmation discipline at greater scope.
+
+\item The main pipeline's exploited targets could be moved from generated reproductions toward the actual named upstream packages for a larger subset of the catalogue than the one case demonstrated here, extending Section~\ref{sec:real-upstream-validation}'s methodology to the remaining five classes.
+
+\item The hosted-model comparison could be extended with sampling controls once the Claude CLI (or an equivalent hosted interface) exposes them, and repeated across multiple shots per CVE per model to move from one data point per model toward a statistically powered ranking.
+\end{enumerate}
+
+\begin{thebibliography}{99}
+
+\bibitem{openai-incident} ``The Hugging Face incident and the road ahead,'' OpenAI, Aug. 26, 2026. \url{https://openai.com/index/hugging-face-incident-and-the-road-ahead/} (accessed Sep. 22, 2026).
+
+\bibitem{anthropic-agents} E. Schluntz and B. Zhang, ``Building effective AI agents,'' Anthropic Engineering, Dec. 19, 2024. \url{https://www.anthropic.com/engineering/building-effective-agents} (accessed Sep. 22, 2026).
+
+\bibitem{weiss-khayet} E. Weiss and N. Khayet, ``Can AI weaponize new CVEs in under 15 minutes?,'' Efi Weiss, Aug. 21, 2025. \url{https://valmarelox.substack.com/p/can-ai-weaponize-new-cves-in-under} (accessed Sep. 22, 2026).
+
+\bibitem{aixcc} Defense Advanced Research Projects Agency, ``AIxCC Final Competition Results,'' DARPA, 2025. \url{https://www.darpa.mil/news/2025/aixcc-results} (accessed Sep. 25, 2026).
+
+\bibitem{atlantis} T. Kim et al., ``ATLANTIS: AI-driven threat localization, Analysis, and Triage intelligence system,'' arXiv (Cornell University), Sep. 2025, doi: 10.48550/arxiv.2509.14589.
+
+\bibitem{osscrs} ``OSS-CRS --- Cyber Reasoning Systems for Open source software $\vert$ OSS-CRS.'' \url{https://oss-crs.openssf.org/} (accessed Sep. 22, 2026).
+
+\bibitem{free5gc} The Linux Foundation, ``World's Leading Open Source Mobile Packet Core, free5GC, Moves Under Linux Foundation to Provide Open Source Alternatives Across 5G Deployments,'' THE LINUX FOUNDATION, Sep. 16, 2024. \url{https://www.linuxfoundation.org/press/worlds-leading-open-source-mobile-packet-core-free5gc-moves-under-linux-foundation-to-provide-open-source-alternatives-across-5g-deployments} (accessed Sep. 22, 2026).
+
+\bibitem{sarif} M. C. Fanning and L. J. Golding, ``Static Analysis Results Interchange Format (SARIF) version 2.1.0.'' Mar. 27, 2020. [Online]. Available: \url{https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/sarif-v2.1.0-os.html}
+
+\bibitem{openant} N. Korda and G. Evron, ``OpenAnt: LLM-Powered Vulnerability Discovery Through Code Decomposition, Adversarial Verification, and Dynamic Testing,'' arXiv preprint arXiv:2606.19149 (2026). \url{https://arxiv.org/abs/2606.19149}
+
+\bibitem{fuzzingbrain} Z. Sheng, Q. Xu, J. Huang, M. Woodcock, H. Huang, A. F. Donaldson, G. Gu, and J. Huang, ``All You Need Is A Fuzzing Brain: An LLM-Powered System for Automated Vulnerability Detection and Patching,'' arXiv preprint arXiv:2509.07225, 2025. \url{https://arxiv.org/abs/2509.07225}. Competition repository (organisation \texttt{fuzzingbrain}, formerly listed as \texttt{o2lab}): \url{https://github.com/fuzzingbrain/afc-crs-all-you-need-is-a-fuzzing-brain}.
+
+\bibitem{ollama} Ollama. \url{https://ollama.com/} (accessed Sep. 2026).
+
+\end{thebibliography}
+
+\appendix
+
+\fvset{fontsize=\footnotesize, breaklines=true}
+
+\chapter{Reproducibility Details}
+\label{app:reproducibility}
+
+\section{Full CVE Catalogue}
+
+\begin{table}[H]
+\centering
+\small
+\caption{All nine CVEs used across this project's evaluation: six in the main catalogue (Chapter~4), two in the free5GC work (Chapter~3), and one in the ProvTrail integration (Chapter~3).}
+\label{tab:catalogue}
+\begin{tabular}{@{}lp{1.9cm}p{2.3cm}lp{4.1cm}@{}}
+\toprule
+\textbf{CVE} & \textbf{Package} & \textbf{Class} & \textbf{CWE} & \textbf{Real source or reproduction} \\
+\midrule
+\mbox{CVE-2026-42208} & litellm & SQL Injection & \mbox{CWE-89} & Reproduction (\texttt{target\_app.py}) \\
+\mbox{CVE-2026-27602} & modoboa & OS Command Injection & \mbox{CWE-78} & Reproduction \\
+\mbox{CVE-2026-23949} & jaraco.context & Path Traversal & \mbox{CWE-22} & Reproduction \\
+\mbox{CVE-2026-78683} & nltk & Insecure Deserialization & \mbox{CWE-502} & Reproduction \\
+\mbox{CVE-2026-54729} & dssrf (npm) & SSRF & \mbox{CWE-918} & Reproduction \\
+\mbox{CVE-2026-46492} & md-fileserver & XSS & \mbox{CWE-80} & Reproduction \\
+\mbox{CVE-2026-40246} & free5GC/udr & Improper Auth. & \mbox{CWE-285} & Reproduction (\texttt{free5gc\_lab/}) \\
+\mbox{CVE-2026-40248} & free5GC/udr & Improper Auth. & \mbox{CWE-285} & Real upstream source; 4 handlers compile-verified, 4 runtime-confirmed (fuller deployment) \\
+\mbox{CVE-2024-48910} & dompurify (npm) & Prototype Pollution & \mbox{CWE-1321} & Reproduction (\texttt{provtrail\_js\_lab/}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every entry above was independently verified against GitHub's advisory API or commit API before use, not taken from a search-result summary. The table contains four distinct groups, not one uniform set: six CVEs (litellm through XSS) evaluated as local Python reproductions in the main catalogue (Chapter~4); CVE-2026-40246 evaluated as a separate, hand-written Go reproduction (\texttt{free5gc\_lab/}) with no fix commit documented for it in this project's own records; CVE-2024-48910 demonstrated as a hand-authored JavaScript reproduction; and CVE-2026-40248, the one case where the real, cloned upstream \texttt{free5gc/udr} source itself was analysed and patched, with its own documented fix commit --- compile-verified for all four reachable handlers, and additionally runtime-confirmed for all four under a fuller Docker deployment (Section~\ref{sec:free5gc-runtime-harness}, Appendix~\ref{app:reproducibility}). CVE-2026-40246 and CVE-2026-40248 are related --- the same bug class in the same source file family --- but were evaluated with different artifacts under different evidence standards, and should not be read as one shared source-file-and-fix-commit experiment. CVE-2026-23949 additionally carries a second, separate evaluation not reflected in its table row above: alongside its main-catalogue reproduction, its real, pinned-version PyPI package (\texttt{jaraco.context}, versions \texttt{5.3.0} and \texttt{6.1.0}) was independently validated against a real exploit and the real published fix (Section~\ref{sec:real-upstream-validation}); the two evaluations use different artifacts under different evidence standards and are reported separately throughout Chapter~4, exactly as CVE-2026-40246 and CVE-2026-40248 are.
+
+\section{free5GC Runtime Validation Evidence Bundle}
+\label{sec:free5gc-evidence-bundle}
+
+The minimal, single-handler (DELETE) runtime validation of CVE-2026-40248 described first in Section~\ref{sec:free5gc-runtime-harness} and its results is reproducible from the following artifacts, all committed to the \texttt{fyp} remote (\url{https://github.com/J-Dheeraj/Final-Year-Project}) under \texttt{free5gc\_runtime\_case/}, at commit \texttt{70281e5} (which supersedes commit \texttt{f09de67}, itself a correction of an initial CVE-identifier mislabelling introduced at commit \texttt{4524193}; both corrections are documented in \texttt{docs/\allowbreak FREE5GC\_RUNTIME\_VALIDATION\_PLAN.md}, and the harness was re-run after each to confirm an identical result before this report was written):
+
+\begin{table}[H]
+\centering
+\small
+\caption{free5GC runtime validation evidence bundle (\texttt{free5gc\_runtime\_case/}).}
+\begin{tabular}{@{}p{4.5cm}p{8.5cm}@{}}
+\toprule
+\textbf{File} & \textbf{Contents} \\
+\midrule
+\texttt{run\_harness.py} & The harness itself: builds the vulnerable and fixed commits, starts the stub NRF, drives the seed/malicious-delete/benign-delete request sequence, and writes every file below. \\
+\texttt{stub\_nrf/main.go} & The minimal HTTP/2-cleartext (h2c) stand-in NRF, built with Go's standard h2c library, required only because free5GC's own NRF client negotiates h2c unconditionally and rejects an HTTP/1.1 responder. \\
+\texttt{udrcfg.yaml} & The real UDR configuration used for both builds (local MongoDB URL, local NRF URI, cleartext SBI scheme). \\
+\texttt{manifest.json} & Structured record of both runs: commit hashes, component/handler identifiers, services used, and the full per-run result objects. \\
+\texttt{verdict.json} & The pipeline's own final verdict: whether the exploit was blocked, whether legitimate behaviour was preserved, the overall four-outcome verdict, and whether the vulnerable run confirmed the exploit. \\
+\texttt{patch.diff} & The real, unmodified diff between the vulnerable and fixed commits for the affected source file. \\
+\texttt{vulnerable\_response.log}, \texttt{patched\_response.log} & Full per-run HTTP status/body evidence for every request in the sequence (seed, pre-check, malicious delete, post-malicious check, reseed, benign delete, post-benign check). \\
+\texttt{vulnerable\_process.log}, \texttt{patched\_process.log} & Raw stdout/stderr from each UDR process, including the diagnostic NRF-registration retry evidence that led to the stub-NRF fix. \\
+\texttt{build\_vulnerable.log}, \texttt{build\_patched.log} & Full build output for both commits. \\
+\texttt{vulnerable\_commit.txt} & The exact vulnerable commit hash used (the fix commit's direct parent). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\texttt{docs/FREE5GC\_RUNTIME\_VALIDATION\_PLAN.md} in the same repository documents the case selection rationale, the exact vulnerable/fixed commit hashes, two genuine implementation blockers found only by running the harness for real rather than by reading source (UDR's NRF registration being a blocking infinite retry rather than ``logged and non-fatal'' as an earlier, shallower reading concluded; and the first, HTTP/1.1 stub NRF attempt failing with a client-side \texttt{http2: frame too large} error before the h2c requirement was identified), and the CVE-identifier correction referenced above. \texttt{docs/PROJECT\_STATUS.md}'s dated session-log entries for 2026-09-27 record the same work chronologically, including the correction, as this project's established multi-session coordination record.
+
+The fuller-deployment extension covering all four handlers, described in the second half of Section~\ref{sec:free5gc-runtime-harness}, is tracked separately on branch \texttt{free5gc-full-deployment} (commit \texttt{e59ee4e}), kept isolated from the single-handler bundle above so the two remain distinguishable. Its evidence bundle, under \texttt{free5gc\_full\_deployment/evidence/}, follows the same schema: \texttt{manifest.json} and \texttt{verdict.json} record all four handlers' vulnerable- and patched-build outcomes (\texttt{overall\_verdict: "confirmed\_fix\_all\_four\_handlers"}), \texttt{vulnerable\_response.json} and \texttt{patched\_response.json} record the full raw HTTP status, headers, and body for every request (including the collection-GET and single-PUT requests whose raw response bytes are the direct evidence for the stronger CRUD-bypass finding), and \texttt{vulnerable\_process.log}/\texttt{patched\_process.log} record the real UDR container logs, including successful registration with the real free5GC NRF. \texttt{docs/FREE5GC\_FULL\_DEPLOYMENT\_RESULTS.md} on that branch documents the deployment (real, official MongoDB and NRF images; a custom-built UDR image compiled from the same pinned commits as the single-handler case; OAuth2 explicitly disabled on the NRF, stated as an explicit limitation rather than omitted) and a caught-and-corrected mistake (an unrelated case study's commit hashes were briefly, and unsuccessfully, used for this build before the correct ones were substituted). This branch has not been merged to \texttt{main}; this report version, which does incorporate the fuller-deployment finding throughout, is itself kept on that branch pending a separate decision on whether it should replace the single-handler version.
+
+\section{Model and Sampling Configuration}
+
+\begin{table}[H]
+\centering
+\caption{Exact configuration values used across the live-LLM evaluation (Chapter~4), read directly from \texttt{cve\_pipeline.py}.}
+\begin{tabular}{@{}p{5cm}p{7cm}@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Default local model & \texttt{qwen2.5-coder:7b} (env override: \texttt{OLLAMA\_MODEL}) \\
+Sampling (round 5 onward) & \texttt{temperature=0}, \texttt{seed=42}, pinned specifically because round 1 vs.\ round 2 of the live-LLM run were not directly comparable without it (identical CVE and prompt flipped confirmed/unconfirmed between runs) \\
+Per-call generation timeout & 180 seconds \\
+Self-improvement iteration bound & 3 \\
+Ollama host & \texttt{http://127.0.0.1:11434} explicitly (fixed after an IPv4/IPv6 \texttt{localhost} ambiguity was found to silently flip availability checks) \\
+Eight-model comparison set & \texttt{qwen2.5-coder:1.5b/3b/7b}, \texttt{llama3.1:8b}, \texttt{mistral:7b}, \texttt{gemma2:9b}, \texttt{codellama:13b}, \texttt{deepseek-coder-v2:16b} \\
+Hosted Claude comparison set & \texttt{claude-haiku-4-5}, \texttt{claude-sonnet-4-6}, \texttt{claude-sonnet-5}, \texttt{claude-opus-4-6}, \texttt{claude-opus-4-7}, \texttt{claude-opus-4-8}; no temperature/seed control exposed by the CLI \\
+Hosted comparison generation timeout & 300 seconds (raised from the 180-second default specifically for two of the six models, found to genuinely exceed the shorter budget on realistic prompts) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Exact prompt wording is versioned directly in \texttt{cve\_pipeline.py} and \texttt{src/pipeline/patch.py} in the source repository (Appendix~\ref{app:repo-access}); it is not reproduced verbatim here for space. The pinned commit's source files document the prompts as they stand in that final, pinned snapshot of the pipeline; the prompts changed across the five development rounds described in Chapter~4, and the exact wording used in any one specific earlier round is not separately preserved outside that round's own commit history. Table~\ref{tab:round-commits} maps each round to the commit(s) where its own protocol and any code changes it depended on were introduced, so an examiner can check out the closest recorded code and prompt state for a specific round rather than only the final pinned snapshot; as that table notes, round 5's exact execution working tree was not independently captured, so ``closest recorded'' is not a guarantee of an exact match for that round specifically.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Round-to-commit mapping for the live-LLM catalogue runs (Chapter~4).}
+\label{tab:round-commits}
+\begin{tabular}{@{}p{1.2cm}p{2.6cm}p{8.7cm}@{}}
+\toprule
+\textbf{Round} & \textbf{Commit(s)} & \textbf{What changed at this point} \\
+\midrule
+1 & \texttt{390c316} & First full six-CVE catalogue run under the frozen prompt; \texttt{qwen2.5-coder:7b} via local Ollama. \\
+2 & \texttt{4c1a386} & Fixed a schemeless-URL bug found in round 1's PoCs; re-ran the full catalogue. \\
+3 & \texttt{5ecd4d0}\newline \texttt{6f932b4} & Ran with Stage 3.7 (self-improvement) newly wired to the live backend; \texttt{6f932b4} documents the markdown-fence and stale-exit-code bugs this round surfaced, before they were fixed. \\
+4 & \texttt{b05b45d}\newline \texttt{9711fe5} & \texttt{b05b45d} fixes the two bugs found in round 3; \texttt{9711fe5} is the round-4 catalogue run itself, with the first patch accepted by the two-check criterion. \\
+5 & \texttt{348eea0}\newline (code)\newline \texttt{f5958d0}\newline (results) & Ran after \texttt{56449a2} merged a parallel session's independent live-LLM work (multi-payload validation, pinned sampling) into \texttt{main}. \texttt{348eea0} is the parent of the results commit and the closest recorded pre-results code snapshot; the preserved raw log does not itself record a commit hash or a clean-working-tree check at execution time, so this is the closest available snapshot, not an independently verified exact match. \texttt{f5958d0} (``round 5 - full catalog on reconciled main, 5/6 confirmed'') is the commit that adds all six JSON reports, \texttt{RAW\_LOG.txt}, and this round's section of the live-run record. \\
+6 & \texttt{78fbaf0}\newline (validator)\newline \texttt{fd3d22f}\newline (relabel) & \texttt{78fbaf0} introduces the corrected validator (Section~\ref{sec:corrected-validator}) and the real-upstream CVE-2026-23949 case (Section~\ref{sec:real-upstream-validation}). This round was launched intending a Claude Code CLI comparison, silently ran on Ollama instead due to an expired CLI session, and was relabelled as a sixth Ollama round in \texttt{fd3d22f} once the mislabelling was found by auditing \texttt{generation\_backend} against the run's own stated protocol. \\
+--- & \texttt{6fa5a3a}\newline \texttt{6f159d6}\newline \texttt{139240d}\newline \texttt{289d8f3}\newline \texttt{2075671} & The 36-run hosted-Claude comparison (Section~\ref{sec:claude-multi-model-comparison}) is not a numbered round of the main six-CVE catalogue sequence; these five commits add real cost/token capture, the silent-fallback fix, the extended-timeout option, the agentic-tool/session-persistence fix, and the completed 36-cell results, in that order. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+An examiner wanting a specific round's prompt should check out that round's commit from Table~\ref{tab:round-commits} rather than relying on the pinned snapshot's current source, keeping in mind the round-5 caveat stated there.
+
+\section{Hosted Claude Comparison: Per-CVE Cost and Time}
+\label{app:claude-per-cve}
+
+Table~\ref{tab:claude-per-cve} gives the individual, per-CVE cost and wall-clock time underlying Table~\ref{tab:claude-multi-model}'s per-model totals in Section~\ref{sec:claude-multi-model-comparison}. Cost is the sum of that run's generation, self-improvement, and patch-generation calls, read directly from the Claude CLI's own \texttt{total\_cost\_usd} field per call, not estimated. Time is the pipeline's own recorded end-to-end wall-clock duration for that CVE, including advisory/analysis/probe stages, dynamic execution, and patch validation, not model generation time alone.
+
+\begin{longtable}{@{}p{2.2cm}p{1.3cm}p{3cm}p{1.5cm}p{1.5cm}@{}}
+\caption{Per-CVE cost (USD) and wall-clock time (s) for every model--CVE cell in the hosted Claude comparison (36 cells total).}
+\label{tab:claude-per-cve} \\
+\toprule
+\textbf{Model} & \textbf{CVE} & \textbf{Verdict} & \textbf{Cost} & \textbf{Time (s)} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Model} & \textbf{CVE} & \textbf{Verdict} & \textbf{Cost} & \textbf{Time (s)} \\
+\midrule
+\endhead
+\midrule
+Haiku 4.5 & 42208 & confirmed\_fix & 0.26 & 112.3 \\
+Haiku 4.5 & 27602 & confirmed\_fix & 0.26 & 119.0 \\
+Haiku 4.5 & 23949 & confirmed\_fix & 0.24 & 90.6 \\
+Haiku 4.5 & 78683 & confirmed\_fix & 0.55 & 323.0 \\
+Haiku 4.5 & 54729 & confirmed\_fix & 0.26 & 120.4 \\
+Haiku 4.5 & 46492 & not\_blocked & 0.24 & 84.3 \\
+\midrule
+Sonnet 4.6 & 42208 & confirmed\_fix & 0.73 & 130.3 \\
+Sonnet 4.6 & 27602 & confirmed\_fix & 0.34 & 80.3 \\
+Sonnet 4.6 & 23949 & confirmed\_fix & 0.74 & 130.8 \\
+Sonnet 4.6 & 78683 & not\_blocked & 0.80 & 173.5 \\
+Sonnet 4.6 & 54729 & confirmed\_fix & 1.14 & 257.8 \\
+Sonnet 4.6 & 46492 & not\_blocked & 0.74 & 141.0 \\
+\midrule
+Sonnet 5 & 42208 & confirmed\_fix & 0.68 & 104.0 \\
+Sonnet 5 & 27602 & confirmed\_fix & 0.69 & 99.8 \\
+Sonnet 5 & 23949 & confirmed\_fix & 0.65 & 88.6 \\
+Sonnet 5 & 78683 & not\_blocked & 0.87 & 123.8 \\
+Sonnet 5 & 54729 & confirmed\_fix & 0.70 & 134.0 \\
+Sonnet 5 & 46492 & not\_blocked & 0.67 & 104.5 \\
+\midrule
+Opus 4.6 & 42208 & inconclusive\_crash & 1.24 & 187.7 \\
+Opus 4.6 & 27602 & confirmed\_fix & 1.47 & 185.2 \\
+Opus 4.6 & 23949 & confirmed\_fix & 1.36 & 259.8 \\
+Opus 4.6 & 78683 & confirmed\_fix & 1.39 & 285.4 \\
+Opus 4.6 & 54729 & confirmed\_fix & 1.28 & 189.4 \\
+Opus 4.6 & 46492 & not\_blocked & 1.31 & 237.1 \\
+\midrule
+Opus 4.7 & 42208 & confirmed\_fix & 0.77 & 85.6 \\
+Opus 4.7 & 27602 & confirmed\_fix & 0.70 & 70.5 \\
+Opus 4.7 & 23949 & confirmed\_fix & 0.79 & 106.8 \\
+Opus 4.7 & 78683 & confirmed\_fix & 1.71 & 150.1 \\
+Opus 4.7 & 54729 & confirmed\_fix & 0.73 & 83.7 \\
+Opus 4.7 & 46492 & not\_blocked & 0.82 & 128.2 \\
+\midrule
+Opus 4.8 & 42208 & confirmed\_fix & 1.74 & 170.2 \\
+Opus 4.8 & 27602 & confirmed\_fix & 2.05 & 247.2 \\
+Opus 4.8 & 23949 & confirmed\_fix & 0.81 & 189.3 \\
+Opus 4.8 & 78683 & confirmed\_fix & 2.13 & 249.2 \\
+Opus 4.8 & 54729 & confirmed\_fix & 0.95 & 256.8 \\
+Opus 4.8 & 46492 & not\_blocked & 1.38 & 258.5 \\
+\bottomrule
+\end{longtable}
+
+CVE identifiers above are abbreviated to their final five digits (e.g.\ \texttt{42208} = CVE-2026-42208); the class each maps to is given in Table~\ref{tab:catalogue} in Section~\ref{app:reproducibility}. Raw per-cell reports: \texttt{reports/\allowbreak model\_comparison\_\allowbreak pilot\_2026-09-25/\allowbreak <model>/\allowbreak <CVE-ID>.json}.
+
+\section{Validation Criteria (Quick Reference)}
+
+\begin{itemize}
+\item \textbf{Dynamically confirmed}: a real subprocess exit code from a real HTTP exchange, or a real compiled-harness run --- never a static claim.
+\item \textbf{Patch accepted by the two-check criterion} (the pipeline's raw \texttt{patch\_validated} field): the patch applies, the original unmodified exploit now fails against it, and a separate \texttt{/health} endpoint still returns 200. As established in Chapter~4, this flag cannot distinguish a deliberate security fix from an unrelated crash bug in the patched code, and at least one flagged case in this project's own evaluation is a confirmed false acceptance on trace-level inspection. Left unchanged in every report for continuity; superseded as this project's headline patch metric by \texttt{patch\_verdict} below.
+\item \textbf{\texttt{patch\_verdict}} (the corrected, four-outcome criterion, Section~\ref{sec:corrected-validator}): one of \texttt{confirmed\_fix} (exploit blocked without a detected crash, and a generic benign probe to the same route also completes without a detected crash --- \emph{not} independently confirmed to behave correctly; see Section~\ref{sec:corrected-validator} for the audited scope of this check), \texttt{regression\_broke\_route} (blocked, but the benign probe also shows a crash signature), \texttt{inconclusive\_crash} (the exploit request itself crashed the route, so blocking cannot be attributed to a deliberate check), or \texttt{not\_blocked} (the exploit still succeeds). Automatically reclassifies this project's own confirmed false acceptance as \texttt{inconclusive\_crash}.
+\item \textbf{Correct patch}: not measured by this project beyond the one real-upstream case (Section~\ref{sec:real-upstream-validation}), where the ``patch'' is the real upstream maintainers' own released fix rather than an LLM-generated one. No diff-similarity scoring or independent second-reader adjudication against the real upstream fix exists for the LLM-generated patches in the main catalogue.
+\item \textbf{Compile-verified} (free5GC, all four handlers' original evidence tier): \texttt{go build} succeeds against the real, live-cloned upstream module with the patch applied --- weaker evidence than dynamic confirmation, never reported interchangeably with it, and since superseded by runtime confirmation for all four handlers (see below).
+\item \textbf{Runtime-confirmed} (free5GC, all four handlers, CVE-2026-40248): the real, cloned module was built, run, and exercised over real HTTP for both the vulnerable and fixed commits, first for one handler (DELETE) against a real local MongoDB instance and a minimal stand-in NRF satisfying only UDR's own startup registration call, then for all four handlers against a fuller Docker deployment with a real free5GC NRF (OAuth2 disabled) --- meets the same standard as \textbf{Dynamically confirmed} above, not the weaker compile-verified tier.
+\end{itemize}
+
+\section{Relationship to AIxCC/OSS-CRS Vocabulary (Condensed)}
+\label{app:crs-mapping}
+
+This project's stages line up with AIxCC/OSS-CRS vocabulary as follows, condensed from this project's own internal mapping document: Stage 1 (advisory fetch) corresponds to OSS-CRS's \texttt{prepare} phase, except that it pulls an already-known advisory rather than preparing to discover one; Stage 3.5 (exploit-artifact generation) corresponds to \texttt{build-target}, except that it generates a minimal reproduction rather than compiling the real upstream project (the single biggest structural gap versus a real CRS, per Section~\ref{sec:limitations-method-related}); Stages 2, 3, 3.6, and 3.7 together correspond to the \texttt{run} phase's triage-and-verify loop. The clearest, most defensible framing is two complementary but partial capabilities: (1) the confirm-and-patch back half of a real CRS's loop, evaluated one known CVE at a time, and (2) a real, AST-based scope-reduction front half (\texttt{src/reachability/}) proven against one real, disclosed free5GC vulnerability. Neither claims the hardest capability a full CRS needs --- discovering an \emph{unknown} bug in an unmodified codebase --- which this project does not attempt.
+
+\chapter{Selected Trace Excerpts}
+\label{app:trace-excerpts}
+
+\section{The False-Acceptance Case: CVE-2026-78683, Round 4 vs.\ Round 5}
+
+Both traces below are quoted directly from the corresponding round's raw JSON report, reformatted only for line length.
+
+\textbf{Round 4 (plausibly a genuine fix --- deliberately raised exception):}
+\begin{Verbatim}[fontsize=\scriptsize]
+  File "...target_app.iter1.v0.patched.py", line 20, in vulnerable
+    raise ValueError("Deserialization only allowed for safe classes")
+ValueError: Deserialization only allowed for safe classes
+127.0.0.1 - - [23/Sep/2026 23:28:27] "POST /vulnerable HTTP/1.1" 500 -
+=== poc.py (exit 1) ===
+[-] FAILED
+\end{Verbatim}
+
+\textbf{Round 5 (confirmed false acceptance --- unrelated crash bug):}
+\begin{Verbatim}[fontsize=\scriptsize]
+  File "...target_app.iter1.v0.patched.py", line 26, in vulnerable
+    safe_unpickler = SafeUnpickler(io.BytesIO(data))
+                                   ^^
+NameError: name 'io' is not defined. Did you mean: 'id'? Or did you forget to import 'io'?
+127.0.0.1 - - [24/Sep/2026 09:34:51] "POST /vulnerable HTTP/1.1" 500 -
+=== poc.py (exit 1) ===
+[-] FAILED
+\end{Verbatim}
+
+Both were recorded by the pipeline as \texttt{patch\_validated: true}. Only the first is plausibly correct; the second is a crash the validation criterion could not distinguish from a fix (Section~\ref{sec:patch-generation-validation}).
+
+\section{The Markdown-Fence Crash (Round 3)}
+
+Four of round 3's five unconfirmed CVEs crashed identically because a model-generated revision's \texttt{target\_app.py} still contained a literal, unstripped \texttt{```python} fence, making the file invalid Python:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+  File "target_app.py", line 1
+    ```python
+    ^
+SyntaxError: invalid syntax
+\end{Verbatim}
+
+Fixed in commit \texttt{b05b45d} via a dedicated \texttt{\_strip\_code\_fence} helper; zero of round 4 or round 5's twelve reports contain this signature, checked programmatically.
+
+\section{free5GC Upstream Compile Verification}
+
+Output from applying all four generated patches directly to a live clone of \texttt{github.com/free5gc/udr} at the pre-fix commit and rebuilding against its real dependency graph:
+
+\begin{Verbatim}[fontsize=\scriptsize]
+=== Baseline: real vulnerable commit, unmodified ===
+  [baseline (unpatched)] go build ./... -> OK
+Applied 4/4 patches: [...]
+=== After applying auto-generated patches to the REAL module ===
+  [patched (real module)] go build ./... -> OK
+\end{Verbatim}
+
+\section{Classification Ablation: NVD/GHSA Ground-Truth Cross-Check}
+
+\begin{table}[H]
+\centering
+\caption{Ground-truth CWE cross-check between NVD and GitHub Security Advisories (Section~4.1.5).}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{CVE} & \textbf{NVD CWE} & \textbf{GHSA CWE(s)} \\
+\midrule
+CVE-2026-42208 & CWE-89 & CWE-89 \\
+CVE-2026-27602 & CWE-78 & CWE-78 \\
+CVE-2026-23949 & CWE-22 & CWE-22 \\
+CVE-2026-78683 & CWE-502 & CWE-502 \\
+CVE-2026-54729 & CWE-918 & CWE-918 \\
+CVE-2026-46492 & CWE-80 & CWE-80, CWE-87 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Agreement across all six entries indicates the structured-CWE signal is consistent across both databases, though this is not independent replication of the underlying analysis, since advisories are commonly shared or ingested between the two sources.
+
+\chapter{Repository and Artifact Access}
+\label{app:repo-access}
+
+The tracked reports, session logs, prompts, and source code referenced in this thesis are version-controlled and publicly accessible rather than reproduced in full here; some individual generated artifacts (for example, a specific run's exploit or target file written to a temporary sandbox directory during a single evaluation session) are referenced by the machine path recorded at the time and are not themselves preserved in the repository, only the structured JSON report summarising that run. This appendix, together with Appendices~\ref{app:reproducibility} and~\ref{app:trace-excerpts}, is intended to be sufficient for an examiner to verify this thesis's specific claims without needing the full repository; the repository itself is offered for anyone wanting to go further (re-run a case, inspect a full prompt, read a session log in full), with the caveat above for any artifact an examiner may want that was not itself committed.
+
+\begin{itemize}
+\item \textbf{Repository}: \url{https://github.com/J-Dheeraj/Final-Year-Project}
+\item \textbf{Pinned commit}: \texttt{2075671} (the commit this thesis's claims were checked against as of this update; \texttt{71ab658a0a88335565daf8e9be8e24e3d5075b38} was the pinned commit for the results predating Section~\ref{sec:corrected-validator})
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Where each result reported in this thesis lives in the repository.}
+\begin{tabular}{@{}p{6.5cm}p{6cm}@{}}
+\toprule
+\textbf{Result} & \textbf{Repository path} \\
+\midrule
+Original template-mode baseline catalogue & \texttt{reports/\allowbreak CVE\_CATALOG.md} \\
+Live-LLM catalogue runs, rounds 1--6 & \texttt{reports/\allowbreak LIVE\_LLM\_CATALOG\_RUN.md} \\
+Eight-model comparison (initial, 48 runs) & \texttt{reports/\allowbreak MULTI\_MODEL\_COMPARISON.md} \\
+Patch-validation investigation and re-test & \texttt{reports/\allowbreak PATCH\_VALIDATION\_\allowbreak INVESTIGATION.md} \\
+Corrected validator (implementation) & \texttt{src/\allowbreak pipeline/\allowbreak patch.py} \\
+Real-upstream validation (CVE-2026-23949) & \texttt{real\_upstream\_case/\allowbreak CVE-2026-23949/\allowbreak RESULTS.md} \\
+Hosted Claude 6-model comparison (36 runs) & \texttt{reports/\allowbreak model\_comparison\_\allowbreak pilot\_2026-09-25/\allowbreak RESULTS.md} \\
+Stronger, content-verified patch reassessment & \texttt{reports/\allowbreak patch\_reassessment\_2026-09-26/\allowbreak RESULTS.md} \\
+Consolidated session record for this update & \texttt{docs/\allowbreak SESSION\_2026-09-25\_\allowbreak MULTI\_AGENT\_\allowbreak COMPARISON.md} \\
+Benchmark protocol and classification ablation & \texttt{docs/\allowbreak BENCHMARK\_PROTOCOL.md} \\
+Reachability engine and free5GC case study & \texttt{docs/\allowbreak REACHABILITY.md}, \texttt{src/\allowbreak reachability/} \\
+free5GC dynamic-exploitation lab & \texttt{docs/\allowbreak FREE5GC\_LAB.md}, \texttt{free5gc\_lab/} \\
+Full scope and limitations statement & \texttt{docs/\allowbreak SCOPE\_AND\_\allowbreak LIMITATIONS.md} \\
+Alternative approach considered and rejected & \texttt{docs/\allowbreak CONSIDERED\_\allowbreak DIRECTIONS.md} \\
+AIxCC/OSS-CRS stage mapping (full) & \texttt{docs/\allowbreak CRS\_MAPPING.md} \\
+Full development session log & \texttt{docs/\allowbreak PROJECT\_STATUS.md} \\
+Pipeline orchestration and exact prompts & \texttt{cve\_pipeline.py}, \texttt{src/\allowbreak pipeline/\allowbreak patch.py} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
