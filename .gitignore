@@ -37,3 +37,7 @@ real_upstream_case/**/venv_*/
 # via `git clone` + `go build` at the pinned commits, not committed)
 free5gc_runtime_case/.udr_clone/
 free5gc_runtime_case/*.exe
+
+# OpenEMR transfer case: the cloned openemr/openemr repo (reproducible
+# via `git clone` at the pinned commits, not committed)
+openemr_transfer_case/_work/

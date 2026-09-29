@@ -1,0 +1,7 @@
+{
+  "advisory": "GHSA-q366-cv5v-83w8",
+  "vulnerable_default_leaked_metadata": true,
+  "patched_default_blocked": true,
+  "patched_optin_still_works": true,
+  "verdict": "confirmed_fix"
+}
