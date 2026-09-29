@@ -2,6 +2,33 @@
 
 ## Session log
 
+- **2026-09-29 (OpenEMR transfer case implemented, on `openemr-transfer-scope`
+  only - `main` untouched) - GHSA-q366-cv5v-83w8 confirmed_fix** —
+  Implemented and ran the Docker-based harness scoped by the earlier
+  design pass, per explicit instruction to implement only this one
+  target and stop. Real MariaDB (`mariadb:10.11`, minimal two-table
+  schema) and a minimal PHP image (`php:8.2-cli` + `mysqli`, no Apache,
+  no setup wizard) with the real, unmodified OpenEMR checkout bind-
+  mounted, switched between the real vulnerable commit
+  (`b5313ea2...`) and fixed commit (`50f789fa...`, PR #13133).
+  Three requests (vulnerable default, patched default, patched opt-in)
+  all matched expectations exactly, confirmed against the raw response
+  bodies, not just status codes: vulnerable discloses real site/DB/
+  version metadata; patched blocks by default with the exact documented
+  403 message; patched still works when the operator explicitly opts
+  in via `OPENEMR_ADMIN_PHP_ENABLED=1`. Verdict: `confirmed_fix`.
+  Found and fixed two genuine startup-race bugs while running the
+  harness for real (a MariaDB bootstrap-instance race and a PHP
+  built-in-server TCP-accept-before-ready race), documented in
+  `docs/OPENEMR_TRANSFER_RESULTS.md` alongside a cosmetic schema gap
+  (missing `v_database`/`v_acl` columns) found and fixed from the first
+  clean run's own raw evidence. Evidence bundle committed under
+  `openemr_transfer_case/evidence/`. Exit criteria met: one real,
+  non-inconclusive OpenEMR transfer case, produced without any paid/
+  model backend (`NO_PAID_BACKEND=1` held throughout), `main` and the
+  report untouched, scope not expanded beyond this one target as
+  instructed.
+
 Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
