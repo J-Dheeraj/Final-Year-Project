@@ -26,6 +26,47 @@ CVE catalog and defines every metric precisely; [`docs/DEFENSE_PREP.md`](docs/DE
 is viva Q&A built from an actual walkthrough of this codebase; [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)
 is the living done/open checklist.
 
+### Current state (2026-10-04)
+
+The FYP has progressed well beyond the template-based baseline this
+README originally described. Two results now anchor the project,
+both runtime-confirmed against real upstream software, not just
+compile-verified or reproduced:
+
+- **free5GC UDR (CVE-2026-40248), all four CRUD handlers.** What
+  started as a single-handler, compile-time-only reachability result
+  (see "Paper" below) was taken to full runtime confirmation: first a
+  minimal harness (real MongoDB, a hand-built h2c NRF stand-in) for the
+  DELETE handler alone (`free5gc_runtime_case/`), then a fuller Docker
+  deployment (real, official MongoDB and free5GC NRF images) covering
+  all four reachable handlers (`free5gc_full_deployment/`). The fuller
+  deployment found the underlying bug - a missing `return` after an
+  error response - to be a genuine CRUD bypass, not a single-record
+  issue: unauthorized read of one record, unauthorized read of the
+  *entire* subscription collection, unauthorized write, and
+  unauthorized delete, all closed by the same one-line upstream fix.
+  See [`docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md`](docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md)
+  and [`docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md`](docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md).
+- **OpenEMR (GHSA-q366-cv5v-83w8), a healthcare transfer case.** The
+  same evidence-gated method (real vulnerable/patched commits, a
+  minimal Docker deployment, a four-outcome verdict) applied to a
+  second, unrelated domain: an unauthenticated `admin.php` information
+  disclosure in OpenEMR, an open-source EHR system. Verdict:
+  `confirmed_fix` - the vulnerable build discloses real site/DB/version
+  metadata, the patched build blocks by default, and the patch's own
+  documented opt-in (`OPENEMR_ADMIN_PHP_ENABLED=1`) still works,
+  proving the fix gates rather than removes functionality. See
+  [`docs/OPENEMR_TRANSFER_CASE_PLAN.md`](docs/OPENEMR_TRANSFER_CASE_PLAN.md)
+  and [`docs/OPENEMR_TRANSFER_RESULTS.md`](docs/OPENEMR_TRANSFER_RESULTS.md).
+
+The full written account of both results, alongside the main six-CVE
+catalogue and the hosted-model comparisons below, is
+[`free5gc_full_deployment/FYP_Report_main_upgraded.tex`](free5gc_full_deployment/FYP_Report_main_upgraded.tex)
+(compiled: `FYP_Report_main_upgraded.pdf`, same directory) - the
+report's authoritative working copy is maintained outside this
+repository and this is a point-in-time copy committed alongside the
+evidence it cites, not a live-synced mirror.
+
 ---
 
 ## Architecture
@@ -146,6 +187,14 @@ compiled file; `paper/main.docx` is a Word copy for editing;
 paper versus what still needs author action before any future
 submission.
 
+**This paper describes the earlier, compile-time-only stage of this
+result.** The same CVE-2026-40248 case has since been taken to full
+runtime confirmation across all four reachable handlers — see "Current
+state" above and `free5gc_runtime_case/` / `free5gc_full_deployment/` —
+a materially stronger result than what this paper reports. The paper
+itself has not been revised to reflect this; it remains as originally
+drafted and verified.
+
 ---
 
 ## CVE results
@@ -170,11 +219,11 @@ and [`reports/METRICS.md`](reports/METRICS.md).
 | [CVE-2026-78683](https://advisories.gitlab.com/pypi/nltk/CVE-2026-78683/) | nltk | Insecure Deserialization (CWE-502) | CRITICAL 9.6 | **True** |
 | [CVE-2026-54729](https://github.com/advisories/GHSA-5846-7qm3-r52j) | dssrf | SSRF (CWE-918) | not listed | False (real network limitation, not a defect) |
 | [CVE-2026-46492](https://github.com/advisories/GHSA-32q2-hhr5-6qvv) | md-fileserver | XSS (CWE-80) | HIGH 7.2 | **True** |
-| [CVE-2026-40248](https://github.com/advisories/GHSA-jgq2-qv8v-5cmj) | free5gc/udr | Improper Authorization (CWE-285) | HIGH 7.5 | **True** (patch verified against real upstream) |
+| [CVE-2026-40248](https://github.com/advisories/GHSA-jgq2-qv8v-5cmj) | free5gc/udr | Improper Authorization (CWE-285) | HIGH 7.5 | **True** — all four reachable handlers runtime-confirmed against a real upstream deployment |
 
 **5/6** catalog CVEs dynamically confirmed by genuine subprocess execution; the
-free5GC case is verified by a different, stronger method (real upstream clone +
-`go build`), covered separately below.
+free5GC case is verified by a different, stronger method (real upstream deployment,
+not a reproduction), covered separately below and in "Current state" above.
 
 ### CVE-2026-42208 — SQL Injection (litellm)
 
@@ -290,11 +339,26 @@ whether the `influenceId` path segment is valid and writes an HTTP 404 if
 not, but never `return`s after writing that response — so execution falls
 through and the subscription is created or overwritten regardless of the
 check's outcome. This is the subject of the paper (see "Paper" above).
-Verified two ways: reachability analysis reduces 102 parsed functions to
-the 4 actually reachable (96.1% reduction), and — going further than a
-synthetic test — all 4 generated patches were applied to a live clone of
-the real `free5gc/udr` repository, which still compiles against the
-project's actual dependency graph.
+Verified three ways, in increasing order of strength:
+
+1. **Reachability analysis** reduces 102 parsed functions to the 4
+   actually reachable (96.1% reduction), all classified correctly as
+   CWE-285.
+2. **Compile verification**: all 4 generated patches were applied to a
+   live clone of the real `free5gc/udr` repository, which still
+   compiles against the project's actual dependency graph.
+3. **Runtime confirmation (all 4 handlers)**: going further than a
+   compile check, a Docker-based harness ran the real vulnerable and
+   patched commits against a real, official MongoDB and free5GC NRF
+   deployment and exercised all four handlers over real HTTP. The bug
+   is a genuine CRUD bypass, not a single-record issue — the collection
+   GET leaks every subscription in the system inside what looks like a
+   plain `400` rejection, the single GET and DELETE leak/delete a
+   single record despite a `404`, and the single PUT performs an
+   unauthorized write despite a `404` — all four closed by the same
+   one-line upstream fix, with the benign path preserved. See "Current
+   state" above and `free5gc_full_deployment/evidence/verdict.json`
+   (`overall_verdict: "confirmed_fix_all_four_handlers"`).
 
 ```
 Cloning https://github.com/free5gc/udr.git @ 86686276a7e2^ (real pre-fix commit) ...
@@ -305,6 +369,45 @@ Applied 4/4 patches: [...]
   [patched (real module)] go build ./... -> OK
 RESULT: real free5GC/udr @ 86686276a7e2 with the pipeline's auto-generated patches applied COMPILES
 ```
+
+---
+
+## OpenEMR transfer case — GHSA-q366-cv5v-83w8
+
+A deliberately small, bounded test of whether the evidence-gated method
+above transfers to a second, unrelated domain (telecom → healthcare),
+not an expansion of the main catalogue. Target:
+[GHSA-q366-cv5v-83w8](https://github.com/openemr/openemr/security/advisories/GHSA-q366-cv5v-83w8),
+an unauthenticated information disclosure in OpenEMR's `admin.php` (no
+CVE number is assigned to this advisory). Chosen specifically because it
+has a safe, unauthenticated request/response oracle with no RCE or
+destructive payload involved.
+
+The vulnerable commit (`b5313ea2...`) discloses real deployment metadata
+(site ID, database name, OpenEMR version) to any unauthenticated
+visitor; the fix (`50f789fa...`, PR #13133) adds an opt-in guard —
+`admin.php` returns `403` by default unless
+`OPENEMR_ADMIN_PHP_ENABLED=1` is explicitly set, the same "gate, don't
+remove" fix shape as free5GC's missing `return`. A minimal Docker
+harness (`openemr_transfer_case/`) — real, official `mariadb:10.11` and
+`php:8.2-cli` images, a two-table schema instead of OpenEMR's full
+schema, no Apache, no setup wizard — ran all three scenarios against the
+real, unmodified OpenEMR source:
+
+```
+vulnerable, default request  : HTTP 200, real site/DB/version metadata disclosed
+patched, default request     : HTTP 403, "admin.php is disabled by default..."
+patched, opt-in request      : HTTP 200, identical disclosure - proves the fix
+                                gates access rather than removing functionality
+verdict: confirmed_fix
+```
+
+See [`docs/OPENEMR_TRANSFER_CASE_PLAN.md`](docs/OPENEMR_TRANSFER_CASE_PLAN.md)
+for the target-selection rationale and
+[`docs/OPENEMR_TRANSFER_RESULTS.md`](docs/OPENEMR_TRANSFER_RESULTS.md)
+for the full result, including two genuine startup-race bugs (in the
+official MariaDB image and PHP's built-in dev server) found and fixed
+while getting the harness to run cleanly.
 
 ---
 
@@ -504,7 +607,23 @@ AI CVE Exploit Automation/
 ├── docs/
 │   ├── CRS_MAPPING.md       # How this pipeline maps onto AIxCC/OSS-CRS concepts
 │   ├── REACHABILITY.md      # The reachability engine vs. a real free5GC CVE
-│   └── FREE5GC_LAB.md       # The free5GC-adjacent dynamic exploit lab
+│   ├── FREE5GC_LAB.md       # The free5GC-adjacent dynamic exploit lab
+│   ├── FREE5GC_RUNTIME_VALIDATION_PLAN.md    # Minimal DELETE-handler runtime case design
+│   ├── FREE5GC_FULL_DEPLOYMENT_RESULTS.md    # All-four-handler runtime result (see "Current state")
+│   ├── OPENEMR_TRANSFER_CASE_PLAN.md         # OpenEMR target selection + harness design
+│   └── OPENEMR_TRANSFER_RESULTS.md           # OpenEMR confirmed_fix result
+│
+├── free5gc_runtime_case/     # Minimal runtime harness: DELETE handler only,
+│   └── evidence/             # real MongoDB + a hand-built h2c NRF stand-in
+│
+├── free5gc_full_deployment/  # Fuller runtime harness: all 4 reachable handlers,
+│   ├── FYP_Report_main_upgraded.{tex,pdf}  # the upgraded FYP report (see "Current state")
+│   ├── run_full_deployment_harness.py      # real, official MongoDB + free5GC NRF images
+│   └── evidence/
+│
+├── openemr_transfer_case/    # Healthcare transfer case: GHSA-q366-cv5v-83w8
+│   ├── run_harness.py        # real, official mariadb + php:8.2-cli images
+│   └── evidence/
 │
 ├── paper/                   # free5GC World Forum '26 draft (see "Paper" above,
 │   ├── main.tex             # drafted, submission-ready, NOT submitted)
