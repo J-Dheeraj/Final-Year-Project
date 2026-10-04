@@ -1,0 +1,276 @@
+{
+  "cve_id": "CVE-2026-40248",
+  "target_handler": "HandleApplicationDataInfluenceDataSubsToNotifyGet",
+  "vulnerable_commit": "86686276a7e226183ee786e3dd6714ec56c78fda^",
+  "generated_at": "2026-10-04T17:46:03.052746+00:00",
+  "vulnerable_baseline_run": {
+    "label": "vulnerable_sweep_baseline",
+    "seed": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "collection_get_empty_query": {
+      "status_code": 400,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "174"
+      },
+      "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}[{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}]"
+    },
+    "collection_get_leaked_data": true,
+    "single_get_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "87"
+      },
+      "body": "404 page not found{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_get_leaked_data": true,
+    "single_put_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "96"
+      },
+      "body": "404 page not found{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "confirm_unauthorized_write": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "78"
+      },
+      "body": "{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_put_unauthorized_write": true,
+    "delete_seed": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_delete_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "18"
+      },
+      "body": "404 page not found"
+    },
+    "post_delete_check": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "64"
+      },
+      "body": "{\"title\":\"User not found\",\"status\":404,\"cause\":\"USER_NOT_FOUND\"}"
+    },
+    "single_delete_confirmed_exploit": true,
+    "benign_get_correct_influence_id": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sun, 04 Oct 2026 17:13:42 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "benign_path_preserved": true
+  },
+  "models": [
+    {
+      "model": "deepseek-coder-v2:16b",
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: RuntimeError: Ollama request failed (500): {\"error\":\"llama-server reported out-of-memory during startup: ggml_backend_cpu_buffer_type_alloc_buffer: failed to allocate buffer of size 45298483200\\nalloc_tensor_range: failed to allocate CPU buffer of size 45298483200\\nllama_init_from_model: failed to initialize the context: failed to allocate buffer for kv cache\"}",
+        "diff": null
+      },
+      "runtime": null
+    },
+    {
+      "model": "codellama:13b",
+      "compile": {
+        "patch_method": "llm-ollama",
+        "applied": 4,
+        "compiles": true,
+        "error": null,
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -26,6 +26,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+      },
+      "runtime": {
+        "collection_get_leak_confirmed_vulnerable": true,
+        "collection_get_leak_fixed": true,
+        "single_get_leak_confirmed_vulnerable": true,
+        "single_get_leak_fixed": true,
+        "single_put_unauthorized_write_confirmed_vulnerable": true,
+        "single_put_unauthorized_write_fixed": true,
+        "single_delete_confirmed_exploit_vulnerable": true,
+        "single_delete_fixed": true,
+        "benign_path_preserved_vulnerable": true,
+        "benign_path_preserved_patched": true,
+        "overall_verdict": "confirmed_fix_all_four_handlers"
+      },
+      "build_ok": true
+    },
+    {
+      "model": "gemma2:9b",
+      "compile": {
+        "patch_method": "llm-ollama",
+        "applied": 4,
+        "compiles": true,
+        "error": null,
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+      },
+      "runtime": {
+        "collection_get_leak_confirmed_vulnerable": true,
+        "collection_get_leak_fixed": true,
+        "single_get_leak_confirmed_vulnerable": true,
+        "single_get_leak_fixed": true,
+        "single_put_unauthorized_write_confirmed_vulnerable": true,
+        "single_put_unauthorized_write_fixed": true,
+        "single_delete_confirmed_exploit_vulnerable": true,
+        "single_delete_fixed": true,
+        "benign_path_preserved_vulnerable": true,
+        "benign_path_preserved_patched": true,
+        "overall_verdict": "confirmed_fix_all_four_handlers"
+      },
+      "build_ok": true
+    },
+    {
+      "model": "mistral:7b",
+      "compile": {
+        "patch_method": "llm-ollama",
+        "applied": 4,
+        "compiles": true,
+        "error": null,
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -4,18 +4,19 @@\n \tdnn := c.Query(\"dnn\")\n \tinternalGroupId := c.Query(\"internal-Group-Id\")\n \tsupi := c.Query(\"supi\")\n+\tsnssaiStr := c.Query(\"snssai\")\n \n \tvar snssai *models.Snssai\n-\tif c.Query(\"snssai\") != \"\" {\n+\tif snssaiStr != \"\" {\n \t\tsnssai = new(models.Snssai)\n-\t\terr := openapi.Deserialize(snssai, []byte(c.Query(\"snssai\")), \"application/json\")\n-\t\tif err != nil {\n+\t\tif err := openapi.Deserialize(snssai, []byte(snssaiStr), \"application/json\"); err != nil {\n \t\t\tproblemDetails := models.ProblemDetails{\n \t\t\t\tStatus: http.StatusBadRequest,\n \t\t\t\tDetail: err.Error(),\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+      },
+      "runtime": {
+        "collection_get_leak_confirmed_vulnerable": true,
+        "collection_get_leak_fixed": true,
+        "single_get_leak_confirmed_vulnerable": true,
+        "single_get_leak_fixed": true,
+        "single_put_unauthorized_write_confirmed_vulnerable": true,
+        "single_put_unauthorized_write_fixed": true,
+        "single_delete_confirmed_exploit_vulnerable": true,
+        "single_delete_fixed": true,
+        "benign_path_preserved_vulnerable": true,
+        "benign_path_preserved_patched": true,
+        "overall_verdict": "confirmed_fix_all_four_handlers"
+      },
+      "build_ok": true
+    },
+    {
+      "model": "llama3.1:8b",
+      "compile": {
+        "patch_method": "llm-ollama",
+        "applied": 4,
+        "compiles": true,
+        "error": null,
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn // added return statement\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn // added return statement\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+      },
+      "runtime": {
+        "collection_get_leak_confirmed_vulnerable": true,
+        "collection_get_leak_fixed": true,
+        "single_get_leak_confirmed_vulnerable": true,
+        "single_get_leak_fixed": true,
+        "single_put_unauthorized_write_confirmed_vulnerable": true,
+        "single_put_unauthorized_write_fixed": true,
+        "single_delete_confirmed_exploit_vulnerable": true,
+        "single_delete_fixed": true,
+        "benign_path_preserved_vulnerable": true,
+        "benign_path_preserved_patched": true,
+        "overall_verdict": "confirmed_fix_all_four_handlers"
+      },
+      "build_ok": true
+    },
+    {
+      "model": "qwen2.5-coder:7b",
+      "compile": {
+        "patch_method": "llm-ollama",
+        "applied": 4,
+        "compiles": true,
+        "error": null,
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn // Add return statement to exit the function after sending the error response\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn // Add return statement to exit the function after sending the error response\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+      },
+      "runtime": {
+        "collection_get_leak_confirmed_vulnerable": true,
+        "collection_get_leak_fixed": true,
+        "single_get_leak_confirmed_vulnerable": true,
+        "single_get_leak_fixed": true,
+        "single_put_unauthorized_write_confirmed_vulnerable": true,
+        "single_put_unauthorized_write_fixed": true,
+        "single_delete_confirmed_exploit_vulnerable": true,
+        "single_delete_fixed": true,
+        "benign_path_preserved_vulnerable": true,
+        "benign_path_preserved_patched": true,
+        "overall_verdict": "confirmed_fix_all_four_handlers"
+      },
+      "build_ok": true
+    },
+    {
+      "model": "qwen2.5-coder:3b",
+      "compile": {
+        "patch_method": "llm-ollama",
+        "applied": 4,
+        "compiles": true,
+        "error": null,
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn // Exit function after sending response\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn // Exit function after sending response\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+      },
+      "runtime": {
+        "collection_get_leak_confirmed_vulnerable": true,
+        "collection_get_leak_fixed": true,
+        "single_get_leak_confirmed_vulnerable": true,
+        "single_get_leak_fixed": true,
+        "single_put_unauthorized_write_confirmed_vulnerable": true,
+        "single_put_unauthorized_write_fixed": true,
+        "single_delete_confirmed_exploit_vulnerable": true,
+        "single_delete_fixed": true,
+        "benign_path_preserved_vulnerable": true,
+        "benign_path_preserved_patched": true,
+        "overall_verdict": "confirmed_fix_all_four_handlers"
+      },
+      "build_ok": true
+    },
+    {
+      "model": "qwen2.5-coder:1.5b",
+      "compile": {
+        "patch_method": "llm-ollama",
+        "applied": 4,
+        "compiles": true,
+        "error": null,
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -29,4 +29,5 @@\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)\n+\tc.JSON(http.StatusOK, \"Response sent to client after validation\") // Add a response to mimic the original behavior\n }"
+      },
+      "runtime": {
+        "collection_get_leak_confirmed_vulnerable": true,
+        "collection_get_leak_fixed": false,
+        "single_get_leak_confirmed_vulnerable": true,
+        "single_get_leak_fixed": true,
+        "single_put_unauthorized_write_confirmed_vulnerable": true,
+        "single_put_unauthorized_write_fixed": true,
+        "single_delete_confirmed_exploit_vulnerable": true,
+        "single_delete_fixed": true,
+        "benign_path_preserved_vulnerable": true,
+        "benign_path_preserved_patched": true,
+        "overall_verdict": "partial_or_inconclusive"
+      },
+      "build_ok": true
+    }
+  ]
+}

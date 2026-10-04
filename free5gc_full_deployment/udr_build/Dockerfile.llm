@@ -1,16 +1,19 @@
-# Same as Dockerfile, but builds from the real vulnerable commit with
-# api_datarepository_llm_patched.go (materialized by
-# prepare_llm_patched_source.py - an LLM-generated patch for
-# HandleApplicationDataInfluenceDataSubsToNotifyGet, plus the existing
-# rule-based patches for the other 3 handlers, already compile-verified
-# against a live clone of this same module) overwriting the real file
-# before building. See docs/FREE5GC_LLM_PATCH_RESULTS.md.
+# Same as Dockerfile, but builds from the real vulnerable commit with a
+# materialized LLM-patched source file (prepare_llm_patched_source.py -
+# an LLM-generated patch for HandleApplicationDataInfluenceDataSubsTo
+# NotifyGet, plus the existing rule-based patches for the other 3
+# handlers, already compile-verified against a live clone of this same
+# module) overwriting the real file before building. PATCHED_FILE
+# selects which materialized file (one per model - see
+# run_model_sweep.py); defaults to the original single-model filename.
+# See docs/FREE5GC_LLM_PATCH_RESULTS.md.
 FROM golang:1.26-bookworm AS builder
 ARG UDR_COMMIT
+ARG PATCHED_FILE=api_datarepository_llm_patched.go
 WORKDIR /src
 RUN git clone https://github.com/free5gc/udr.git . \
     && git checkout ${UDR_COMMIT}
-COPY api_datarepository_llm_patched.go internal/sbi/api_datarepository.go
+COPY ${PATCHED_FILE} internal/sbi/api_datarepository.go
 RUN go build -o /udr ./cmd/...
 
 FROM debian:bookworm-slim

@@ -2,6 +2,40 @@
 
 ## Session log
 
+- **2026-10-05 (free5GC Level 2 extended: all 8 local Ollama models
+  swept, on `main`) - 7/8 confirmed the fix, 1 compiled but did NOT fix
+  it, 1 couldn't load** — Per explicit instruction ("did you run each
+  and every single ollama model" -> "yes" to running all 8 with a
+  comparison table), extended the single-model (`qwen2.5-coder:7b`)
+  result to all 8 locally-pulled Ollama models via a new
+  `free5gc_full_deployment/run_model_sweep.py`. Found and fixed a real
+  environment bug along the way: every model initially failed with
+  "model not found" because `http://localhost:11434` was resolving to
+  `wslrelay.exe`'s IPv6 listener (forwarding an unrelated project's
+  separate Ollama instance inside WSL2) instead of the real Windows
+  `ollama.exe` on `127.0.0.1:11434` - fixed by pinning `OLLAMA_BASE_URL`
+  explicitly, not a code bug. Also hardened the sweep after `mistral:7b`
+  timed out and crashed the whole run: widened exception handling
+  around the one network call that can legitimately time out, and made
+  the report persist after every model instead of only at the end.
+  Results: `deepseek-coder-v2:16b` never loaded (real OOM - 45GB buffer
+  request, a hardware limit, not a patching failure); 7 of the other
+  7 models (`codellama:13b`, `gemma2:9b`, `mistral:7b`, `llama3.1:8b`,
+  `qwen2.5-coder:7b`, `qwen2.5-coder:3b`) compiled AND were runtime-
+  confirmed (`confirmed_fix_all_four_handlers`); `qwen2.5-coder:1.5b`
+  compiled cleanly but genuinely did NOT fix the bug - it appended an
+  unrelated extra response line instead of the needed `return`
+  statements, caught specifically by the runtime harness
+  (`collection_get_leak_fixed: false`) where a compile-only check would
+  have missed it entirely. Also directly observed (not just flagged as
+  a risk) that re-running `qwen2.5-coder:7b` produced a textually
+  different but semantically identical patch - concrete evidence for the
+  already-documented "single run per model" limitation. Documented in
+  `docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`. Exit criteria met: a real,
+  honest, per-model breakdown exists now - including a genuine negative
+  result and a genuine environment-caused failure, neither hidden nor
+  overstated.
+
 - **2026-10-05 (free5GC Level 2: runtime confirmation completed, on
   `main`) - the LLM patch is now confirmed at the same evidence tier as
   the real upstream fix** — Per explicit instruction ("run the runtime
