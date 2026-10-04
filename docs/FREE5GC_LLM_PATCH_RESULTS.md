@@ -1,18 +1,24 @@
-# free5GC LLM-generated patch: results (Level 2, compile-verified half)
+# free5GC LLM-generated patch: results (Level 2, complete)
 
-Implements the Level 2 plan from `docs/FREE5GC_LLM_PATCH_SCOPE.md`:
+Implements the full Level 2 plan from `docs/FREE5GC_LLM_PATCH_SCOPE.md`:
 generate a real LLM patch for the one free5GC handler already documented
-as a rule-based-patcher weak spot, and compile-verify it against a live
-clone of the real upstream module. Produced by
-`src/reachability/run_free5gc_llm_patch.py`.
+as a rule-based-patcher weak spot, compile-verify it against a live
+clone of the real upstream module, and runtime-confirm it against a real
+Docker deployment (real MongoDB, real free5GC NRF). Produced by
+`src/reachability/run_free5gc_llm_patch.py` (compile-verification),
+`free5gc_full_deployment/udr_build/prepare_llm_patched_source.py` and
+`Dockerfile.llm` (materializing the patched build), and
+`free5gc_full_deployment/run_full_deployment_harness_llm.py` (runtime
+confirmation).
 
-**Status: compile-verified only.** Runtime confirmation (swapping this
-patch into the Docker-based full-deployment harness) is NOT done here -
-Docker Desktop is failing to start on this machine (`initializing
-Inference manager: ... The system cannot find the file specified`,
-2026-10-05), a real, pre-existing environment issue unrelated to this
-code. That half of Level 2 remains open and is tracked, not silently
-dropped.
+**Status: compile-verified AND runtime-confirmed.** Docker Desktop was
+initially failing to start on this machine (`initializing Inference
+manager: ... The system cannot find the file specified`, 2026-10-05) -
+a real, pre-existing environment issue, not worked around silently. Once
+it came back up, the full runtime harness was run against the real
+stack and produced `overall_verdict: "confirmed_fix_all_four_handlers"`
+(see below) - the same evidence tier as the real upstream fix commit's
+own full-deployment result.
 
 ## Setup
 
@@ -116,13 +122,44 @@ compiles cleanly against the real module's actual dependency graph - the
 same evidence tier `verify_against_real_upstream.py` already established
 for the all-rule-based patch set.
 
+## Runtime confirmation against the real Docker deployment
+
+Following the same method as `run_full_deployment_harness.py` (real
+`mongo:4.4` + real `free5gc/nrf:v4.2.3` + a custom-built UDR, OAuth2
+disabled per `docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md`'s documented
+limitation), built `free5gc-udr-custom:llm_patched` from the real
+vulnerable commit with `api_datarepository_llm_patched.go` swapped in
+(`udr_build/Dockerfile.llm`), brought it up in place of the vulnerable
+build, and re-ran the same four-handler test sequence
+(`run_full_deployment_harness_llm.py`):
+
+```json
+{
+  "cve_id": "CVE-2026-40248",
+  "patch_source": "llm-ollama (GET handler) + mock-rule-based (other 3)",
+  "collection_get_leak_confirmed_vulnerable": true,
+  "collection_get_leak_fixed": true,
+  "single_get_leak_confirmed_vulnerable": true,
+  "single_get_leak_fixed": true,
+  "single_put_unauthorized_write_confirmed_vulnerable": true,
+  "single_put_unauthorized_write_fixed": true,
+  "single_delete_confirmed_exploit_vulnerable": true,
+  "single_delete_fixed": true,
+  "benign_path_preserved_vulnerable": true,
+  "benign_path_preserved_llm_patched": true,
+  "overall_verdict": "confirmed_fix_all_four_handlers"
+}
+```
+
+All four exploit paths (collection-GET leak, single-GET leak,
+unauthorized PUT write, DELETE-path exploit) are confirmed against the
+vulnerable build and confirmed fixed against the LLM-patched build, with
+the benign legitimate request preserved on both. Full evidence in
+`free5gc_full_deployment/evidence/{manifest_llm,verdict_llm}.json` and
+`{vulnerable_llmrun,llm_patched}_{process.log,response.json}`.
+
 ## What this result does NOT claim
 
-- **No runtime confirmation.** Unlike the DELETE-handler and
-  full-deployment work, this patch has not been exercised against a
-  running UDR + MongoDB + NRF stack. It compiles; it has not been shown
-  to actually close the vulnerability at runtime or to avoid a
-  regression. That is the Docker-dependent half of Level 2, still open.
 - **Memorization risk not controlled for.** `qwen2.5-coder:7b`'s
   training data may include the real fix commit or its surrounding
   GitHub history; this one run cannot distinguish "the model reasoned
@@ -139,18 +176,25 @@ for the all-rule-based patch set.
 - `src/reachability/patch.py` - added the Go-aware prompt/fence
   (`_SYSTEM_PROMPT_GO`, `{lang}` template slot), selected automatically
   when the target file ends in `.go`.
-- `src/reachability/run_free5gc_llm_patch.py` - the driver (new file).
+- `src/reachability/run_free5gc_llm_patch.py` - compile-verification
+  driver.
 - `reports/reachability/free5gc_llm_patch_get_handler.diff` - the raw
   LLM-generated diff.
+- `free5gc_full_deployment/udr_build/prepare_llm_patched_source.py` -
+  materializes the compile-verified patched source to disk for the
+  Docker build.
+- `free5gc_full_deployment/udr_build/api_datarepository_llm_patched.go` -
+  the materialized patched source.
+- `free5gc_full_deployment/udr_build/Dockerfile.llm` - builds the
+  vulnerable commit with the patched source swapped in.
+- `free5gc_full_deployment/run_full_deployment_harness_llm.py` -
+  runtime-confirmation driver.
 - `docs/FREE5GC_LLM_PATCH_SCOPE.md` - the prior scoping document this
   implements.
 
-## Next step (not done, not started)
+## Remaining open item
 
-Swap this patch into
-`free5gc_full_deployment/udr_build/Dockerfile`'s build path (replace
-`git checkout <patched commit>` with a checkout-at-vulnerable-commit +
-apply-this-diff step) and re-run
-`free5gc_full_deployment/run_full_deployment_harness.py` to get a real
-four-outcome verdict for this LLM patch, once Docker Desktop is working
-on this machine again.
+Only the memorization-risk limitation above remains unresolved - it
+would need a second experiment (a handler/fix pair less likely to be in
+the model's training data, or an explicit check) to address, not more
+work on this exact case.

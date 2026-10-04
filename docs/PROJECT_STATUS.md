@@ -2,6 +2,29 @@
 
 ## Session log
 
+- **2026-10-05 (free5GC Level 2: runtime confirmation completed, on
+  `main`) - the LLM patch is now confirmed at the same evidence tier as
+  the real upstream fix** — Per explicit instruction ("run the runtime
+  harness once Docker is back up"), waited for Docker Desktop to recover
+  from its earlier startup failure, then built
+  `free5gc-udr-custom:llm_patched` (the real vulnerable commit with the
+  materialized, already compile-verified LLM patch swapped in via new
+  `udr_build/Dockerfile.llm` and `udr_build/prepare_llm_patched_source.py`)
+  and ran a new `run_full_deployment_harness_llm.py` against the real
+  MongoDB + real NRF stack, mirroring `run_full_deployment_harness.py`'s
+  method exactly. Result: `overall_verdict:
+  "confirmed_fix_all_four_handlers"` - all four exploit paths (collection-
+  GET leak, single-GET leak, unauthorized PUT write, DELETE exploit)
+  confirmed on the vulnerable build and confirmed fixed on the LLM-patched
+  build, benign path preserved on both. `docs/FREE5GC_LLM_PATCH_RESULTS.md`
+  updated from "compile-verified only" to "compile-verified AND runtime-
+  confirmed," with the full verdict JSON and evidence file list. Exit
+  criteria met: Level 2 (`docs/FREE5GC_LLM_PATCH_SCOPE.md`) is now fully
+  implemented end-to-end; the only remaining open item is the
+  memorization-risk limitation already flagged in the scoping doc, which
+  needs a separate experiment (a less-likely-memorized handler/fix pair)
+  to address, not further work on this case.
+
 - **2026-10-05 (free5GC Level 2: real LLM patch generated + compile-
   verified against real upstream, on `main`) - a genuine rule-based-vs-
   LLM comparison, not just "ran a model for its own sake"** — Per
