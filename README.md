@@ -168,6 +168,60 @@ crash) — see `docs/SCOPE_AND_LIMITATIONS.md` and
 
 ---
 
+## Multi-model comparisons and the patch-validator correction
+
+Two further live-LLM evaluations, beyond the five catalogue rounds
+above, each under a single frozen protocol so every model is compared
+on identical terms. Full detail, all raw figures, and the full per-CVE
+cost/time breakdown are in
+[`FYP_Report_main_upgraded.pdf`](free5gc_full_deployment/FYP_Report_main_upgraded.pdf)
+(Chapter 4) — this is the summary.
+
+**Eight locally-hosted models** (`qwen2.5-coder:1.5b/3b/7b`,
+`llama3.1:8b`, `mistral:7b`, `gemma2:9b`, `codellama:13b`,
+`deepseek-coder-v2:16b`), one deterministic shot per CVE per model
+(`temperature=0`, fixed seed), 48 runs total:
+
+| Run | Exploits confirmed | Patches nominally accepted |
+|---|---|---|
+| Initial comparison | 17/48 | 0/48 |
+| Retest, after 4 harness bugs fixed | 11/48 | 3/48 |
+
+Confirmation rate did not track parameter count: `qwen2.5-coder:7b`
+outperformed both `gemma2:9b` (0/6) and `codellama:13b` (2/6).
+
+**Six hosted Claude model snapshots** (`claude-haiku-4-5`,
+`claude-sonnet-4-6`, `claude-sonnet-5`, `claude-opus-4-6`,
+`claude-opus-4-7`, `claude-opus-4-8`), same single-shot design, 36 runs
+total, with real per-call cost and token accounting (not estimated —
+the Claude CLI's structured JSON output mode exposes this directly):
+**all six models confirmed all six exploits (36/36)**. Patch generation
+remained the harder problem even at this larger scale: every model
+reached only 4–5 of 6 `confirmed_fix` verdicts under the corrected
+validator below, and the cheapest model tested matched the best
+confirmed-fix rate at roughly a third of every other model's real cost.
+
+**The patch validator itself needed correcting, twice.** The original
+two-check criterion (original exploit fails + a separate `/health`
+check still passes) was found, by direct trace inspection, to accept a
+patch whose vulnerable route had simply crashed — indistinguishable to
+the automated check from a genuine fix (the Insecure Deserialization
+case, round 5, is a confirmed false acceptance on this basis). This was
+corrected into a four-outcome verdict
+(`confirmed_fix`/`not_blocked`/`regression_broke_route`/`inconclusive_crash`)
+— the same vocabulary later reused for both the free5GC and OpenEMR
+results above. A second, independent review then found that even the
+corrected verdict's benign-path check only required the *absence of a
+crash*, not a *correct* response: 14 of 27 `confirmed_fix` verdicts in
+the 36-run comparison had returned a non-200 status on that check
+without being flagged. This was reproduced, quantified, and closed for
+the cases this project could: a content-verified reassessment of 6
+recoverable patched artifacts confirmed all 6 as genuinely correct
+fixes, and the real-upstream `jaraco.context` case above independently
+reached the same, stronger standard.
+
+---
+
 ## CVE results
 
 **This is the original template-based baseline** (no live model — text-only
@@ -239,6 +293,18 @@ added the `win.ini` payload the PoC's own `verify()` already anticipated.
 ...
 $LASTEXITCODE: 0
 ```
+
+**This case was later validated a second, stronger way: against the
+real, pinned-version `jaraco.context` PyPI package itself, not a
+reproduction.** Both the real exploit and the real published fix were
+run against the actual package (`5.3.0` vulnerable, `6.1.0` patched),
+with the benign-path check content-verified (the extracted file's real
+content was read back and compared, not just checked for a crash) —
+this project's strongest evidence tier for any single case in the main
+catalogue, and the only main-catalogue CVE evaluated against the real
+upstream package rather than a stand-in. See
+[`FYP_Report_main_upgraded.pdf`](free5gc_full_deployment/FYP_Report_main_upgraded.pdf),
+Section 4.1.3.
 
 ### CVE-2026-78683 — Insecure Deserialization (nltk)
 
