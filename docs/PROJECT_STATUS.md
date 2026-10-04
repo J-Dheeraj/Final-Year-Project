@@ -2,6 +2,45 @@
 
 ## Session log
 
+- **2026-10-05 (free5GC Level 2: real LLM patch generated + compile-
+  verified against real upstream, on `main`) - a genuine rule-based-vs-
+  LLM comparison, not just "ran a model for its own sake"** — Per
+  explicit instruction ("scope out what it would take to run a model on
+  free5GC" then "go ahead and implement Level 2"), wrote
+  `docs/FREE5GC_LLM_PATCH_SCOPE.md` first (plan only, no code), then
+  implemented its compile-verified half via a new script
+  `src/reachability/run_free5gc_llm_patch.py`. Targeted
+  `HandleApplicationDataInfluenceDataSubsToNotifyGet` specifically
+  because `docs/REACHABILITY.md` already documents it as the one
+  handler where the deterministic rule-based patcher is known to insert
+  only one of the two `return` statements the real root cause needs.
+  Used the free, local `OllamaProvider` (`qwen2.5-coder:7b`, already
+  pulled on this machine) for just the patch-generation stage, keeping
+  triage/verify on the deterministic mock path so the comparison isolates
+  the patch step. Found and fixed a real pre-existing bug on the way:
+  `src/reachability/patch.py`'s LLM prompt template was hardcoded for a C
+  target (` ```c ``` ` fence, "C developer" system prompt) despite
+  free5GC being Go — added a Go-aware system prompt and `{lang}`-templated
+  fence, selected by `fn.file.endswith(".go")`. Result: the LLM patch
+  correctly inserted `return` after **both** early-exit `c.JSON(...)`
+  calls (the rule-based patch only catches the first), each one properly
+  scoped to the validation block that produced it — a genuine, verified
+  improvement on this specific handler, not a wash. Compile-verified by
+  cloning the real `github.com/free5gc/udr` at the real pre-fix commit
+  and confirming `go build ./...` succeeds with the LLM patch applied for
+  this handler and the existing rule-based patches for the other 3 — all
+  4 applied byte-exact, build passed. Documented in
+  `docs/FREE5GC_LLM_PATCH_RESULTS.md`, including what this does NOT
+  claim: no runtime confirmation yet (Docker Desktop is failing to start
+  on this machine — `initializing Inference manager: ... The system
+  cannot find the file specified`, a real pre-existing environment issue,
+  not attempted to be silently worked around), and no control for the
+  model having possibly memorized the real public fix rather than
+  genuinely re-deriving it (flagged in the scope doc in advance). Exit
+  criteria: compile-verification half of Level 2 complete and documented
+  truthfully; runtime-confirmation half (swapping this patch into the
+  Docker full-deployment harness) explicitly left open, not implied done.
+
 - **2026-10-04/05 (merged `free5gc-full-deployment` and
   `openemr-transfer-scope` into `main`; README brought current) -
   decision made to stop treating these as branch-only results** — Per

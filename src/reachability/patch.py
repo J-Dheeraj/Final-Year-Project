@@ -29,6 +29,19 @@ _SYSTEM_PROMPT = (
     "possible - do not refactor or rename anything not required by the fix."
 )
 
+# Go-specific variant: the generic prompt above was written for the
+# original C/kernel target (`strcpy`, bounds-check patterns) and mislabels
+# the model's role when the finding is actually from a Go/HTTP-handler
+# source - see run_free5gc_llm_patch.py. Selected by `generate_patch()` on
+# `fn.file.endswith(".go")`.
+_SYSTEM_PROMPT_GO = (
+    "You are a Go backend developer writing a minimal security fix for an "
+    "HTTP handler. Output ONLY the complete corrected function body (same "
+    "signature, same style), no markdown fences, no commentary. Keep the "
+    "change as small as possible - do not refactor or rename anything not "
+    "required by the fix."
+)
+
 _USER_TEMPLATE = """\
 CWE: {cwe}
 Vulnerability: {explanation}
@@ -37,7 +50,7 @@ Fix this function. Preserve its exact signature and behavior for valid \
 inputs; only add the missing bounds/validation/sanitization needed to \
 close the reported issue.
 
-```c
+```{lang}
 {body}
 ```
 """
@@ -153,9 +166,12 @@ def generate_patch(finding: VerifiedFinding, provider: Provider,
         patched_body = _mock_fix(fn.body, finding.triage.cwe)
         method = "mock-rule-based"
     else:
+        is_go = fn.file.endswith(".go")
+        lang = "go" if is_go else "c"
+        system_prompt = _SYSTEM_PROMPT_GO if is_go else _SYSTEM_PROMPT
         user = _USER_TEMPLATE.format(
             cwe=finding.triage.cwe, explanation=finding.triage.explanation,
-            body=fn.body,
+            body=fn.body, lang=lang,
         )
         if exploit_outcome is not None and exploit_outcome.crashed:
             # Ground the fix in the actual confirmed failure, not just the
@@ -167,11 +183,11 @@ def generate_patch(finding: VerifiedFinding, provider: Provider,
                 f"{exploit_outcome.log[-1000:]}\n```\n"
                 "The fix must make this exact harness survive without crashing."
             )
-        patched_body = provider.complete(_SYSTEM_PROMPT, user).strip()
+        patched_body = provider.complete(system_prompt, user).strip()
         if patched_body.startswith("```"):
             patched_body = patched_body.strip("`")
-            if patched_body.startswith("c\n"):
-                patched_body = patched_body[2:]
+            if patched_body.startswith(f"{lang}\n"):
+                patched_body = patched_body[len(lang) + 1:]
         method = f"llm-{provider.name}"
 
     diff = "\n".join(difflib.unified_diff(
