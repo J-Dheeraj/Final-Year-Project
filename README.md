@@ -35,7 +35,7 @@ compile-verified or reproduced:
 
 - **free5GC UDR (CVE-2026-40248), all four CRUD handlers.** What
   started as a single-handler, compile-time-only reachability result
-  (see "Paper" below) was taken to full runtime confirmation: first a
+  (`docs/REACHABILITY.md`) was taken to full runtime confirmation: first a
   minimal harness (real MongoDB, a hand-built h2c NRF stand-in) for the
   DELETE handler alone (`free5gc_runtime_case/`), then a fuller Docker
   deployment (real, official MongoDB and free5GC NRF images) covering
@@ -165,35 +165,6 @@ summary numbers (a markdown-fence artifact in the shared marker
 extractor, and a stale `exit_code`/`dynamically_confirmed` on a target
 crash) — see `docs/SCOPE_AND_LIMITATIONS.md` and
 `reports/PATCH_VALIDATION_INVESTIGATION.md` for both.
-
----
-
-## Paper
-
-[`paper/main.tex`](paper/main.tex) is a short paper ("Reachability-Guided
-Triage and Upstream-Verified Patching for a Real free5GC Vulnerability")
-drafted for the **2nd free5GC World Forum, In-Cooperation with ACM
-SIGSAC** (December 17–18, 2026, NYCU, Hsinchu — CFP:
-[free5gc.org/forum/2026](https://free5gc.org/forum/2026/)). It reports the
-reachability + patch-generation + upstream-verification case study
-against CVE-2026-40248 in free5GC's UDR (see `docs/REACHABILITY.md`).
-Real ACM CCS concepts, verified citations, and a real author affiliation
-— no placeholders. Compiles cleanly to 3 pages under the venue's 4-page
-short-paper cap. **Submission was prepared but explicitly not sent** —
-the paper stays in the repo as a complete, submission-ready artifact for
-a future venue rather than a live deadline. `paper/main.pdf` is the
-compiled file; `paper/main.docx` is a Word copy for editing;
-`paper/NOTES.md` tracks exactly what's independently verified in the
-paper versus what still needs author action before any future
-submission.
-
-**This paper describes the earlier, compile-time-only stage of this
-result.** The same CVE-2026-40248 case has since been taken to full
-runtime confirmation across all four reachable handlers — see "Current
-state" above and `free5gc_runtime_case/` / `free5gc_full_deployment/` —
-a materially stronger result than what this paper reports. The paper
-itself has not been revised to reflect this; it remains as originally
-drafted and verified.
 
 ---
 
@@ -338,8 +309,10 @@ The handler that creates/updates a Traffic Influence Subscription checks
 whether the `influenceId` path segment is valid and writes an HTTP 404 if
 not, but never `return`s after writing that response — so execution falls
 through and the subscription is created or overwritten regardless of the
-check's outcome. This is the subject of the paper (see "Paper" above).
-Verified three ways, in increasing order of strength:
+check's outcome. This was also the subject of a short paper drafted for
+the 2nd free5GC World Forum (see `paper/main.tex`; prepared but not
+submitted — `paper/NOTES.md` has the detail). Verified three ways, in
+increasing order of strength:
 
 1. **Reachability analysis** reduces 102 parsed functions to the 4
    actually reachable (96.1% reduction), all classified correctly as
@@ -625,7 +598,7 @@ AI CVE Exploit Automation/
 │   ├── run_harness.py        # real, official mariadb + php:8.2-cli images
 │   └── evidence/
 │
-├── paper/                   # free5GC World Forum '26 draft (see "Paper" above,
+├── paper/                   # free5GC World Forum '26 draft (CVE-2026-40248,
 │   ├── main.tex             # drafted, submission-ready, NOT submitted)
 │   ├── main.pdf             # Compiled, 3 pages
 │   ├── main.docx            # Word copy for editing
