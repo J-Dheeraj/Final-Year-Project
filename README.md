@@ -58,6 +58,25 @@ compile-verified or reproduced:
   proving the fix gates rather than removes functionality. See
   [`docs/OPENEMR_TRANSFER_CASE_PLAN.md`](docs/OPENEMR_TRANSFER_CASE_PLAN.md)
   and [`docs/OPENEMR_TRANSFER_RESULTS.md`](docs/OPENEMR_TRANSFER_RESULTS.md).
+- **free5GC: an actual LLM-generated patch, compile- and
+  runtime-confirmed, then swept across all 8 locally-hosted models.**
+  Everything above uses the real upstream maintainers' own fix commit,
+  checked out directly — not generated. This result instead asks a real
+  LLM to write the fix itself, for the one handler
+  (`HandleApplicationDataInfluenceDataSubsToNotifyGet`) where the
+  deterministic rule-based patcher is already known to under-fix the bug
+  (it inserts only one of the two needed `return` statements). A local
+  `qwen2.5-coder:7b` patch correctly fixed both occurrences, compiled
+  against a live clone of the real `free5gc/udr` module, and was
+  runtime-confirmed against the real Docker stack
+  (`confirmed_fix_all_four_handlers`). Swept across all 8 locally-pulled
+  Ollama models: 7/8 confirmed the fix; `qwen2.5-coder:1.5b` compiled
+  cleanly but genuinely failed to fix the bug (caught only by the
+  runtime harness, not compile-verification); `deepseek-coder-v2:16b`
+  failed to load (a real out-of-memory error, not a patching failure).
+  See [`docs/FREE5GC_LLM_PATCH_SCOPE.md`](docs/FREE5GC_LLM_PATCH_SCOPE.md),
+  [`docs/FREE5GC_LLM_PATCH_RESULTS.md`](docs/FREE5GC_LLM_PATCH_RESULTS.md),
+  and [`docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`](docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md).
 
 The full written account of both results, alongside the main six-CVE
 catalogue and the hosted-model comparisons below, is
@@ -409,6 +428,52 @@ Applied 4/4 patches: [...]
 RESULT: real free5GC/udr @ 86686276a7e2 with the pipeline's auto-generated patches applied COMPILES
 ```
 
+#### LLM-generated patch (not the real upstream fix) for the GET handler
+
+Everything above checks out the real upstream maintainers' own fix
+commit. This result instead has a real LLM *write* the fix for
+`HandleApplicationDataInfluenceDataSubsToNotifyGet` — chosen because the
+deterministic rule-based patcher is already documented
+(`docs/REACHABILITY.md`) to under-fix this exact handler (it inserts
+only one of the two needed `return` statements; this handler has two
+separate early-exit validation blocks with the same bug).
+
+`qwen2.5-coder:7b` (local, free, via Ollama) correctly inserted `return`
+after **both** occurrences — a strict improvement over the rule-based
+patch, verified two ways: compiled against a live clone of the real
+`free5gc/udr` module (`src/reachability/run_free5gc_llm_patch.py`), then
+runtime-confirmed against the same real MongoDB + free5GC NRF Docker
+stack as above (`free5gc_full_deployment/run_full_deployment_harness_llm.py`),
+producing `overall_verdict: "confirmed_fix_all_four_handlers"`.
+
+Swept across **every** Ollama model pulled on the development machine
+(`free5gc_full_deployment/run_model_sweep.py`), not just one:
+
+| Model | Compiles | Runtime verdict |
+|---|---|---|
+| `deepseek-coder-v2:16b` | **NO** — out-of-memory loading the model | not reached |
+| `codellama:13b` | yes | confirmed_fix_all_four_handlers |
+| `gemma2:9b` | yes | confirmed_fix_all_four_handlers |
+| `mistral:7b` | yes | confirmed_fix_all_four_handlers |
+| `llama3.1:8b` | yes | confirmed_fix_all_four_handlers |
+| `qwen2.5-coder:7b` | yes | confirmed_fix_all_four_handlers |
+| `qwen2.5-coder:3b` | yes | confirmed_fix_all_four_handlers |
+| `qwen2.5-coder:1.5b` | yes | **partial_or_inconclusive** — compiled, but appended an unrelated response line instead of the needed `return`s; the collection-GET leak this handler is responsible for was still exploitable. Caught only by the runtime harness, not by compile-verification alone. |
+
+Limitations stated explicitly, not hidden: the real fix commit is public,
+so a model could in principle reproduce it from training data rather
+than genuinely re-deriving it (not controlled for here); each model was
+run once, and re-running `qwen2.5-coder:7b` produced a textually
+different but semantically identical patch, confirming real run-to-run
+variance exists. See
+[`docs/FREE5GC_LLM_PATCH_SCOPE.md`](docs/FREE5GC_LLM_PATCH_SCOPE.md) (the
+plan), [`docs/FREE5GC_LLM_PATCH_RESULTS.md`](docs/FREE5GC_LLM_PATCH_RESULTS.md)
+(single-model result), and
+[`docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`](docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md)
+(all 8 models, including the environment bug found and fixed along the
+way — `localhost:11434` silently resolving to an unrelated WSL2 Ollama
+instance instead of the real Windows one).
+
 ---
 
 ## OpenEMR transfer case — GHSA-q366-cv5v-83w8
@@ -649,6 +714,9 @@ AI CVE Exploit Automation/
 │   ├── FREE5GC_LAB.md       # The free5GC-adjacent dynamic exploit lab
 │   ├── FREE5GC_RUNTIME_VALIDATION_PLAN.md    # Minimal DELETE-handler runtime case design
 │   ├── FREE5GC_FULL_DEPLOYMENT_RESULTS.md    # All-four-handler runtime result (see "Current state")
+│   ├── FREE5GC_LLM_PATCH_SCOPE.md            # Plan: running a real LLM (not the real fix) on free5GC
+│   ├── FREE5GC_LLM_PATCH_RESULTS.md          # Single-model (qwen2.5-coder:7b) compile+runtime result
+│   ├── FREE5GC_LLM_MODEL_SWEEP_RESULTS.md    # All 8 local Ollama models, compared
 │   ├── OPENEMR_TRANSFER_CASE_PLAN.md         # OpenEMR target selection + harness design
 │   └── OPENEMR_TRANSFER_RESULTS.md           # OpenEMR confirmed_fix result
 │
@@ -658,6 +726,9 @@ AI CVE Exploit Automation/
 ├── free5gc_full_deployment/  # Fuller runtime harness: all 4 reachable handlers,
 │   ├── FYP_Report_main_upgraded.{tex,pdf}  # the upgraded FYP report (see "Current state")
 │   ├── run_full_deployment_harness.py      # real, official MongoDB + free5GC NRF images
+│   ├── run_full_deployment_harness_llm.py  # same stack, LLM-generated patch instead of the real fix
+│   ├── run_model_sweep.py                  # runs every local Ollama model through both gates
+│   ├── udr_build/Dockerfile.llm            # builds the vulnerable commit + a materialized LLM patch
 │   └── evidence/
 │
 ├── openemr_transfer_case/    # Healthcare transfer case: GHSA-q366-cv5v-83w8
