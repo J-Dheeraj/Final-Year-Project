@@ -1,0 +1,23 @@
+# Same as Dockerfile, but builds from the real vulnerable commit with
+# api_datarepository_llm_patched.go (materialized by
+# prepare_llm_patched_source.py - an LLM-generated patch for
+# HandleApplicationDataInfluenceDataSubsToNotifyGet, plus the existing
+# rule-based patches for the other 3 handlers, already compile-verified
+# against a live clone of this same module) overwriting the real file
+# before building. See docs/FREE5GC_LLM_PATCH_RESULTS.md.
+FROM golang:1.26-bookworm AS builder
+ARG UDR_COMMIT
+WORKDIR /src
+RUN git clone https://github.com/free5gc/udr.git . \
+    && git checkout ${UDR_COMMIT}
+COPY api_datarepository_llm_patched.go internal/sbi/api_datarepository.go
+RUN go build -o /udr ./cmd/...
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tini \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /free5gc
+RUN mkdir -p config/ log/ cert/
+COPY --from=builder /udr ./udr
+ENTRYPOINT ["/usr/bin/tini", "--"]
+EXPOSE 8000
