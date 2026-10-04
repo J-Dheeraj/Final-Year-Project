@@ -22,6 +22,15 @@ from dataclasses import dataclass
 
 from .heuristics import find_missing_return_after_response, find_underflow_into_copy
 
+# Mirrors cve_pipeline.py's NO_PAID_BACKEND guard: unlike that module's
+# _call_claude_metered(), nothing here previously stopped get_provider()
+# from instantiating AnthropicProvider/OpenAIProvider (a metered, paid
+# call) if a key happened to be present in the environment - e.g. "auto"
+# mode silently preferring a paid backend over the free OllamaProvider.
+# Setting NO_PAID_BACKEND=1 makes construction of either provider raise
+# immediately, before any network call is attempted.
+NO_PAID_BACKEND = os.environ.get("NO_PAID_BACKEND", "") not in ("", "0", "false", "False")
+
 
 @dataclass
 class LLMResponse:
@@ -56,6 +65,11 @@ class AnthropicProvider(Provider):
     name = "anthropic"
 
     def __init__(self, model: str | None = None):
+        if NO_PAID_BACKEND:
+            raise RuntimeError(
+                "NO_PAID_BACKEND is set - refusing to construct AnthropicProvider "
+                "(a paid backend). Unset NO_PAID_BACKEND to allow this."
+            )
         try:
             import anthropic  # type: ignore
         except ImportError as e:
@@ -87,6 +101,11 @@ class OpenAIProvider(Provider):
     name = "openai"
 
     def __init__(self, model: str | None = None):
+        if NO_PAID_BACKEND:
+            raise RuntimeError(
+                "NO_PAID_BACKEND is set - refusing to construct OpenAIProvider "
+                "(a paid backend). Unset NO_PAID_BACKEND to allow this."
+            )
         try:
             from openai import OpenAI  # type: ignore
         except ImportError as e:
