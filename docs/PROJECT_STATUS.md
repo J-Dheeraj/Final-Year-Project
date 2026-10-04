@@ -2,6 +2,47 @@
 
 ## Session log
 
+- **2026-10-04/05 (merged `free5gc-full-deployment` and
+  `openemr-transfer-scope` into `main`; README brought current) -
+  decision made to stop treating these as branch-only results** — Per
+  explicit instruction, both previously-isolated branches were merged
+  into `main` for real (not just tested): `free5gc-full-deployment`
+  (`6bf871b`) fast-forwarded cleanly; `openemr-transfer-scope`
+  (`6cf91f5`) conflicted in exactly the two files the pre-merge dry-run
+  had already identified (`.gitignore`, `docs/PROJECT_STATUS.md`, this
+  file) — both resolved using the already-tested recipe (combine both
+  branches' additions; session-log entries kept newest-first). Pushed
+  as `ee3eaa9`. A durable rollback point was created first and pushed:
+  annotated tag `backup/main-before-merge-2026-10-04`, pointing at the
+  pre-merge `main` tip (`c58483e`) — `git reset --hard
+  backup/main-before-merge-2026-10-04` on `main` recovers the exact
+  frozen, single-handler/no-OpenEMR state if ever needed. One real
+  mistake was caught and fixed before it mattered: an initial dry-run
+  used `git worktree add` checked out directly on `main`, which (since
+  worktrees share branch refs with the primary checkout) silently moved
+  the local `main` ref forward; caught before anything was pushed and
+  reset to exactly match `fyp/main` before the real merge was attempted.
+  `README.md` was then updated across three commits (`fb7735c`,
+  `884c530`, `003c425`): a "Current state" section summarizing both
+  merged results, the free5GC CVE-2026-40248 entry upgraded from
+  compile-verified to all-four-handler runtime-confirmed, a new OpenEMR
+  section, the project-structure listing extended with the three new
+  top-level directories, the standalone "Paper" section removed (with
+  its few live references folded inline instead of left dangling), and
+  three previously-undocumented FYP results added: the real-upstream
+  `jaraco.context` validation, both multi-model comparisons (8-model
+  local Ollama, 36-run hosted Claude), and the patch validator's own
+  two corrections (the confirmed false acceptance and the later
+  crash-absence-only benign-check finding). The committed upgraded
+  report PDF (`free5gc_full_deployment/FYP_Report_main_upgraded.pdf`)
+  was independently recompiled from its own committed `.tex` source (3
+  passes) to confirm it still renders cleanly — no undefined
+  references, no missing figures, 74 pages, matching the committed
+  file exactly. Exit criteria met: `main` now carries everything two
+  sessions ago left on separate branches, with a tested, working
+  conflict-resolution recipe and a named rollback point; nothing
+  unverified was pushed.
+
 - **2026-09-29 (OpenEMR transfer case implemented, on `openemr-transfer-scope`
   only - `main` untouched) - GHSA-q366-cv5v-83w8 confirmed_fix** —
   Implemented and ran the Docker-based harness scoped by the earlier
