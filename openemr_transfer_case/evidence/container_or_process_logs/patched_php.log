@@ -1,0 +1,7 @@
+[Tue Sep 29 09:04:47 2026] PHP 8.2.34 Development Server (http://0.0.0.0:8000) started
+[Tue Sep 29 09:04:47 2026] 172.21.0.1:41922 Accepted
+[Tue Sep 29 09:04:47 2026] 172.21.0.1:41922 Closed without sending a request; it was probably just an unused speculative preconnection
+[Tue Sep 29 09:04:47 2026] 172.21.0.1:41922 Closing
+[Tue Sep 29 09:04:47 2026] 172.21.0.1:41928 Accepted
+[Tue Sep 29 09:04:47 2026] 172.21.0.1:41928 [200]: GET /admin.php
+[Tue Sep 29 09:04:47 2026] 172.21.0.1:41928 Closing

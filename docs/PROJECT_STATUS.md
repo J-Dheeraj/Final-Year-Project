@@ -2,6 +2,33 @@
 
 ## Session log
 
+- **2026-09-29 (OpenEMR transfer case implemented, on `openemr-transfer-scope`
+  only - `main` untouched) - GHSA-q366-cv5v-83w8 confirmed_fix** —
+  Implemented and ran the Docker-based harness scoped by the earlier
+  design pass, per explicit instruction to implement only this one
+  target and stop. Real MariaDB (`mariadb:10.11`, minimal two-table
+  schema) and a minimal PHP image (`php:8.2-cli` + `mysqli`, no Apache,
+  no setup wizard) with the real, unmodified OpenEMR checkout bind-
+  mounted, switched between the real vulnerable commit
+  (`b5313ea2...`) and fixed commit (`50f789fa...`, PR #13133).
+  Three requests (vulnerable default, patched default, patched opt-in)
+  all matched expectations exactly, confirmed against the raw response
+  bodies, not just status codes: vulnerable discloses real site/DB/
+  version metadata; patched blocks by default with the exact documented
+  403 message; patched still works when the operator explicitly opts
+  in via `OPENEMR_ADMIN_PHP_ENABLED=1`. Verdict: `confirmed_fix`.
+  Found and fixed two genuine startup-race bugs while running the
+  harness for real (a MariaDB bootstrap-instance race and a PHP
+  built-in-server TCP-accept-before-ready race), documented in
+  `docs/OPENEMR_TRANSFER_RESULTS.md` alongside a cosmetic schema gap
+  (missing `v_database`/`v_acl` columns) found and fixed from the first
+  clean run's own raw evidence. Evidence bundle committed under
+  `openemr_transfer_case/evidence/`. Exit criteria met: one real,
+  non-inconclusive OpenEMR transfer case, produced without any paid/
+  model backend (`NO_PAID_BACKEND=1` held throughout), `main` and the
+  report untouched, scope not expanded beyond this one target as
+  instructed.
+
 - **2026-09-28 (free5GC full-deployment extension, on `free5gc-full-deployment`
   only - `main` untouched) - all four CRUD handlers runtime-confirmed,
   stronger vulnerability characterization found** — After Docker Desktop
@@ -35,6 +62,65 @@ Format: date — what was attempted — exit criteria met or not. Newest
 first. Add an entry at the end of every real work session so the next
 one's opening move is unambiguous.
 
+- **2026-09-28 (Docker Desktop confirmed working again)** — The prior
+  entry's Docker-status finding is now stale. User reported Docker was
+  working; verified live rather than taken on trust: `docker ps` and
+  `docker version` now succeed (Docker Desktop 4.74.0, engine 29.4.3,
+  real running containers). An attempt was made to clear the stale
+  `dockerInference` runtime artifact directly (via both `rm -f` and
+  PowerShell `Remove-Item -Force`), both failing identically to the
+  earlier free5GC-blocker attempts ("The file cannot be accessed by the
+  system"); Docker started working after a plain Docker Desktop restart
+  instead, independent of those attempts. Updated
+  `docs/OPENEMR_TRANSFER_CASE_PLAN.md` to correct its Docker-status
+  section: the official OpenEMR Docker Compose route is now the
+  recommended deployment path for the harness, not just the native
+  PHP+MariaDB fallback. No harness implementation started.
+
+- **2026-09-28 (OpenEMR read-only design pass, on `openemr-transfer-scope`
+  only - `main` untouched)** — Answered the five design questions the
+  branch's own plan doc had deferred, per explicit instruction to design
+  only, not implement. (1) Verified GHSA-q366-cv5v-83w8's exact fix
+  commit (`50f789fad45ada625fe8d0faf0c7a9c15ef52aa5`, PR #13133) and its
+  parent as the vulnerable commit (`b5313ea25f7928538eb793d4b4184ed4601d9afd`)
+  via the real GitHub API, cross-checked against the `v8_3_0` release
+  tag; noted this advisory has no CVE number assigned (`cve_id: null`).
+  (2)-(3) Re-tested Docker Desktop live: identical "Inference manager"
+  socket failure as the free5GC blocker, confirmed from its own backend
+  log; not repaired, per the same standing decision. Reading
+  `admin.php`'s real source at the vulnerable commit found its actual
+  dependency graph is much narrower than assumed when the branch was
+  first scoped - no full app bootstrap, just two side-effect-free
+  requires and a two-table DB read - so a native PHP (`php -S`, no
+  Apache) + MariaDB harness is realistically comparable in effort to
+  free5GC's native-MongoDB substitution, not a bigger lift as first
+  guessed. (4) Defined the exact default-vs-opt-in HTTP request/response
+  assertions (403 plain-text block by default, 200 disclosure restored
+  under the documented opt-in env var on both commits - the same
+  "legitimate use preserved" standard as free5GC's benign delete). (5)
+  Wrote the evidence-bundle schema, reusing the free5GC case's four-
+  outcome verdict vocabulary rather than inventing a new one. All of
+  this is written to `docs/OPENEMR_TRANSFER_CASE_PLAN.md` on this branch
+  only. Exit criteria met: no harness code written, no HTTP requests
+  made against a running OpenEMR instance, `main` unchanged. Also
+  discovered mid-session an unrelated branch on the same remote,
+  `claude/intelligent-hypatia-1u5yvf`, from an apparently different,
+  stale session - it deletes this session's entire free5GC evidence
+  bundle - flagged to the user, not touched, not merged.
+
+- **2026-09-28 (OpenEMR healthcare transfer case scoped on branch)** —
+  Started a non-main branch, `openemr-transfer-scope`, to explore the
+  professor's suggestion of particularising the AI-CVE workflow to another
+  DARPA-relevant industry without destabilising the now-stable free5GC report.
+  Added `docs/OPENEMR_TRANSFER_CASE_PLAN.md`, a source-backed scoping document
+  for OpenEMR as a healthcare transfer case. The plan selects GHSA-q366-cv5v-83w8
+  (unauthenticated `admin.php` information disclosure, fixed in OpenEMR 8.3.0)
+  as the safest first candidate because it should be testable with harmless
+  request/response evidence, while deferring RCE/file-write candidates until a
+  repeatable harness exists. No report text, exploit implementation, or
+  main-branch state was changed. Exit criteria met: branch contains a concrete
+  OpenEMR plan, with go/no-go criteria, candidate advisories, dependencies, and
+  next-step design tasks.
 - **2026-09-27 (Post-review cleanup - artifact-level CVE hygiene and stale
   doc framing)** — An external review of the updated FYP report found
   the case was genuinely valid but flagged three remaining loose ends:
@@ -1370,3 +1456,4 @@ a direction that may have already been ruled out for a documented reason.
   `cve_pipeline.py` + `src/reachability/`'s existing capability.
 - Don't claim `llm-live` provenance for any result until a real API key
   or `claude` CLI is actually configured and used in this environment.
+

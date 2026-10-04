@@ -1,0 +1,11 @@
+{
+  "status_code": 403,
+  "headers": {
+    "Host": "127.0.0.1:8090",
+    "Date": "Tue, 29 Sep 2026 09:04:46 GMT",
+    "Connection": "close",
+    "X-Powered-By": "PHP/8.2.34",
+    "Content-type": "text/plain;charset=UTF-8"
+  },
+  "body": "admin.php is disabled by default. See the header comment in this file to enable.\n"
+}

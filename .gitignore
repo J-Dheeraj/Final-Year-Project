@@ -41,3 +41,7 @@ free5gc_runtime_case/*.exe
 # free5GC full-deployment extension: the cloned free5gc-compose repo
 # (reproducible via `git clone`, has its own nested .git/, not committed)
 free5gc_full_deployment/compose/
+
+# OpenEMR transfer case: the cloned openemr/openemr repo (reproducible
+# via `git clone` at the pinned commits, not committed)
+openemr_transfer_case/_work/
