@@ -885,6 +885,61 @@ Applied 4/4 patches: [...]
   [patched (real module)] go build ./... -> OK
 \end{Verbatim}
 
+\section{free5GC LLM-Generated Patch: Multi-Model Comparison}
+\label{sec:free5gc-llm-patch-sweep}
+
+The free5GC result reported above uses the real upstream maintainers' own fix commit, checked out directly, not a model-generated artifact. A separate, later experiment instead asked a real LLM to \emph{write} the fix itself, for the one handler, \texttt{HandleApplicationDataInfluenceDataSubsToNotifyGet}, that the reachability engine's deterministic rule-based patcher is already documented to under-fix: that patcher inserts only one of the two \texttt{return} statements the handler's two separate early-exit validation blocks each need, since both share the identical missing-\texttt{return} bug pattern. This makes the handler a genuine test of whether a model reasons about control flow rather than pattern-matching text.
+
+A local model (\texttt{qwen2.5-coder:7b}, via Ollama, zero marginal cost) correctly inserted \texttt{return} after both occurrences --- a strict improvement over the rule-based patch --- verified at the same two evidence tiers used throughout this chapter: compiled against a live clone of the real \texttt{free5gc/udr} module, then runtime-confirmed against the same real MongoDB and free5GC NRF deployment described in Section~\ref{sec:free5gc-runtime-harness}, yielding \texttt{overall\_verdict: "confirmed\_fix\_all\_four\_handlers"}.
+
+This was then extended to a comparison across every model locally available and across eight named hosted Claude models, keeping the target handler, the rule-based patches for the other three handlers, and the two-tier verification method fixed, varying only the model asked to patch the one handler.
+
+\begin{table}[H]
+\centering
+\caption{free5GC LLM-generated patch: eight locally-hosted models (Section~\ref{sec:free5gc-llm-patch-sweep}).}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Model} & \textbf{Compiles} & \textbf{Applied/4} & \textbf{Runtime verdict} \\
+\midrule
+\texttt{deepseek-coder-v2:16b} & No --- out-of-memory & 0/4 & not reached \\
+\texttt{codellama:13b} & Yes & 4/4 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{gemma2:9b} & Yes & 4/4 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{mistral:7b} & Yes & 4/4 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{llama3.1:8b} & Yes & 4/4 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{qwen2.5-coder:7b} & Yes & 4/4 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{qwen2.5-coder:3b} & Yes & 4/4 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{qwen2.5-coder:1.5b} & Yes & 4/4 & \textbf{partial\_or\_inconclusive} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Seven of eight local models compiled and were runtime-confirmed. \texttt{deepseek-coder-v2:16b} never produced a patch at all: it failed to load under this machine's available memory (a 45\,GB buffer allocation request), a hardware limit, not evidence about that model's patching ability. \texttt{qwen2.5-coder:1.5b} is the more informative negative result: its patch \emph{compiled cleanly} but did not fix the bug --- instead of the needed \texttt{return} statements, it appended an unrelated, syntactically valid response line after the function's existing logic. The runtime harness caught this precisely (\texttt{collection\_get\_leak\_fixed: false}); a compile-only check, as used for the main free5GC evidence elsewhere in this chapter, would have reported this patch as equally successful as the other seven. This is a direct, concrete illustration of why this project's reachability track treats compile verification as strictly weaker evidence than runtime confirmation.
+
+\begin{table}[H]
+\centering
+\caption{free5GC LLM-generated patch: eight hosted Claude models, real metered cost (Section~\ref{sec:free5gc-llm-patch-sweep}).}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Model} & \textbf{Compiles} & \textbf{Cost (USD)} & \textbf{Runtime verdict} \\
+\midrule
+\texttt{claude-haiku-4-5} & Yes & \$0.2138 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{claude-sonnet-5-5} & Yes & \$1.1334 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{claude-opus-5-5} & Yes & \$0.1644 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{claude-sonnet-4-6} & Yes & \$0.1494 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{claude-sonnet-5} & \textbf{Refused} & \$1.1130 & not reached \\
+\texttt{claude-opus-4-6} & Yes & \$0.2477 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{claude-opus-4-7} & Yes & \$0.3427 & confirmed\_fix\_all\_four\_handlers \\
+\texttt{claude-opus-4-8} & Yes & \$0.3460 & confirmed\_fix\_all\_four\_handlers \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Seven of eight hosted Claude models (accessed via the \texttt{claude} CLI's own authenticated session rather than a separate API key, mirroring the mechanism this project's main pipeline already uses when a raw key is not configured) compiled and were runtime-confirmed, for a combined real, metered cost of \$3.71. \texttt{claude-sonnet-5} is the remaining negative result, and a different kind from \texttt{qwen2.5-coder:1.5b}'s: it is confirmed as a real, distinct model (a 1{,}000{,}000-token context window and \texttt{firstParty} provider in the CLI's own usage report), but every attempt to send it this handler's patch-generation prompt was refused by that provider's own real-time content safeguard, which flags prompts mentioning CVE/CWE/vulnerability terminology as requiring separate enrolment in a verification programme before certain security-related requests are answered. The refusal itself was still billed in full. This is reported as a finding in its own right: a model from a vendor positioning its models for security-assistance use was, on this occasion, blocked by that same vendor's own safeguard from performing exactly that kind of task.
+
+Two further robustness issues were found and fixed directly as a consequence of this comparison, both in the shared patch-generation code path used by every model and provider in this project, not specific to any one model. First, the patch-generation prompt template was originally written for a C target and retained its C-specific framing and code-fence language even when applied to free5GC's Go source; a language-aware system prompt and fence selection, keyed on the target file's extension, was added. Second, one hosted model twice ignored an explicit "no commentary" instruction in two different ways across two separate attempts --- once appending an explanation after a closing code fence, once with no fence at all --- in both cases leaving its underlying fix logically correct but appending trailing prose that corrupted the surrounding Go source and caused a compile failure unrelated to the fix itself. This was resolved by truncating the model's response at the target function's own final, unindented closing brace unconditionally, rather than relying on fence detection, since every target in this comparison is syntactically a single complete function.
+
+This comparison does not control for training-data memorisation: the real, public fix commit may appear in some models' training data, and a model reproducing it from memory is, in this experimental design, indistinguishable from one genuinely re-deriving it from the function body and vulnerability description alone. Each model was also run once; \texttt{qwen2.5-coder:7b} was observed to produce a textually different but semantically identical patch on a repeat run, a direct, if harmless, demonstration that single-run results in this comparison do not capture run-to-run variance.
+
 \section{Classification Ablation: NVD/GHSA Ground-Truth Cross-Check}
 
 \begin{table}[H]
@@ -934,6 +989,7 @@ Stronger, content-verified patch reassessment & \texttt{reports/\allowbreak patc
 Consolidated session record for this update & \texttt{docs/\allowbreak SESSION\_2026-09-25\_\allowbreak MULTI\_AGENT\_\allowbreak COMPARISON.md} \\
 Benchmark protocol and classification ablation & \texttt{docs/\allowbreak BENCHMARK\_PROTOCOL.md} \\
 Reachability engine and free5GC case study & \texttt{docs/\allowbreak REACHABILITY.md}, \texttt{src/\allowbreak reachability/} \\
+free5GC LLM-generated patch, single-model + sweeps (Section~\ref{sec:free5gc-llm-patch-sweep}) & \texttt{docs/\allowbreak FREE5GC\_LLM\_PATCH\_RESULTS.md}, \texttt{docs/\allowbreak FREE5GC\_LLM\_MODEL\_SWEEP\_RESULTS.md}, \texttt{docs/\allowbreak FREE5GC\_LLM\_CLAUDE\_SWEEP\_RESULTS.md} \\
 free5GC dynamic-exploitation lab & \texttt{docs/\allowbreak FREE5GC\_LAB.md}, \texttt{free5gc\_lab/} \\
 Full scope and limitations statement & \texttt{docs/\allowbreak SCOPE\_AND\_\allowbreak LIMITATIONS.md} \\
 Alternative approach considered and rejected & \texttt{docs/\allowbreak CONSIDERED\_\allowbreak DIRECTIONS.md} \\
