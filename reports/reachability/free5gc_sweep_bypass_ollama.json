@@ -1,0 +1,210 @@
+{
+  "task": "bypass",
+  "backend": "ollama",
+  "runs_per_model": 3,
+  "generated_at": "2026-10-05T17:45:08.699878+00:00",
+  "models": [
+    {
+      "model": "llama3.2:1b",
+      "proposal": {
+        "method": "GET",
+        "path": "/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed",
+        "headers": {},
+        "body": null,
+        "reasoning": "Using a GET request with the correct path and headers to bypass probe seeding by exploiting an incorrect validation check, allowing unauthorized access to influenceId 'subs-to-notify'."
+      },
+      "raw_response": {
+        "status_code": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:43:21 GMT",
+          "Content-Length": "69"
+        },
+        "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+      },
+      "bypass_confirmed": false,
+      "error": null,
+      "cost_usd": null,
+      "executed_request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8080/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed",
+        "headers": {},
+        "body": null
+      },
+      "signal": "not a genuine trick - decodes to the exact legitimate canonical path (ignoring any query string), so a 200 here proves nothing about the fix",
+      "run": 1
+    },
+    {
+      "model": "llama3.2:1b",
+      "proposal": {
+        "method": "PUT",
+        "path": "/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed",
+        "headers": {},
+        "body": null,
+        "reasoning": "The PUT request includes the correct influenceId 'subs-to-notify' in the path, but uses an invalid HTTP method ('PUT') and incorrect data (an empty object)."
+      },
+      "raw_response": {
+        "status_code": 400,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:43:26 GMT",
+          "Content-Length": "104"
+        },
+        "body": "{\"title\":\"Malformed request syntax\",\"status\":400,\"detail\":\"[Request Body] unexpected end of JSON input\"}"
+      },
+      "bypass_confirmed": false,
+      "error": null,
+      "cost_usd": null,
+      "executed_request": {
+        "method": "PUT",
+        "url": "http://127.0.0.1:8080/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed",
+        "headers": {},
+        "body": null
+      },
+      "follow_up_check": {
+        "status_code": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:43:26 GMT",
+          "Content-Length": "69"
+        },
+        "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+      },
+      "signal": "not a genuine trick - decodes to the exact legitimate canonical path (ignoring any query string), so a 200 here proves nothing about the fix",
+      "run": 2
+    },
+    {
+      "model": "llama3.2:1b",
+      "proposal": {
+        "method": "PUT",
+        "path": "/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed",
+        "headers": {},
+        "body": null,
+        "reasoning": "The request body can be crafted to mimic a valid influenceId 'subs-to-notify' by setting the 'influenceId' header with the correct value, bypassing the validation and returning immediately."
+      },
+      "raw_response": {
+        "status_code": 400,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:43:31 GMT",
+          "Content-Length": "104"
+        },
+        "body": "{\"title\":\"Malformed request syntax\",\"status\":400,\"detail\":\"[Request Body] unexpected end of JSON input\"}"
+      },
+      "bypass_confirmed": false,
+      "error": null,
+      "cost_usd": null,
+      "executed_request": {
+        "method": "PUT",
+        "url": "http://127.0.0.1:8080/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed",
+        "headers": {},
+        "body": null
+      },
+      "follow_up_check": {
+        "status_code": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:43:31 GMT",
+          "Content-Length": "69"
+        },
+        "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+      },
+      "signal": "not a genuine trick - decodes to the exact legitimate canonical path (ignoring any query string), so a 200 here proves nothing about the fix",
+      "run": 3
+    },
+    {
+      "model": "llama3.2:3b",
+      "proposal": {
+        "method": "GET",
+        "path": "/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed?influenceId=subs%2Dto%2Fnotify",
+        "headers": {},
+        "body": null,
+        "reasoning": "Exploiting URL encoding trick to inject influenceId with encoded spaces"
+      },
+      "raw_response": {
+        "status_code": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:44:41 GMT",
+          "Content-Length": "69"
+        },
+        "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+      },
+      "bypass_confirmed": false,
+      "error": null,
+      "cost_usd": null,
+      "executed_request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8080/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed?influenceId=subs%2Dto%2Fnotify",
+        "headers": {},
+        "body": null
+      },
+      "signal": "not a genuine trick - decodes to the exact legitimate canonical path (ignoring any query string), so a 200 here proves nothing about the fix",
+      "run": 1
+    },
+    {
+      "model": "llama3.2:3b",
+      "proposal": {
+        "method": "GET",
+        "path": "/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed?influenceId=subs%20to%20notify",
+        "headers": {},
+        "body": null,
+        "reasoning": "Manipulating the query string to include a malformed influenceId parameter that causes path traversal or incorrect parsing."
+      },
+      "raw_response": {
+        "status_code": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:44:55 GMT",
+          "Content-Length": "69"
+        },
+        "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+      },
+      "bypass_confirmed": false,
+      "error": null,
+      "cost_usd": null,
+      "executed_request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8080/nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed?influenceId=subs%20to%20notify",
+        "headers": {},
+        "body": null
+      },
+      "signal": "not a genuine trick - decodes to the exact legitimate canonical path (ignoring any query string), so a 200 here proves nothing about the fix",
+      "run": 2
+    },
+    {
+      "model": "llama3.2:3b",
+      "proposal": {
+        "method": "GET",
+        "path": "/nudr-dr/v2/application-data/influenceData/subs-to-notify",
+        "headers": {
+          "Accept-Encoding": "gzip"
+        },
+        "body": null,
+        "reasoning": "This GET request with an Accept-Encoding header set to gzip may cause the server to serve the requested resource regardless of its path, due to the lack of a trailing slash in the original valid path."
+      },
+      "raw_response": {
+        "status_code": 400,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8",
+          "Date": "Mon, 05 Oct 2026 17:45:08 GMT",
+          "Content-Length": "103"
+        },
+        "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}"
+      },
+      "bypass_confirmed": false,
+      "error": null,
+      "cost_usd": null,
+      "executed_request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8080/nudr-dr/v2/application-data/influenceData/subs-to-notify",
+        "headers": {
+          "Accept-Encoding": "gzip"
+        },
+        "body": null
+      },
+      "signal": "leaked seeded data marker in GET response",
+      "run": 3
+    }
+  ]
+}

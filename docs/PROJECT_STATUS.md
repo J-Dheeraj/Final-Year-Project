@@ -2,6 +2,44 @@
 
 ## Session log
 
+- **2026-10-06 (free5GC multi-run variance via the new sweep.py, on
+  `main`) - two more real bugs found and fixed, including a second
+  variant of an already-fixed classifier false-positive** — Continuing
+  "do everything, do it in the right order", exercised the new
+  `sweep.py --runs N` flag (`--task bypass --backend ollama --models
+  llama3.2:1b,llama3.2:3b --runs 3`) to test whether the bypass-probe's
+  "fix holds" result is stable across repeated runs, not a single-shot
+  fluke (a stated weakness in `docs/DEFENSE_PREP.md` for the main
+  pipeline, never checked for free5GC). First attempt crashed outright:
+  `llama3.2:1b` returned `"headers"` as a string instead of a JSON
+  object on its 3rd attempt, and `proposal.get("headers") or {}` didn't
+  catch it (non-empty string is truthy), so it reached
+  `requests.get(headers=...)` and threw deep inside `requests` itself,
+  killing the whole sweep. Fixed with an `isinstance(headers, dict)`
+  check in `run_bypass_probe_sweep.py`. Second attempt completed but
+  initially reported `llama3.2:3b` confirming a bypass on 2 of 3 runs -
+  which would have been the first confirmed bypass in this project's
+  history. Checked the raw request/response before believing it: both
+  were the model asking for the exact correct, fully-authorized
+  canonical path with a harmless, server-ignored `?influenceId=...`
+  query string appended - the server correctly served the normal
+  legitimate response. `_is_genuine_trick()` already guards against a
+  re-encoded-but-identical path (the false-positive class caught in the
+  original bypass-probe sweep) but never stripped the query string
+  before comparing, so the inert suffix alone made it register as a
+  "genuine trick." Fixed by comparing only the URL's path component;
+  re-classified the 2 affected entries from already-captured raw HTTP
+  data, no new model calls. Corrected result: 0/3 for both models, no
+  run-to-run flip - the fix holding is not a one-run fluke, at least for
+  this small sample. Documented in
+  `docs/FREE5GC_MULTI_RUN_VARIANCE_RESULTS.md`. Both fixes live in the
+  shared `run_bypass_probe_sweep.py`, so every caller (the original
+  script, the Claude variant, and the new unified tool) benefits.
+  Remaining "do everything" items (OAuth2 enforcement, OpenEMR
+  extension, main-catalogue bypass-probe, multi-turn adversarial
+  probing, patch-quality scoring, methodology-pitfalls writeup) still
+  queued.
+
 - **2026-10-06 (sweep-script unification + free5GC memorization control,
   on `main`) - new unified CLI tool; a genuine, controlled memorization
   test with mixed results and one real harness bug caught and fixed** —
