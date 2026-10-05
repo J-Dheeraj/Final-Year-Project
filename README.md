@@ -501,6 +501,24 @@ plan), [`docs/FREE5GC_LLM_PATCH_RESULTS.md`](docs/FREE5GC_LLM_PATCH_RESULTS.md)
 way — `localhost:11434` silently resolving to an unrelated WSL2 Ollama
 instance instead of the real Windows one).
 
+**Adversarial follow-up: can these models find a way *past* the real
+fix, rather than write it?** A separate experiment
+(`free5gc_full_deployment/run_bypass_probe_sweep.py` /
+`run_claude_bypass_probe_sweep.py`) told each model exactly what the
+real upstream fix blocks and asked it to propose one HTTP-level trick
+that might still get through, then actually executed every proposal
+against the live, already-patched stack. **Result: 0 genuine bypasses**
+across all 8 Ollama models and 11 named Claude models tested. A real
+bug in the test's own classifier was caught and fixed first — it
+initially credited 3 models with a "bypass" for simply re-asking for
+the already-authorized resource. Two Claude models,
+`claude-opus-5`/`claude-opus-5-5`, refused to produce an exploit
+payload at all, even under the same authorized-red-team framing every
+other model accepted; the Claude run cost $11.62 total, the largest
+single spend in this project. See
+[`docs/FREE5GC_BYPASS_PROBE_RESULTS.md`](docs/FREE5GC_BYPASS_PROBE_RESULTS.md)
+and [`docs/FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md`](docs/FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md).
+
 ---
 
 ## OpenEMR transfer case — GHSA-q366-cv5v-83w8

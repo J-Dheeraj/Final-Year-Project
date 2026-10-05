@@ -1,0 +1,39 @@
+2026-10-05T09:47:27.899854240Z[36m [INFO][UDR][Main] [0mUDR version:  
+	Not specify ldflags (which link version) during go build
+	go version: go1.26.8 linux/amd64
+2026-10-05T09:47:27.904927351Z[36m [INFO][UDR][CFG] [0mRead config from [./config/udrcfg.yaml]
+2026-10-05T09:47:27.907612601Z[36m [INFO][UDR][Util] [0mudrconfig Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-05T09:47:27.907653620Z[36m [INFO][UDR][Main] [0mLog enable is set to [true]
+2026-10-05T09:47:27.907656615Z[36m [INFO][UDR][Main] [0mLog level is set to [info]
+2026-10-05T09:47:27.907658115Z[36m [INFO][UDR][Main] [0mReport Caller is set to [false]
+2026-10-05T09:47:27.926793546Z[36m [INFO][UDR][Main] [0mOAuth2 setting receive from NRF: false
+2026-10-05T09:47:27.926819855Z[36m [INFO][UDR][Init] [0mregister to NRF successfully
+2026-10-05T09:47:27.926822178Z[36m [INFO][UDR][Init] [0mServer started
+2026-10-05T09:47:27.926824029Z[36m [INFO][UDR][Init] [0mUDR Config Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-05T09:47:27.930354028Z[36m [INFO][UDR][SBI] [0mStarting server...
+2026-10-05T09:47:28.814104313Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify |  |
+2026-10-05T09:47:28.897717521Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | PUT     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed |  |
+2026-10-05T09:49:01.241975767Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed |  |
+2026-10-05T09:49:16.880191422Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify |  |
+2026-10-05T09:49:31.057061396Z[31m [ERRO][UDR][DataRepo] [0m[Request Body] unexpected end of JSON input
+2026-10-05T09:49:31.057428835Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | PUT     | /nudr-dr/v2/application-data/influenceData/`subs-to-notify` |  |
+2026-10-05T09:49:31.065601030Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed |  |
+2026-10-05T09:50:18.933213787Z[36m [INFO][UDR][GIN] [0m| 404 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData//subs-to-notify |  |
+2026-10-05T09:50:29.100611759Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed |  |
+2026-10-05T09:50:34.047171248Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed |  |
+2026-10-05T09:50:36.585548340Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | PUT     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed |  |
+2026-10-05T09:50:36.605415441Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/bypass-probe-seed |  |
+2026-10-05T12:09:21.956602630Z[36m [INFO][UDR][Main] [0mUDR version:  
+	Not specify ldflags (which link version) during go build
+	go version: go1.26.8 linux/amd64
+2026-10-05T12:09:21.981796713Z[36m [INFO][UDR][CFG] [0mRead config from [./config/udrcfg.yaml]
+2026-10-05T12:09:21.982852436Z[36m [INFO][UDR][Util] [0mudrconfig Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-05T12:09:21.982919339Z[36m [INFO][UDR][Main] [0mLog enable is set to [true]
+2026-10-05T12:09:21.982923323Z[36m [INFO][UDR][Main] [0mLog level is set to [info]
+2026-10-05T12:09:21.982925044Z[36m [INFO][UDR][Main] [0mReport Caller is set to [false]
+2026-10-05T12:09:22.009656402Z[36m [INFO][UDR][Main] [0mOAuth2 setting receive from NRF: false
+2026-10-05T12:09:22.009688793Z[36m [INFO][UDR][Init] [0mregister to NRF successfully
+2026-10-05T12:09:22.009692011Z[36m [INFO][UDR][Init] [0mServer started
+2026-10-05T12:09:22.009695912Z[36m [INFO][UDR][Init] [0mUDR Config Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-05T12:09:22.010641199Z[36m [INFO][UDR][SBI] [0mStarting server...
+2026-10-05T12:09:22.978106002Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify |  |
