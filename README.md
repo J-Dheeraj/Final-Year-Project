@@ -460,6 +460,24 @@ Swept across **every** Ollama model pulled on the development machine
 | `qwen2.5-coder:3b` | yes | confirmed_fix_all_four_handlers |
 | `qwen2.5-coder:1.5b` | yes | **partial_or_inconclusive** — compiled, but appended an unrelated response line instead of the needed `return`s; the collection-GET leak this handler is responsible for was still exploitable. Caught only by the runtime harness, not by compile-verification alone. |
 
+Extended to real, hosted **Claude models** (`free5gc_full_deployment/run_claude_model_sweep.py`,
+via a `ClaudeCLIProvider` that shells out to the already-authenticated
+`claude` CLI — no separate API key needed): all 3 tested confirmed the
+fix, for a real, measured total cost of $1.5116.
+
+| Model | Compiles | Cost (USD) | Runtime verdict |
+|---|---|---|---|
+| `claude-haiku-4-5-20251001` | yes | $0.2138 | confirmed_fix_all_four_handlers |
+| `claude-sonnet-5-5` | yes | $1.1334 | confirmed_fix_all_four_handlers |
+| `claude-opus-5-5` | yes | $0.1644 | confirmed_fix_all_four_handlers |
+
+`claude-opus-5-5` twice ignored the "no commentary" instruction and
+appended trailing explanation text that corrupted the Go source despite
+a correct underlying fix — found and fixed in `generate_patch()`'s
+shared cleanup logic (now truncates at the function's own closing
+brace regardless of markdown fencing), benefiting every provider, not
+just Claude. See [`docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md`](docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md).
+
 Limitations stated explicitly, not hidden: the real fix commit is public,
 so a model could in principle reproduce it from training data rather
 than genuinely re-deriving it (not controlled for here); each model was
@@ -717,6 +735,7 @@ AI CVE Exploit Automation/
 │   ├── FREE5GC_LLM_PATCH_SCOPE.md            # Plan: running a real LLM (not the real fix) on free5GC
 │   ├── FREE5GC_LLM_PATCH_RESULTS.md          # Single-model (qwen2.5-coder:7b) compile+runtime result
 │   ├── FREE5GC_LLM_MODEL_SWEEP_RESULTS.md    # All 8 local Ollama models, compared
+│   ├── FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md   # Real Claude models (paid), compared
 │   ├── OPENEMR_TRANSFER_CASE_PLAN.md         # OpenEMR target selection + harness design
 │   └── OPENEMR_TRANSFER_RESULTS.md           # OpenEMR confirmed_fix result
 │
@@ -728,6 +747,7 @@ AI CVE Exploit Automation/
 │   ├── run_full_deployment_harness.py      # real, official MongoDB + free5GC NRF images
 │   ├── run_full_deployment_harness_llm.py  # same stack, LLM-generated patch instead of the real fix
 │   ├── run_model_sweep.py                  # runs every local Ollama model through both gates
+│   ├── run_claude_model_sweep.py            # same, for real Claude models (paid, via claude CLI)
 │   ├── udr_build/Dockerfile.llm            # builds the vulnerable commit + a materialized LLM patch
 │   └── evidence/
 │

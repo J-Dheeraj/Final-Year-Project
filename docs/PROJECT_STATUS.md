@@ -2,6 +2,41 @@
 
 ## Session log
 
+- **2026-10-05 (free5GC Level 2 extended again: real Claude models via
+  the claude CLI, on `main`) - 3/3 confirmed the fix, real cost measured,
+  two real bugs found and fixed** — Per explicit instruction ("test them
+  with claude models"), extended the local-Ollama comparison to real,
+  hosted Claude models. No `ANTHROPIC_API_KEY` was configured, but the
+  `claude` CLI was already authenticated, so added `ClaudeCLIProvider`
+  (`src/reachability/providers.py`) shelling out to `claude -p`,
+  mirroring `cve_pipeline.py`'s existing `_call_claude_metered`
+  mechanism - still gated by `NO_PAID_BACKEND`, and import order matters
+  (that module-level constant is fixed at providers.py's first import,
+  so `NO_PAID_BACKEND` must be set to `"0"` before any reachability
+  import). Confirmed real cost with the user before spending anything -
+  a trivial smoke-test call alone cost $0.21 (CLI session overhead, not
+  list price), given this project's own documented ~$6.88 overspend
+  history - user confirmed proceeding with all 3 tiers (haiku, sonnet,
+  opus). Result: all 3 compiled and were runtime-confirmed
+  (`confirmed_fix_all_four_handlers`); total measured cost $1.5116
+  (haiku $0.21, sonnet $1.13, opus $0.16 - cost did not track capability
+  tier). Found and fixed two real bugs along the way, both in
+  `generate_patch()`'s shared response-cleanup code (so the fix benefits
+  every provider, not just Claude): `claude-opus-5-5` twice ignored the
+  "no commentary" instruction - once wrapping the fix in a fence then
+  appending prose *after* the closing fence (old cleanup only stripped
+  leading backticks), once with no fence at all and trailing prose
+  straight after the code. Fixed by truncating at the target function's
+  own last unindented closing brace unconditionally, fence or not. Also
+  hit one transient network failure (Go module proxy connection reset
+  during a Docker build) unrelated to the patch, which had already
+  compiled cleanly - retried only the Docker+runtime stage without
+  re-paying for the LLM call. Documented in
+  `docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md`; README and this log
+  updated. Exit criteria met: real hosted-model data added to the
+  comparison, real cost reported honestly, two genuine bugs found and
+  fixed rather than worked around.
+
 - **2026-10-05 (free5GC Level 2 extended: all 8 local Ollama models
   swept, on `main`) - 7/8 confirmed the fix, 1 compiled but did NOT fix
   it, 1 couldn't load** — Per explicit instruction ("did you run each

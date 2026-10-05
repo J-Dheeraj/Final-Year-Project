@@ -70,12 +70,17 @@ def _go_build(module_dir: Path, label: str) -> bool:
     return ok
 
 
-def materialize_and_verify(model: str) -> dict:
+def materialize_and_verify(model: str, provider_factory=OllamaProvider) -> dict:
     """Generates a patch for LLM_TARGET from `model`, splices it (plus the
     existing rule-based patches for the other 3 handlers) into a live
     clone of the real upstream module, compile-verifies it, and - only if
     it compiles - writes it to disk. Returns a result dict regardless of
-    outcome (never raises for a model-specific failure)."""
+    outcome (never raises for a model-specific failure).
+
+    `provider_factory(model) -> Provider` defaults to OllamaProvider;
+    pass e.g. ClaudeCLIProvider for a paid-backend sweep (see
+    run_claude_model_sweep.py) - caller is responsible for the
+    NO_PAID_BACKEND guard that provider enforces at construction."""
     result = {"model": model, "patch_method": None, "applied": 0,
               "diff": None, "compiles": False, "output_file": None,
               "error": None}
@@ -85,9 +90,9 @@ def materialize_and_verify(model: str) -> dict:
         return result
 
     try:
-        provider = OllamaProvider(model)
-    except RuntimeError as e:
-        result["error"] = f"Ollama not reachable: {e}"
+        provider = provider_factory(model)
+    except Exception as e:
+        result["error"] = f"provider construction failed: {type(e).__name__}: {e}"
         return result
 
     cfg = PipelineConfig(

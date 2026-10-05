@@ -185,9 +185,31 @@ def generate_patch(finding: VerifiedFinding, provider: Provider,
             )
         patched_body = provider.complete(system_prompt, user).strip()
         if patched_body.startswith("```"):
-            patched_body = patched_body.strip("`")
-            if patched_body.startswith(f"{lang}\n"):
-                patched_body = patched_body[len(lang) + 1:]
+            # Model ignored "no markdown fences, no commentary" - take
+            # only the first fenced block's content. `.strip("`")` alone
+            # (the prior approach) only trims backtick CHARACTERS off
+            # the very ends of the string, so a trailing commentary
+            # paragraph after the closing fence survived untouched and
+            # got spliced straight into the Go source - seen live with
+            # claude-opus-5-5, which appended an explanation after a
+            # closing ``` fence; its actual fix was correct, but the
+            # leftover prose caused a syntax error on compile.
+            parts = patched_body.split("```")
+            inner = parts[1] if len(parts) > 1 else patched_body.strip("`")
+            if inner.startswith(f"{lang}\n"):
+                inner = inner[len(lang) + 1:]
+            patched_body = inner.strip()
+        # Second, fence-independent pass: claude-opus-5-5 was also seen
+        # appending trailing commentary with NO fence at all (so the
+        # block above never triggers), e.g. a paragraph right after the
+        # function's own closing brace. `fn.body` is always exactly one
+        # complete function, so its last unindented `}` line IS the
+        # function's closing brace - truncate there and discard anything
+        # after, regardless of whether a fence was present. A no-op if
+        # the response already ended cleanly at that brace.
+        closing_braces = list(re.finditer(r"^\}[ \t]*$", patched_body, re.MULTILINE))
+        if closing_braces:
+            patched_body = patched_body[:closing_braces[-1].end()]
         method = f"llm-{provider.name}"
 
     diff = "\n".join(difflib.unified_diff(

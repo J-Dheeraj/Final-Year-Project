@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
@@ -91,6 +92,46 @@ class AnthropicProvider(Provider):
             messages=[{"role": "user", "content": user}],
         )
         return "".join(block.text for block in resp.content if hasattr(block, "text"))
+
+
+class ClaudeCLIProvider(Provider):
+    """Real Claude models via the `claude` CLI's own authenticated
+    session, instead of a raw ANTHROPIC_API_KEY - mirrors
+    cve_pipeline.py's `_call_claude_metered` exactly (same flags, same
+    --output-format json parsing), the mechanism this project already
+    uses when a raw API key isn't configured but the CLI is already
+    logged in. Still a paid/metered backend - NO_PAID_BACKEND applies."""
+
+    name = "claude-cli"
+
+    def __init__(self, model: str | None = None):
+        if NO_PAID_BACKEND:
+            raise RuntimeError(
+                "NO_PAID_BACKEND is set - refusing to construct ClaudeCLIProvider "
+                "(a paid backend). Unset NO_PAID_BACKEND to allow this."
+            )
+        self._model = model
+        self.last_cost_usd: float | None = None
+
+    def complete(self, system: str, user: str) -> str:
+        prompt = f"{system}\n\n{user}"
+        cmd = ["claude", "-p", prompt, "--output-format", "json",
+               "--tools", "", "--permission-prompts", "none",
+               "--no-session-persistence"]
+        if self._model:
+            cmd += ["--model", self._model]
+        result = subprocess.run(cmd, capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace", timeout=240)
+        if result.returncode != 0 or not result.stdout.strip():
+            raise RuntimeError(
+                f"claude -p failed (exit {result.returncode}): {result.stderr[:500]}")
+        data = json.loads(result.stdout)
+        self.last_cost_usd = data.get("total_cost_usd")
+        if data.get("is_error"):
+            raise RuntimeError(
+                f"claude -p API error (status {data.get('api_error_status')}): "
+                f"{(data.get('result') or '')[:500]}")
+        return (data.get("result") or "").strip()
 
 
 class OpenAIProvider(Provider):
