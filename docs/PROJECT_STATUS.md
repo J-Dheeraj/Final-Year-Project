@@ -2,6 +2,53 @@
 
 ## Session log
 
+- **2026-10-06 (sweep-script unification + free5GC memorization control,
+  on `main`) - new unified CLI tool; a genuine, controlled memorization
+  test with mixed results and one real harness bug caught and fixed** —
+  Per explicit instruction ("do everything, do it in the right order")
+  against a previously-brainstormed enhancement list, started with the
+  two lowest-risk/highest-value items. (1) Consolidated the 5
+  near-duplicate free5GC sweep scripts (`run_model_sweep.py`,
+  `run_claude_model_sweep.py`, `run_claude_sweep_extended.py`,
+  `run_bypass_probe_sweep.py`, `run_claude_bypass_probe_sweep.py`, 869
+  lines total) into one parameterized CLI
+  (`free5gc_full_deployment/sweep.py`, `--task {patch,bypass} --backend
+  {ollama,claude} [--models] [--runs N]`), reusing their existing
+  functions rather than redefining them; the 5 originals are left
+  unmodified since existing docs/reports cite their exact invocations.
+  (2) Built a memorization control: injected a synthetic, never-
+  publicly-disclosed CWE-285 bug (deleted a real, correctly-present
+  `return`) into `HandleCreateAuthenticationStatus` - a real free5GC UDR
+  handler in the same source file as the CVE-2026-40248 handlers, but
+  not one of them, and never actually buggy - then asked models to fix
+  it and compile-verified against a live clone of the real upstream
+  module, same methodology as `run_free5gc_llm_patch.py`. Found and
+  fixed a real bug in the control itself before trusting any result: the
+  synthetic case file was written with Windows' default `\r\n`
+  translation, so the pipeline's tree-sitter-parsed function body no
+  longer byte-matched the `\n`-only strings used to splice into the real
+  clone, producing false "patch doesn't match" failures for every model;
+  fixed with an explicit `newline="\n"` write, re-verified empirically.
+  The original 8-model Ollama list from every prior free5GC sweep is no
+  longer pulled on this machine (disk/OOM churn between sessions);
+  re-pulling multi-GB models was judged not worth it for one control
+  experiment, so ran against the 4 models actually available
+  (`llama3.2:1b`, `llama3.2:3b`, `qwen3:8b`, `deepseek-r1:14b`) plus a
+  same-session matched baseline against the real CVE handler
+  (`run_memorization_control_baseline.py`) for a fair comparison. Result:
+  1/4 compiled on the synthetic bug, 1/4 on the real CVE - and the model
+  that succeeded differed between the two arms (`llama3.2:1b` fixed the
+  synthetic bug but not the real one; `llama3.2:3b` the reverse); the two
+  reasoning models (`qwen3:8b`, `deepseek-r1:14b`) timed out identically
+  on both arms (documented pre-existing hardware constraint, not a new
+  finding). Honestly reported as a small-sample (2/4 completed), directionally-
+  against-memorization data point, not proof either way. Documented in
+  `docs/FREE5GC_MEMORIZATION_CONTROL_RESULTS.md`. Remaining items from the
+  "do everything" list (multi-run variance, OAuth2 enforcement, OpenEMR
+  extension, main-catalogue bypass-probe, multi-turn adversarial probing,
+  patch-quality scoring, methodology-pitfalls writeup) are queued, not
+  yet started.
+
 - **2026-10-05 (free5GC adversarial bypass-probe: all 8 Ollama models +
   11 named Claude models vs. the real fix, on `main`) - 0 genuine
   bypasses found; 2 Claude models refused the task outright; a real

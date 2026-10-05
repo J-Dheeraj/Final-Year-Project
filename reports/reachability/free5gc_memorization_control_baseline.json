@@ -1,0 +1,33 @@
+{
+  "experiment": "memorization_control_baseline",
+  "note": "same compile-verification methodology and model set as run_memorization_control.py, applied to the REAL CVE-2026-40248 handler instead of the synthetic one - the matched comparison arm.",
+  "target_function": "HandleApplicationDataInfluenceDataSubsToNotifyGet",
+  "vulnerable_commit": "86686276a7e226183ee786e3dd6714ec56c78fda^",
+  "generated_at": "2026-10-05T17:38:36.026649+00:00",
+  "models": [
+    {
+      "model": "llama3.2:1b",
+      "compiles": false,
+      "error": "# github.com/free5gc/udr/internal/sbi\ninternal\\sbi\\api_datarepository.go:2752:33: undefined: problemDetails\ninternal\\sbi\\api_datarepository.go:2762:33: invalid operation: cannot call problemDetails (variable of struct type models.ProblemDetails): models.ProblemDetails is not a function\n",
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -6,26 +6,20 @@\n \tsupi := c.Query(\"supi\")\n \n \tvar snssai *models.Snssai\n-\tif c.Query(\"snssai\") != \"\" {\n-\t\tsnssai = new(models.Snssai)\n-\t\terr := openapi.Deserialize(snssai, []byte(c.Query(\"snssai\")), \"application/json\")\n-\t\tif err != nil {\n-\t\t\tproblemDetails := models.ProblemDetails{\n-\t\t\t\tStatus: http.StatusBadRequest,\n-\t\t\t\tDetail: err.Error(),\n-\t\t\t}\n-\t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n-\t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n-\t\t}\n+\tif dnn == \"\" || internalGroupId == \"\" || supi == \"\" {\n+\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusBadRequest)\n+\t\tc.JSON(http.StatusBadRequest, problemDetails())\n+\t\treturn\n \t}\n-\n-\tif dnn == \"\" && snssai == nil && internalGroupId == \"\" && supi == \"\" {\n+\t\n+\tif err := openapi.Deserialize(snssai, []byte(c.Query(\"snssai\")), \"application/json\"); err != nil {\n \t\tproblemDetails := models.ProblemDetails{\n \t\t\tStatus: http.StatusBadRequest,\n-\t\t\tDetail: \"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\",\n+\t\t\tDetail: err.Error(),\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n-\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\tc.JSON(http.StatusBadRequest, problemDetails())\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+    },
+    {
+      "model": "llama3.2:3b",
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -6,7 +6,7 @@\n \tsupi := c.Query(\"supi\")\n \n \tvar snssai *models.Snssai\n-\tif c.Query(\"snssai\") != \"\" {\n+\tif len(c.Query(\"snssai\")) > 0 {\n \t\tsnssai = new(models.Snssai)\n \t\terr := openapi.Deserialize(snssai, []byte(c.Query(\"snssai\")), \"application/json\")\n \t\tif err != nil {\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)"
+    },
+    {
+      "model": "qwen3:8b",
+      "compiles": false,
+      "error": "TimeoutError: timed out",
+      "diff": null
+    },
+    {
+      "model": "deepseek-r1:14b",
+      "compiles": false,
+      "error": "TimeoutError: timed out",
+      "diff": null
+    }
+  ]
+}

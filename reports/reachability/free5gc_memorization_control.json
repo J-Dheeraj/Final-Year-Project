@@ -1,0 +1,34 @@
+{
+  "experiment": "memorization_control",
+  "target_function": "HandleCreateAuthenticationStatus",
+  "injection": "synthetic - deleted the real, correctly-present `return` from the 'Malformed request syntax' guard; this exact vulnerable function text has never existed in any public free5gc/udr commit",
+  "vulnerable_commit_used_for_compile_verification": "86686276a7e226183ee786e3dd6714ec56c78fda^",
+  "generated_at": "2026-10-05T17:26:49.703701+00:00",
+  "models": [
+    {
+      "model": "llama3.2:1b",
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -3,29 +3,23 @@\n \n \trequestBody, err := c.GetRawData()\n \tif err != nil {\n-\t\tproblemDetail := models.ProblemDetails{\n+\t\tc.JSON(http.StatusInternalServerError, models.ProblemDetails{\n \t\t\tTitle:  \"System failure\",\n \t\t\tStatus: http.StatusInternalServerError,\n \t\t\tDetail: err.Error(),\n \t\t\tCause:  \"SYSTEM_FAILURE\",\n-\t\t}\n-\t\tlogger.DataRepoLog.Errorf(\"Get Request Body error: %+v\", err)\n-\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetail.Cause)\n-\t\tc.JSON(http.StatusInternalServerError, problemDetail)\n+\t\t})\n \t\treturn\n \t}\n \n \terr = openapi.Deserialize(&authEvent, requestBody, \"application/json\")\n \tif err != nil {\n-\t\tproblemDetail := \"[Request Body] \" + err.Error()\n-\t\trsp := models.ProblemDetails{\n+\t\tc.JSON(http.StatusBadRequest, models.ProblemDetails{\n \t\t\tTitle:  \"Malformed request syntax\",\n \t\t\tStatus: http.StatusBadRequest,\n-\t\t\tDetail: problemDetail,\n-\t\t}\n-\t\tlogger.DataRepoLog.Errorln(problemDetail)\n-\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n-\t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\t\tDetail: err.Error(),\n+\t\t})\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")\n@@ -33,7 +27,11 @@\n \tputData := util.ToBsonM(authEvent)\n \tueId := c.Params.ByName(\"ueId\")\n \tif ueId == \"\" {\n-\t\tutil.EmptyUeIdProblemJson(c)\n+\t\tc.JSON(http.StatusBadRequest, models.ProblemDetails{\n+\t\t\tTitle:  \"Malformed request syntax\",\n+\t\t\tStatus: http.StatusBadRequest,\n+\t\t\tDetail: \"UE ID is required\",\n+\t\t})\n \t\treturn\n \t}\n \tcollName := \"subscriptionData.authenticationData.authenticationStatus\""
+    },
+    {
+      "model": "llama3.2:3b",
+      "compiles": false,
+      "error": "# github.com/free5gc/udr/internal/sbi\ninternal\\sbi\\api_datarepository.go:1011:17: problemDetail.Title undefined (type string has no field or method Title)\ninternal\\sbi\\api_datarepository.go:1013:50: problemDetail.Cause undefined (type string has no field or method Cause)\ninternal\\sbi\\api_datarepository.go:1014:10: cannot use rsp.Status (variable of type int32) as int value in argument to c.JSON\n",
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,15 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\n+\t\tif c.Request.Method != \"POST\" {\n+\t\t\treturn\n+\t\t}\n+\n+\t\tproblemDetail.Title = \"Invalid request method\"\n+\t\trsp.Status = http.StatusBadRequest\n+\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetail.Cause)\n+\t\tc.JSON(rsp.Status,rsp)\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")"
+    },
+    {
+      "model": "qwen3:8b",
+      "compiles": false,
+      "error": "TimeoutError: timed out",
+      "diff": null
+    },
+    {
+      "model": "deepseek-r1:14b",
+      "compiles": false,
+      "error": "TimeoutError: timed out",
+      "diff": null
+    }
+  ],
+  "scope_note": "compile-verification only (same tier as run_free5gc_llm_patch.py's first result), not runtime-confirmed - this handler's data path was never wired into the Docker full-deployment harness"
+}
