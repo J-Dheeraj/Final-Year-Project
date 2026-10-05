@@ -135,6 +135,28 @@ could ever prove even for C.
   confirmation for that one handler specifically, not for the other
   three, and not evidence that the full free5GC core network stack (AMF,
   SMF, and the rest) would behave the same way under a fuller deployment.
+  **Update, 2026-09-28 (supersedes the limitation above entirely)**: the
+  remaining three handlers were subsequently taken to the same standard.
+  A fuller Docker-based deployment (`free5gc_full_deployment/`, see
+  `docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md`) — real, official MongoDB and
+  free5GC NRF images, OAuth2 disabled on the NRF as a stated limitation —
+  built and ran the real vulnerable and fixed commits and exercised all
+  four reachable handlers over real HTTP: the collection-GET, single-GET,
+  single-PUT, and single-DELETE paths. Committed evidence
+  (`free5gc_full_deployment/evidence/verdict.json`) records
+  `overall_verdict: "confirmed_fix_all_four_handlers"`, with the benign
+  legitimate-request path preserved on both builds. This upgraded the
+  underlying finding, not just the evidence tier: the vulnerable build
+  permits an unauthorized read of a single record, an unauthorized read
+  of the *entire* subscription collection, an unauthorized write, and an
+  unauthorized delete — a genuine CRUD bypass, not the single-record
+  issue the DELETE-only result above suggested on its own. "Is not... a
+  full dynamic PoV" above is therefore stale for all four handlers, not
+  just the DELETE one; see `README.md`'s "Current state" section and
+  `docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md` for the current, accurate
+  claim. The full free5GC core network stack (AMF, SMF, and the rest)
+  and OAuth2 enforcement on the NRF remain out of scope, stated
+  explicitly, not implied covered.
 - **Is not** fully merged into the main `cve_pipeline.py` orchestration.
   It's a separate, standalone module with its own entry points, the same
   relationship `free5gc_lab/` and `ssrf_lab/` already have to the main
@@ -143,7 +165,8 @@ could ever prove even for C.
   future work, not attempted here.
 - **Known, inherited limitation** (documented in reachcrs's own test
   suite, `tests/test_free5gc_case_study.py` in the original repo, and
-  still true here): one of the four handlers,
+  still true here, specifically for the deterministic rule-based
+  patcher): one of the four handlers,
   `HandleApplicationDataInfluenceDataSubsToNotifyGet`, needs **two**
   separate `return` insertions in the real fix; `patch.py`'s rule-based
   generator finds only the first match per function body, so this one
@@ -152,6 +175,15 @@ could ever prove even for C.
   (a partial fix doesn't break compilation), it just doesn't fully close
   the vulnerability. Fixing this needs the rule to return every match,
   not just the first — a small, scoped, honestly-deferred improvement.
+  **Note**: this limitation is about the rule-based patcher's own output
+  specifically, not about this handler's deployed/evidence-tier state —
+  the actual real upstream fix (used for the `confirmed_fix_all_four_
+  handlers` verdict above) closes it correctly, and a separate, later
+  experiment asking real LLMs to write the fix for this exact handler
+  found several that correctly inserted both `return` statements where
+  the rule-based patcher found only one, runtime-confirmed against the
+  same real deployment — see
+  `docs/FREE5GC_LLM_PATCH_RESULTS.md`/`docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`.
 
 ## Relationship to the rest of this repo
 
