@@ -764,6 +764,8 @@ AI CVE Exploit Automation/
 │   ├── FREE5GC_LLM_MODEL_SWEEP_RESULTS.md    # All 8 local Ollama models, compared
 │   ├── FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md   # Real Claude models (paid), compared
 │   ├── FREE5GC_LLM_CLAUDE_SWEEP_EXTENDED_RESULTS.md  # 5 more Claude models, incl. a cyber-safeguard refusal
+│   ├── FREE5GC_BYPASS_PROBE_RESULTS.md       # Adversarial: can a model bypass the REAL fix? (Ollama)
+│   ├── FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md  # Same, for Claude models - 2 refused the task outright
 │   ├── OPENEMR_TRANSFER_CASE_PLAN.md         # OpenEMR target selection + harness design
 │   └── OPENEMR_TRANSFER_RESULTS.md           # OpenEMR confirmed_fix result
 │
@@ -776,6 +778,9 @@ AI CVE Exploit Automation/
 │   ├── run_full_deployment_harness_llm.py  # same stack, LLM-generated patch instead of the real fix
 │   ├── run_model_sweep.py                  # runs every local Ollama model through both gates
 │   ├── run_claude_model_sweep.py            # same, for real Claude models (paid, via claude CLI)
+│   ├── run_claude_sweep_extended.py         # 5 more user-named Claude models (paid)
+│   ├── run_bypass_probe_sweep.py            # adversarial: can a model bypass the REAL fix? (Ollama)
+│   ├── run_claude_bypass_probe_sweep.py     # same, for Claude models (paid)
 │   ├── udr_build/Dockerfile.llm            # builds the vulnerable commit + a materialized LLM patch
 │   └── evidence/
 │
