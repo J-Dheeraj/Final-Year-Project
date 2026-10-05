@@ -940,6 +940,62 @@ Two further robustness issues were found and fixed directly as a consequence of 
 
 This comparison does not control for training-data memorisation: the real, public fix commit may appear in some models' training data, and a model reproducing it from memory is, in this experimental design, indistinguishable from one genuinely re-deriving it from the function body and vulnerability description alone. Each model was also run once; \texttt{qwen2.5-coder:7b} was observed to produce a textually different but semantically identical patch on a repeat run, a direct, if harmless, demonstration that single-run results in this comparison do not capture run-to-run variance.
 
+\section{free5GC Adversarial Bypass-Probe: Can a Model Find a Way Past the Real Fix?}
+\label{sec:free5gc-bypass-probe}
+
+The comparison above asks whether a model can \emph{write} the fix. A separate, later experiment asks the opposite question: given full knowledge of exactly what the real, already-deployed upstream fix blocks --- an unconditional \texttt{return} immediately after every early-exit validation response, leaving no remaining code-path gap in the handler itself --- can a model find an HTTP-request-level trick (encoding, case, path manipulation, headers, trailing or duplicate path segments) that still reaches the protected resource. Since no code-path gap remains, only a request the server might still treat as equivalent to an authorised one could possibly succeed. Each of the eight locally-hosted models and eleven named hosted Claude models was told this exactly, asked to propose one concrete HTTP request, and that request was then \emph{actually executed} against the real, already-built upstream-fix image (\texttt{free5gc-udr-custom:patched}) running on the same real MongoDB and free5GC NRF deployment used throughout this chapter --- not evaluated by inspection.
+
+\textbf{Result: zero genuine bypasses were found}, across every model tested, local or hosted.
+
+A real defect in this experiment's own classifier was found and fixed before any result was reported. The first version flagged three models as having found a successful bypass purely because their proposed request returned a 200 response containing the protected data --- without checking whether that request actually differed from the ordinary, fully authorised request. Two of the three proposals were, after inspection, byte-for-byte identical to the correct, legitimate path; a third used URL encoding (\texttt{\%2F}) that decodes back to the identical canonical path. None of these are bypasses of anything --- they are the intended request, which obviously returns 200 --- and two of the implicated models' own stated reasoning (a claimed trailing-dot trick, a claimed case variation) did not even match the request they actually issued, itself a finding about model reliability on this task rather than about the target. The classifier was corrected to require that a proposal's URL-decoded form differ from the canonical, fully authorised path before it can count as a genuine attempt at all; every result below reflects that corrected check, re-derived from the already-captured request and response data with no model re-queried.
+
+\begin{table}[H]
+\centering
+\caption{free5GC bypass-probe: eight locally-hosted models against the real fix (Section~\ref{sec:free5gc-bypass-probe}).}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Model} & \textbf{Genuine attempt} & \textbf{Bypass confirmed} \\
+\midrule
+\texttt{deepseek-coder-v2:16b} & Not reached --- out-of-memory & --- \\
+\texttt{codellama:13b} & No --- restated the correct path & No \\
+\texttt{gemma2:9b} & Yes & No \\
+\texttt{mistral:7b} & Yes & No \\
+\texttt{llama3.1:8b} & Yes & No \\
+\texttt{qwen2.5-coder:7b} & No --- \texttt{\%2F}-encoding of the correct path & No \\
+\texttt{qwen2.5-coder:3b} & No --- restated the correct path & No \\
+\texttt{qwen2.5-coder:1.5b} & No --- restated the correct path & No \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Only three of the seven models that produced a response (\texttt{gemma2:9b}, \texttt{mistral:7b}, \texttt{llama3.1:8b}) proposed a request that was genuinely distinct from the legitimate one despite every model being explicitly asked for one; all three were correctly rejected by the real fix with a \texttt{400} or \texttt{404} response, and none altered the protected record.
+
+\begin{table}[H]
+\centering
+\caption{free5GC bypass-probe: eleven named hosted Claude models against the real fix, real metered cost (Section~\ref{sec:free5gc-bypass-probe}).}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Model} & \textbf{Genuine attempt} & \textbf{Cost (USD)} & \textbf{Bypass confirmed} \\
+\midrule
+\texttt{claude-haiku-4-5} & Yes & \$0.2321 & No \\
+\texttt{claude-sonnet-4-5} & Yes & \$0.6539 & No \\
+\texttt{claude-sonnet-4-6} & No --- restated the correct path & \$0.6540 & No \\
+\texttt{claude-sonnet-5} & Failed to resolve & --- & --- \\
+\texttt{claude-sonnet-5-5} & Failed --- \texttt{unrecognized\_model} & --- & --- \\
+\texttt{claude-opus-4-6} & No --- restated the correct path & \$1.0744 & No \\
+\texttt{claude-opus-4-7} & Yes & \$1.4122 & No \\
+\texttt{claude-opus-4-8} & No --- restated the correct path & \$1.4235 & No \\
+\texttt{claude-opus-4-9} & Failed --- \texttt{unrecognized\_model} & --- & --- \\
+\texttt{claude-opus-5} & \textbf{Refused the task} & \$4.2345 & --- \\
+\texttt{claude-opus-5-5} & \textbf{Refused the task} & \$1.9371 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Claude run's total measured cost was \$11.62, the largest single expenditure in this project. Two results stand out beyond the headline zero-bypasses finding. First, \texttt{claude-opus-5} and \texttt{claude-opus-5-5} --- the two most capable models asked --- declined to produce an exploit payload at all, even under the same authorised-red-team framing every other model in this chapter, local or hosted, accepted without objection; both refusals were still billed in full, with \texttt{claude-opus-5}'s refusal alone costing more than any other single call in this project. This is a materially different finding from \texttt{claude-sonnet-5}'s refusal on the patch-generation prompt reported above, which was an automated content classifier reacting to CVE/CWE terminology: here the model itself declined the task's purpose. Second, three model-name strings failed to resolve during this run, including \texttt{claude-sonnet-5-5}, which had compiled and been runtime-confirmed without issue earlier the same day under the patch-generation prompt (Section~\ref{sec:free5gc-llm-patch-sweep}); this inconsistency is reported as observed, not explained, given the cost already incurred investigating it further.
+
+As with the patch-generation comparison, this result bounds what it shows: it is evidence the real fix holds against this specific, bounded set of request-level tricks attempted by these particular models in one run each, not a formal proof that no bypass exists, and a model's refusal to attempt a bypass is evidence about that model's willingness to perform the task, not about the target's security.
+
 \section{Classification Ablation: NVD/GHSA Ground-Truth Cross-Check}
 
 \begin{table}[H]
@@ -990,6 +1046,7 @@ Consolidated session record for this update & \texttt{docs/\allowbreak SESSION\_
 Benchmark protocol and classification ablation & \texttt{docs/\allowbreak BENCHMARK\_PROTOCOL.md} \\
 Reachability engine and free5GC case study & \texttt{docs/\allowbreak REACHABILITY.md}, \texttt{src/\allowbreak reachability/} \\
 free5GC LLM-generated patch, single-model + sweeps (Section~\ref{sec:free5gc-llm-patch-sweep}) & \texttt{docs/\allowbreak FREE5GC\_LLM\_PATCH\_RESULTS.md}, \texttt{docs/\allowbreak FREE5GC\_LLM\_MODEL\_SWEEP\_RESULTS.md}, \texttt{docs/\allowbreak FREE5GC\_LLM\_CLAUDE\_SWEEP\_RESULTS.md} \\
+free5GC adversarial bypass-probe (Section~\ref{sec:free5gc-bypass-probe}) & \texttt{docs/\allowbreak FREE5GC\_BYPASS\_PROBE\_RESULTS.md}, \texttt{docs/\allowbreak FREE5GC\_CLAUDE\_BYPASS\_PROBE\_RESULTS.md} \\
 free5GC dynamic-exploitation lab & \texttt{docs/\allowbreak FREE5GC\_LAB.md}, \texttt{free5gc\_lab/} \\
 Full scope and limitations statement & \texttt{docs/\allowbreak SCOPE\_AND\_\allowbreak LIMITATIONS.md} \\
 Alternative approach considered and rejected & \texttt{docs/\allowbreak CONSIDERED\_\allowbreak DIRECTIONS.md} \\
