@@ -22,7 +22,7 @@ drop entries.
 | 5 | CVE-2026-54729 (dssrf, SSRF) | Real, disclosed CVE | Reproduction |
 | 6 | CVE-2026-46492 (md-fileserver, XSS) | Real, disclosed CVE | Reproduction |
 | 7 | CVE-2026-40246 (free5GC/udr, CWE-285) | Real, disclosed CVE | Reproduction (`free5gc_lab/`) |
-| 8 | CVE-2026-40248 (free5GC/udr, CWE-285) | Real, disclosed CVE | **Real upstream source**: compile-verified for 3 of 4 reachable handlers; runtime-confirmed for the 4th (the DELETE subscription handler) via `free5gc_runtime_case/` (see `docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md`) |
+| 8 | CVE-2026-40248 (free5GC/udr, CWE-285) | Real, disclosed CVE | **Real upstream source**: runtime-confirmed for all 4 reachable handlers via `free5gc_full_deployment/` (see `docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md`; superseded the original compile-verified-only / single-handler-runtime state recorded in the now-stale `docs/FREE5GC_RUNTIME_VALIDATION_PLAN.md`) |
 
 Selection rule that was actually applied (not retrofitted): every entry
 was independently verified against GitHub's advisory API or the GitHub
@@ -96,7 +96,7 @@ omission to fill in later without discussion.
 | 3.6 | Dynamic execution | Always real subprocess + real HTTP, every class |
 | 3.7 | Self-improvement | Lesson-reuse (deterministic) → LLM-revision → built-in rule, in that order |
 | 3.8 | Patch generation | LLM-generated, gated by two-check dynamic re-verification |
-| `src/reachability/` | Reachability + patch (free5GC only) | AST-based (deterministic), rule-based patch; compile-verified for 3 of 4 handlers, runtime-confirmed for the 4th (DELETE handler, `free5gc_runtime_case/`) |
+| `src/reachability/` | Reachability + patch (free5GC only) | AST-based (deterministic), rule-based patch; runtime-confirmed for all 4 handlers (`free5gc_full_deployment/`); also extended to real LLM-generated patches (not just the rule-based one), compile- and runtime-verified across 8 local + 8 hosted Claude models (see `docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`/`docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md`) |
 
 ## 3. Metrics — copy verbatim into any report table
 

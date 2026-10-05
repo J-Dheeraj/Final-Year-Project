@@ -1,5 +1,16 @@
 # free5GC runtime validation plan (Phase 2)
 
+**Superseded, 2026-09-28**: this plan's own design pass (below) scoped
+only the single DELETE handler. The actual harness it produced
+(`free5gc_runtime_case/`) confirmed that one handler; a separate, fuller
+Docker deployment (`free5gc_full_deployment/`) then runtime-confirmed
+the remaining three reachable handlers to the same standard, finding the
+underlying bug to be a full CRUD bypass, not a single-record issue. See
+`docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md` and `README.md`'s "Current
+state" section for the current, complete picture. This document is kept
+as the historical record of the original, narrower design, not as a
+current claim about what has or hasn't been runtime-tested.
+
 Read-only target-selection and execution-design pass, per the
 professor-approved critical-infrastructure roadmap. **No paid LLM calls
 were made to produce this plan** - every fact below was verified by

@@ -100,10 +100,14 @@ where `package_labs.py` maps the package to a real lab.
   pattern*, not the actual upstream project compiled and run. But
   `src/reachability/` now genuinely operates on real upstream source
   (free5GC/udr, fetched verbatim, both parsed and — separately —
-  compile-verified against a live clone of the real module) for one case.
-  The six main-pipeline CVEs (litellm, modoboa, jaraco.context, nltk,
-  dssrf, md-fileserver) are still stand-ins; this gap is closed for one
-  case, not generalized.
+  compile-verified against a live clone of the real module, then later
+  runtime-confirmed for all four reachable handlers against a real
+  MongoDB and free5GC NRF deployment, `free5gc_full_deployment/`) for one
+  case. The six main-pipeline CVEs (litellm, modoboa, jaraco.context,
+  nltk, dssrf, md-fileserver) are still stand-ins — except
+  `jaraco.context` (CVE-2026-23949), separately validated against the
+  real, pinned-version package itself (`real_upstream_case/`). Both gaps
+  are closed for one case each, not generalized.
 - **No fuzzing engine, and this project no longer claims to need one** —
   see the framing note at the top of this document. Nothing here does
   coverage-guided mutation, and that's now a deliberate scope decision,

@@ -49,20 +49,40 @@ to run — it isn't a standalone binary. `free5gc_lab/` was built as a
 self-contained, dependency-free reproduction specifically so it could be
 dynamically exploited and patched in seconds with no infrastructure. The
 reachability work later obtained the real upstream source and proved
-real compile-compatibility against it, but never stood up the full
-service needed to dynamically test the real code. Say this directly if
-asked — don't imply the two are unified when they aren't.
+real compile-compatibility against it — and, separately and later still,
+*did* stand up the full real service (real MongoDB, real free5GC NRF,
+via `free5gc_full_deployment/`) and dynamically tested the real code,
+runtime-confirming all four reachable handlers. The two efforts remain
+genuinely separate systems targeting different CVEs in the same file
+(`free5gc_lab/` for CVE-2026-40246, the reachability work for
+CVE-2026-40248) and still don't reference each other — say that directly
+if asked — but "never stood up the full service" is no longer true and
+should not be said unchanged.
 
 ## "Does the free5GC patch actually fix the vulnerability?"
 
-Unknown, and say so. `go build ./...` succeeding on the real, cloned
-free5GC module proves the patch is syntactically valid and compiles
-against the real project's actual dependency graph — genuinely new
-evidence neither this project nor its predecessor had before. It does
-**not** prove the patch is correct at runtime; compiling only proves the
-code type-checks, not that the specific vulnerable code path was
-actually closed. Full proof would need the real service running (see
-above) and a real HTTP exploit attempt against it, which wasn't done.
+**Yes, now — this answer changed after the compile-only result above.**
+`go build ./...` succeeding was the first-obtained evidence and still
+stands as the weaker, compile-only tier for anyone who only reads that
+part. But the real service was later actually run: a minimal harness
+(`free5gc_runtime_case/`) confirmed the DELETE handler by direct HTTP
+exchange against a real MongoDB instance, then a fuller Docker
+deployment (`free5gc_full_deployment/`, real MongoDB, real free5GC NRF)
+did the same for all four reachable handlers, with committed evidence
+(`overall_verdict: "confirmed_fix_all_four_handlers"`) showing the
+vulnerable build permits a full CRUD bypass (unauthorized read of one
+record, of the entire collection, an unauthorized write, and a delete)
+and the real fix closes all four while preserving the legitimate path.
+Residual, explicitly stated gaps: the full core network stack (AMF, SMF,
+and the rest) wasn't deployed, and OAuth2 enforcement on the NRF was
+disabled to reach the handlers under test. Separately, a later
+experiment also asked real LLMs (not just the rule-based patcher) to
+generate the fix for one handler from scratch, and asked those same
+models to try to find a way *past* the real fix — both runtime-confirmed
+against the same real deployment (see `docs/FREE5GC_LLM_PATCH_RESULTS.md`
+and `docs/FREE5GC_BYPASS_PROBE_RESULTS.md`). Do not answer "unknown" to
+this question unchanged — that was correct when first written and is
+not correct now.
 
 ## "Isn't testing exploits against real software illegal?"
 

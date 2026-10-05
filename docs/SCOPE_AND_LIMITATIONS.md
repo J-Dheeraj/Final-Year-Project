@@ -61,6 +61,14 @@ study, where the source analyzed and patched is the real, cloned upstream
 project — see Limitation 4 for what *is* and *is not* proven there
 instead.
 
+**Update, 2026-09-25:** one case, `CVE-2026-23949` (`jaraco.context`), is
+now a second exception — validated against the real, pinned-version
+PyPI package (versions `5.3.0`/`6.1.0`) itself, not a reproduction. This
+is a single case selected for tractability, not evidence the remaining
+five reproductions could be replaced the same way without comparable
+effort. See the FYP report's real-upstream-validation section and
+`real_upstream_case/CVE-2026-23949/RESULTS.md`.
+
 ## Limitation 2: Stage 3's live probe is real for one class out of six
 
 Stage 3 (`run_vuln_probe`) genuinely sends live traffic to a running
@@ -104,36 +112,53 @@ meaningful: it proves compile-compatibility with the genuine upstream
 project, something neither this project nor its predecessor (reachcrs)
 had previously demonstrated for a Go target.
 
-**It is not dynamic confirmation.** Compiling proves the patched code is
-syntactically valid and type-checks; it says nothing about runtime
-behavior. A patch that inserts a `return` in the wrong branch would still
-compile and would not fix anything. Full dynamic proof would require
-deploying the real free5GC UDR service (which needs a MongoDB backend and
-NRF service-registration, i.e. the rest of a 5G core, not a standalone
-binary) and sending it a real HTTP request — not attempted in this
-project. The report should describe this result as "compile-verified
-against the real project," never as "dynamically confirmed" or
-"exploited," which are reserved for the main pipeline's Stage 3.6/3.8
-evidence.
+**It is not dynamic confirmation** — this paragraph's original claim, now
+superseded; see the update below. Compiling proves the patched code is
+syntactically valid and type-checks; it says nothing by itself about
+runtime behavior. A patch that inserts a `return` in the wrong branch
+would still compile and would not fix anything.
+
+**Update, 2026-09-28 (this limitation is resolved for all four
+handlers):** full dynamic proof *was* subsequently obtained. A minimal
+harness (`free5gc_runtime_case/`, 2026-09-27) first deployed the real
+free5GC UDR service against a real local MongoDB instance and a minimal
+stand-in NRF and confirmed the DELETE handler dynamically by direct HTTP
+exchange; a fuller Docker deployment (`free5gc_full_deployment/`, real
+official MongoDB and free5GC NRF images) then did the same for all four
+reachable handlers, with committed evidence
+(`free5gc_full_deployment/evidence/verdict.json`,
+`overall_verdict: "confirmed_fix_all_four_handlers"`). The report should
+now describe this result as **dynamically confirmed** for all four
+handlers, not merely compile-verified — see `docs/REACHABILITY.md`'s own
+corresponding update and `docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md`. The
+specific residual gaps are: the full free5GC core network stack (AMF,
+SMF, and the rest) was not deployed, and OAuth2 enforcement on the NRF
+was disabled to reach the handlers under test — both stated explicitly
+as out of scope, not silently assumed covered.
 
 ## Limitation 5: two free5GC efforts exist and are not unified
 
 `free5gc_lab/` (a self-contained, dependency-free Go reproduction,
 dynamically exploited and patched for CVE-2026-40246) and
-`src/reachability/`'s free5GC case study (real source, compile-verified,
-for the sibling CVE-2026-40248) both target the same bug family in the
-same real file, and do not reference each other.
+`src/reachability/`'s free5GC case study (real source, compile-verified
+and later runtime-confirmed for all four handlers, for the sibling
+CVE-2026-40248) both target the same bug family in the same real file,
+and do not reference each other.
 
-This is an honest infrastructure gap, not a deliberate architectural
+This was an honest infrastructure gap, not a deliberate architectural
 separation: `free5gc_lab/` was built specifically to avoid needing
 MongoDB/NRF/the rest of the 5G core stack, so it could be dynamically
-exploited in seconds; the reachability work later obtained the real
-source but never stood up the full service needed to dynamically test
-it. Unifying the two — standing up a real free5GC deployment and pointing
-a dynamic exploit at the real source instead of a hand-written
-reproduction — is legitimate, well-scoped future work, and should be
-named as such rather than left for a reader to notice the disconnect
-unexplained.
+exploited in seconds; the reachability work initially only obtained the
+real source without standing up the full service.
+
+**Update, 2026-09-28**: the reachability side of this gap is now closed
+— `free5gc_full_deployment/` does stand up a real free5GC deployment
+(real MongoDB, real free5GC NRF) and dynamically tests the real source,
+not a hand-written reproduction, runtime-confirming all four reachable
+handlers. The two efforts remain unmerged systems (different CVEs,
+still no shared code or cross-references) — that part of this
+limitation stands — but "never stood up the full service" no longer
+does; see `docs/FREE5GC_FULL_DEPLOYMENT_RESULTS.md`.
 
 ## Limitation 6: LLM-dependent paths were proven via stub in this
    environment, then confirmed to persist without one
@@ -153,7 +178,7 @@ verification status:
 |---|---|---|
 | Stage 3.7 LLM-revision (self-improvement) | Yes (Path Traversal CVE) | **Yes, as of round 3 (2026-09-23)** — see below |
 | Stage 3.8 patch generation | Yes (SQLi CVE) | No |
-| `reachcrs`/`src/reachability` LLM-based triage/patch fallback | N/A — the free5GC case study used the rule-based path (`find_missing_return_after_response`), not the LLM fallback | No |
+| `reachcrs`/`src/reachability` LLM-based triage/patch fallback | N/A — the free5GC case study used the rule-based path (`find_missing_return_after_response`), not the LLM fallback | **Yes, as of 2026-10-05** — see below |
 
 **Update, round 3 (2026-09-23, commit `e344966`):** Stage 3.7's LLM-revision
 path was calling the Claude-CLI-only helpers directly, a bug that made it
@@ -218,6 +243,34 @@ evidence for a different stage. The environment premise above ("neither the
 `claude` CLI nor an API key") is now stale for this specific local-Ollama
 path; it remains true that no hosted-API key is configured.
 
+**Update, 2026-10-05:** the reachability LLM fallback row above is now
+resolved, separately from the three mechanisms in the main pipeline's
+table (Stage 3.7/3.8, unaffected by this update — still "No" as stated).
+A real local Ollama model (`qwen2.5-coder:7b`) was asked to generate a
+patch, from scratch, for the one free5GC handler the rule-based patcher
+is known to under-fix; it produced a correct patch, compile-verified
+against a live clone of the real upstream module and runtime-confirmed
+against the real deployment in Limitation 4's update above. This was
+then swept across all 8 locally-hosted models (7/8 compiled and were
+runtime-confirmed; the 1.5B model compiled a patch that did *not*
+actually fix the bug, caught only by the runtime check) and, later, the
+`claude` CLI became available in this environment and the same
+patch-generation task was repeated against 8 named hosted Claude models
+across two sweeps (7/8 compiled and were runtime-confirmed; one,
+`claude-sonnet-5`, was refused by an automated cyber-safeguard reacting
+to CVE/CWE terminology in the prompt). This is a genuinely new capability
+this environment did not have when the table above was written, not
+merely a re-verification. A separate, later experiment asked some of
+these same models to instead find a way *past* the real fix rather than
+write it (0 genuine bypasses found across 8 Ollama and 11 Claude models,
+two of which refused that different task outright) — a distinct
+mechanism from the triage/patch fallback this limitation is about, not
+folded into the counts above. See `docs/FREE5GC_LLM_PATCH_RESULTS.md`,
+`docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`,
+`docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md`,
+`docs/FREE5GC_LLM_CLAUDE_SWEEP_EXTENDED_RESULTS.md`, and
+`docs/FREE5GC_BYPASS_PROBE_RESULTS.md`/`docs/FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md`.
+
 ## Limitation 7: local exploitation of open-source software is legitimate authorized testing
 
 For the avoidance of doubt in the report: dynamically exploiting a
@@ -234,9 +287,10 @@ does not own or have permission to test.
 | Claim | Evidence level | Where |
 |---|---|---|
 | "The bug pattern described in CVE-X is exploitable" | Dynamic (real subprocess exit code) | Main pipeline, 5/6 confirmed CVEs |
-| "Package Y itself is exploitable" | Not demonstrated | — |
+| "Package Y itself is exploitable" | Not demonstrated, except `CVE-2026-23949` (`jaraco.context`) — real package, real exploit, real fix, 2026-09-25 | `real_upstream_case/CVE-2026-23949/` |
 | "A generated patch closes the known exploit without breaking the app" | Dynamic, two-check regression test; demonstrated once (2026-09-23 round 4, `CVE-2026-78683`) after 0/8 attempts across rounds 1-3 | Stage 3.8, `reports/LIVE_LLM_CATALOG_RUN.md` round 4 |
 | "Reachability analysis narrows 102 real functions to 4 relevant ones" | Real, AST-based | `src/reachability/`, free5GC |
 | "The generated free5GC patch compiles against the real project" | Real, compile-time | `verify_against_real_upstream.py` |
-| "The generated free5GC patch fixes the bug at runtime" | Not demonstrated | — |
+| "The real free5GC fix closes the bug at runtime, all four handlers" | **Dynamic, real HTTP exchange, 2026-09-28** | `free5gc_full_deployment/evidence/verdict.json` |
+| "An LLM-*generated* free5GC patch closes the bug at runtime" | **Dynamic, real HTTP exchange, 7/8 local + 7/8 Claude models, 2026-10-05** | `docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`, `docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md` |
 | "This system fuzzes to find unknown bugs" | Not attempted, not claimed | — |
