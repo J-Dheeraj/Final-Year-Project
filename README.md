@@ -478,6 +478,15 @@ shared cleanup logic (now truncates at the function's own closing
 brace regardless of markdown fencing), benefiting every provider, not
 just Claude. See [`docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md`](docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md).
 
+Extended further to 5 more model names
+(`claude-sonnet-4-6`/`-5`, `claude-opus-4-6`/`-7`/`-8`) — 4/5 confirmed
+the fix. `claude-sonnet-5` is a real, distinct model (1M context window)
+but is refused by **Anthropic's own real-time "cyber safeguards"** for
+this patch-generation prompt (it mentions CVE/CWE/vulnerability) unless
+the account joins their Cyber Verification Program — and the refusal
+itself was still billed in full ($1.11). See
+[`docs/FREE5GC_LLM_CLAUDE_SWEEP_EXTENDED_RESULTS.md`](docs/FREE5GC_LLM_CLAUDE_SWEEP_EXTENDED_RESULTS.md).
+
 Limitations stated explicitly, not hidden: the real fix commit is public,
 so a model could in principle reproduce it from training data rather
 than genuinely re-deriving it (not controlled for here); each model was
@@ -736,6 +745,7 @@ AI CVE Exploit Automation/
 │   ├── FREE5GC_LLM_PATCH_RESULTS.md          # Single-model (qwen2.5-coder:7b) compile+runtime result
 │   ├── FREE5GC_LLM_MODEL_SWEEP_RESULTS.md    # All 8 local Ollama models, compared
 │   ├── FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md   # Real Claude models (paid), compared
+│   ├── FREE5GC_LLM_CLAUDE_SWEEP_EXTENDED_RESULTS.md  # 5 more Claude models, incl. a cyber-safeguard refusal
 │   ├── OPENEMR_TRANSFER_CASE_PLAN.md         # OpenEMR target selection + harness design
 │   └── OPENEMR_TRANSFER_RESULTS.md           # OpenEMR confirmed_fix result
 │

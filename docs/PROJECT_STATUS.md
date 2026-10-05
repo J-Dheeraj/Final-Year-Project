@@ -2,6 +2,39 @@
 
 ## Session log
 
+- **2026-10-05 (free5GC Level 2 extended a third time: 5 more
+  user-named Claude models, on `main`) - 4/5 confirmed, 1 real model
+  blocked by Anthropic's own cyber safeguards, a real cost surprise
+  flagged and accepted before spending** — Per explicit instruction
+  ("claude sonnet 4.6 / claude sonnet 5 / opus 4.6 / opus 4.7 / opus
+  4.8 - try with these models too"), extended the Claude sweep further.
+  A cheap "reply OK" smoke test on all 5 names FIRST cost $5.49 total
+  (100K-277K `cache_creation_input_tokens` each) - far more than the
+  $0.21-$1.13 range seen for the 3 models in the prior sweep for the
+  identical trivial prompt. Flagged to the user explicitly before
+  spending anything further, given this project's own ~$6.88 overspend
+  history; user reviewed and chose to proceed with the full pipeline
+  for all 5 anyway. Real per-model cost on the actual patch-generation
+  run turned out much lower ($0.15-$0.35) than the smoke test predicted
+  - traced to Anthropic's prompt-cache pricing (first-call
+  cache-creation cost vs. cheap cache-read reuse afterward), not a
+  sustained per-call rate. Results: `claude-sonnet-4-6`, `claude-opus-
+  4-6`, `claude-opus-4-7`, `claude-opus-4-8` all compiled and were
+  runtime-confirmed (`confirmed_fix_all_four_handlers`); `claude-
+  opus-4-8` needed one free retry after a transient `go build` timeout
+  (before any LLM call, so no cost lost). `claude-sonnet-5` is a real,
+  distinct model (confirmed via the CLI's own usage report - 1M context
+  window, `firstParty` provider) but is refused by Anthropic's own
+  real-time "cyber safeguards" for this patch-generation prompt (it
+  mentions CVE/CWE/vulnerability) unless the account joins their Cyber
+  Verification Program - and the refusal itself was still billed in
+  full ($1.11). Not retried further since it is a deterministic policy
+  block, not a flaky error. Documented in
+  `docs/FREE5GC_LLM_CLAUDE_SWEEP_EXTENDED_RESULTS.md`. Exit criteria
+  met: every one of the 5 user-named models given a real, honest
+  outcome - 4 genuine confirmations, 1 genuine policy-block finding,
+  nothing silently skipped or glossed over.
+
 - **2026-10-05 (free5GC Level 2 extended again: real Claude models via
   the claude CLI, on `main`) - 3/3 confirmed the fix, real cost measured,
   two real bugs found and fixed** — Per explicit instruction ("test them
