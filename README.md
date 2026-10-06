@@ -544,6 +544,10 @@ The bypass phase executed 5 proposals and found **0 genuine bypasses**. Each
 completed Codex call records duration and input/output token usage, including
 cached and reasoning-token fields when supplied by the CLI. See
 [`docs/FREE5GC_CODEX_SWEEP_2026-10-07.md`](docs/FREE5GC_CODEX_SWEEP_2026-10-07.md).
+An additional GPT-3-era compatibility pass attempted six legacy IDs, including
+GPT-3.5, `text-davinci-003`, and `davinci`; all six were preserved as
+environment-limited because the Codex CLI terminated during skill discovery
+before returning a completion or usage event.
 
 ---
 

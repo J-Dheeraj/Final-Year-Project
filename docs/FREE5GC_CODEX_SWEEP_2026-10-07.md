@@ -63,3 +63,17 @@ Raw reports:
 - `reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-all-models.json`
 - `reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-all-models-bypass.json`
 - `reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-bypass-retry.json`
+
+## GPT-3-era compatibility pass
+
+An additional pass attempted six legacy IDs: `gpt-3.5-turbo`,
+`gpt-3.5-turbo-0125`, `gpt-3.5-turbo-1106`, `text-davinci-003`,
+`text-curie-001`, and `davinci`. All six failed before generation because the
+Codex CLI skill-discovery/runtime layer terminated before returning a model
+completion or usage event. They produced no patch and no bypass request, so
+they are recorded as environment-limited rather than as model-quality results.
+
+Raw GPT-3-era reports:
+
+- `reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-gpt3-models.json`
+- `reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-gpt3-bypass.json`

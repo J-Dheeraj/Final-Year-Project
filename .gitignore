@@ -21,6 +21,10 @@ reports/reachability/*
 !reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-all-models-bypass.md
 !reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-bypass-retry.json
 !reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-bypass-retry.md
+!reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-gpt3-models.json
+!reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-gpt3-models.md
+!reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-gpt3-bypass.json
+!reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-gpt3-bypass.md
 !reports/reachability/october-2026-patch-repeat/
 !reports/reachability/october-2026-patch-repeat/**
 !reports/reachability/october-2026-all-ollama/

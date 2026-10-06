@@ -1,0 +1,297 @@
+{
+  "task": "bypass",
+  "backend": "codex",
+  "experiment_id": "october-2026-codex-gpt3-bypass",
+  "runs_per_model": 1,
+  "generated_at": "2026-10-06T16:55:13.040519+00:00",
+  "models": [
+    {
+      "model": "gpt-3.5-turbo",
+      "proposal": null,
+      "raw_response": null,
+      "bypass_confirmed": false,
+      "error": "RuntimeError: codex exec failed (exit 1): 2026-10-06T16:54:45.825794Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+      "cost_usd": null,
+      "duration_s": 4.876048400008585,
+      "usage": {},
+      "thread_id": "01a11223-9a04-71e3-85f6-d5aa89329aa3",
+      "billing_basis": "codex-cli",
+      "raw_usage_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a11223-9a04-71e3-85f6-d5aa89329aa3"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "error",
+            "message": "Model metadata for `gpt-3.5-turbo` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+          }
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "error",
+            "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+          }
+        },
+        {
+          "type": "error",
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-3.5-turbo' model is not supported when using Codex with a ChatGPT account.\"}}"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-3.5-turbo' model is not supported when using Codex with a ChatGPT account.\"}}"
+          }
+        }
+      ],
+      "run": 1
+    },
+    {
+      "model": "gpt-3.5-turbo-0125",
+      "proposal": null,
+      "raw_response": null,
+      "bypass_confirmed": false,
+      "error": "RuntimeError: codex exec failed (exit 1): 2026-10-06T16:54:50.682680Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+      "cost_usd": null,
+      "duration_s": 3.950571699999273,
+      "usage": {},
+      "thread_id": "01a11223-ad10-7552-8d90-5acd19f75886",
+      "billing_basis": "codex-cli",
+      "raw_usage_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a11223-ad10-7552-8d90-5acd19f75886"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "error",
+            "message": "Model metadata for `gpt-3.5-turbo-0125` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+          }
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "error",
+            "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+          }
+        },
+        {
+          "type": "error",
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-3.5-turbo-0125' model is not supported when using Codex with a ChatGPT account.\"}}"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-3.5-turbo-0125' model is not supported when using Codex with a ChatGPT account.\"}}"
+          }
+        }
+      ],
+      "run": 1
+    },
+    {
+      "model": "gpt-3.5-turbo-1106",
+      "proposal": null,
+      "raw_response": null,
+      "bypass_confirmed": false,
+      "error": "RuntimeError: codex exec failed (exit 1): 2026-10-06T16:54:54.629048Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+      "cost_usd": null,
+      "duration_s": 4.133509799998137,
+      "usage": {},
+      "thread_id": "01a11223-bc7a-7a31-af3b-451fdc08ecd1",
+      "billing_basis": "codex-cli",
+      "raw_usage_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a11223-bc7a-7a31-af3b-451fdc08ecd1"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "error",
+            "message": "Model metadata for `gpt-3.5-turbo-1106` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+          }
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "error",
+            "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+          }
+        },
+        {
+          "type": "error",
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-3.5-turbo-1106' model is not supported when using Codex with a ChatGPT account.\"}}"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-3.5-turbo-1106' model is not supported when using Codex with a ChatGPT account.\"}}"
+          }
+        }
+      ],
+      "run": 1
+    },
+    {
+      "model": "text-davinci-003",
+      "proposal": null,
+      "raw_response": null,
+      "bypass_confirmed": false,
+      "error": "RuntimeError: codex exec failed (exit 1): 2026-10-06T16:54:58.805302Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+      "cost_usd": null,
+      "duration_s": 4.357380999994348,
+      "usage": {},
+      "thread_id": "01a11223-ccbc-7982-aa25-bdf63f46155f",
+      "billing_basis": "codex-cli",
+      "raw_usage_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a11223-ccbc-7982-aa25-bdf63f46155f"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "error",
+            "message": "Model metadata for `text-davinci-003` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+          }
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "error",
+            "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+          }
+        },
+        {
+          "type": "error",
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'text-davinci-003' model is not supported when using Codex with a ChatGPT account.\"}}"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'text-davinci-003' model is not supported when using Codex with a ChatGPT account.\"}}"
+          }
+        }
+      ],
+      "run": 1
+    },
+    {
+      "model": "text-curie-001",
+      "proposal": null,
+      "raw_response": null,
+      "bypass_confirmed": false,
+      "error": "RuntimeError: codex exec failed (exit 1): 2026-10-06T16:55:03.136387Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+      "cost_usd": null,
+      "duration_s": 4.562657200003741,
+      "usage": {},
+      "thread_id": "01a11223-ddb1-77a2-95a2-a58c1f033d6a",
+      "billing_basis": "codex-cli",
+      "raw_usage_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a11223-ddb1-77a2-95a2-a58c1f033d6a"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "error",
+            "message": "Model metadata for `text-curie-001` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+          }
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "error",
+            "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+          }
+        },
+        {
+          "type": "error",
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'text-curie-001' model is not supported when using Codex with a ChatGPT account.\"}}"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'text-curie-001' model is not supported when using Codex with a ChatGPT account.\"}}"
+          }
+        }
+      ],
+      "run": 1
+    },
+    {
+      "model": "davinci",
+      "proposal": null,
+      "raw_response": null,
+      "bypass_confirmed": false,
+      "error": "RuntimeError: codex exec failed (exit 1): 2026-10-06T16:55:07.689652Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+      "cost_usd": null,
+      "duration_s": 5.738168299998506,
+      "usage": {},
+      "thread_id": "01a11223-ef70-7123-be5d-a9ef7966da6f",
+      "billing_basis": "codex-cli",
+      "raw_usage_events": [
+        {
+          "type": "thread.started",
+          "thread_id": "01a11223-ef70-7123-be5d-a9ef7966da6f"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_0",
+            "type": "error",
+            "message": "Model metadata for `davinci` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+          }
+        },
+        {
+          "type": "turn.started"
+        },
+        {
+          "type": "item.completed",
+          "item": {
+            "id": "item_1",
+            "type": "error",
+            "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+          }
+        },
+        {
+          "type": "error",
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'davinci' model is not supported when using Codex with a ChatGPT account.\"}}"
+        },
+        {
+          "type": "turn.failed",
+          "error": {
+            "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'davinci' model is not supported when using Codex with a ChatGPT account.\"}}"
+          }
+        }
+      ],
+      "run": 1
+    }
+  ]
+}
