@@ -132,5 +132,11 @@ Under `openemr_transfer_case/evidence/`:
 ## Status
 
 Implementation complete, evidence captured, verdict `confirmed_fix`.
-Not merged to `main`, not added to the FYP report. Per the explicit
-scope for this pass: stop here.
+**Update, 2026-10-06**: commit `6cf91f5` (this work) is already present
+on `main` (confirmed via `git branch --contains 6cf91f5`) - the "not
+merged" note above is stale. Not added to the FYP report. Per explicit
+instruction, this case was later extended with the same LLM
+patch-generation and bypass-probe experiments already run against
+free5GC - see `docs/OPENEMR_LLM_PATCH_RESULTS.md` and
+`docs/OPENEMR_BYPASS_PROBE_RESULTS.md` - reversing the "stop here" note
+below, which described this pass's scope only, not a permanent limit.

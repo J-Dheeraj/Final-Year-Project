@@ -2,6 +2,55 @@
 
 ## Session log
 
+- **2026-10-06 (OpenEMR extended with LLM patch-gen + bypass-probe, on
+  `main`) - 1/7 models produced a clean fix, several genuinely varied
+  and interesting failure modes found by not trusting a binary
+  pass/fail; bypass-probe held 0/7** — Per explicit instruction
+  ("do everything, do it in the right order"), extended the OpenEMR
+  transfer case (GHSA-q366-cv5v-83w8) with the same two experiments
+  already run against free5GC. User explicitly confirmed overriding
+  the branch's own prior "implement one target and stop" scope note
+  before this began. First discovered the "not merged to main" note in
+  `docs/OPENEMR_TRANSFER_RESULTS.md` was itself stale (commit `6cf91f5`
+  is already on `main` via `git branch --contains`) - fixed alongside
+  the extension.
+  **Patch-generation** (8 Ollama models, same set as every free5GC
+  sweep - the smaller 4-model substitute set from earlier in this
+  session had vanished from Ollama again, then the original 8 came
+  back; checked live rather than assumed): only `qwen2.5-coder:7b`
+  produced a genuinely clean fix. The automated boolean check initially
+  reported most others as outright failures, but manual investigation
+  with full raw-response capture (the first version of the harness
+  only stored pass/fail booleans, not bodies - a real gap, worked
+  around by hand for this write-up) found real nuance: 3 models
+  (`gemma2:9b`, `qwen2.5-coder:3b/1.5b`) wrote `$_SERVER[...] !== '1'`
+  without `isset()`, which genuinely still blocks the disclosure but
+  triggers a PHP warning that silently prevents the 403 status code
+  from applying ("headers already sent") - a real code-quality bug,
+  not a security failure; `mistral:7b` used the wrong boolean operator
+  (OR instead of AND of negations), failing SAFE but breaking the
+  legitimate opt-in path; `llama3.1:8b` wrote **completely inverted
+  logic** - verified directly that its "fix" leaves the real
+  vulnerability fully open by default while appearing to work in a
+  superficial opt-in-only test, the most dangerous single result found
+  this session; `codellama:13b` produced unparseable PHP (caught by
+  lint); `deepseek-coder-v2:16b` OOM'd (same recurring hardware
+  constraint as every free5GC sweep). Documented in
+  `docs/OPENEMR_LLM_PATCH_RESULTS.md`.
+  **Bypass-probe** (same 8 models, real upstream fix active): every
+  proposal read and verified individually before trusting the 0/7
+  aggregate (unlike free5GC's bypass-probe, no classifier bug was
+  needed here - the oracle is unambiguous and every proposal was a
+  genuinely distinct attempt: a cookie, POST form data, and four header-
+  naming variations, all correctly guessing the right variable NAME but
+  wrongly assuming an HTTP header can set a bare `$_SERVER` key rather
+  than the `HTTP_`-prefixed one PHP actually uses). 0 genuine bypasses;
+  one model (`mistral:7b`) hit a connection timeout, reported as
+  inconclusive rather than folded into either outcome. Documented in
+  `docs/OPENEMR_BYPASS_PROBE_RESULTS.md`. Remaining "do everything"
+  items (main-catalogue bypass-probe, multi-turn adversarial probing,
+  patch-quality scoring, methodology-pitfalls writeup) still queued.
+
 - **2026-10-06 (free5GC real OAuth2 enforcement, on `main`) - OAuth2
   blocks unauthenticated callers but provides zero additional
   protection against CVE-2026-40248 once any validly-scoped token is

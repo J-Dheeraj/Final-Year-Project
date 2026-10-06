@@ -1,0 +1,71 @@
+{
+  "experiment": "openemr_llm_patch",
+  "advisory": "GHSA-q366-cv5v-83w8",
+  "target_file": "admin.php",
+  "generated_at": "2026-10-06T03:07:52.925737+00:00",
+  "models": [
+    {
+      "model": "deepseek-coder-v2:16b",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "RuntimeError: Ollama request failed (500): {\"error\":\"llama-server reported out-of-memory during startup: ggml_backend_cpu_buffer_type_alloc_buffer: failed to allocate buffer of size 45298483200\\nalloc_tensor_range: failed to allocate CPU buffer of size 45298483200\\nllama_init_from_model: failed to initialize the context: failed to allocate buffer for kv cache\"}"
+    },
+    {
+      "model": "codellama:13b",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "\nParse error: syntax error, unexpected token \"if\" in C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\openemr_transfer_case\\_work\\checkout\\admin.php on line 18\nErrors parsing C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\openemr_transfer_case\\_work\\checkout\\admin.php\n",
+      "snippet": "$_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1' && getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1'\n\nif (!$_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1' && !getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1') {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    die();\n}"
+    },
+    {
+      "model": "gemma2:9b",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": true,
+      "error": null,
+      "snippet": "if ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== '1' && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1') {\n  http_response_code(403);\n  header('Content-Type: text/plain');\n  echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n  exit;\n}"
+    },
+    {
+      "model": "mistral:7b",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": false,
+      "error": null,
+      "snippet": "if (!in_array($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'], [\"1\"]) || !in_array(getenv('OPENEMR_ADMIN_PHP_ENABLED'), [\"1\"])) {\n    header(\"HTTP/1.0 403 Forbidden\");\n    header(\"Content-Type: text/plain\");\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "llama3.1:8b",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": false,
+      "error": null,
+      "snippet": "if ((isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] == '1') || getenv('OPENEMR_ADMIN_PHP_ENABLED') == '1') {\n    header('Content-Type: text/plain');\n    exit('admin.php is disabled by default. See the header comment in this file to enable.');\n}"
+    },
+    {
+      "model": "qwen2.5-coder:7b",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "snippet": "if (!(isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === \"1\") && !(getenv('OPENEMR_ADMIN_PHP_ENABLED') === \"1\")) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "qwen2.5-coder:3b",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": true,
+      "error": null,
+      "snippet": "if ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== \"1\" && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== \"1\") {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo 'admin.php is disabled by default. See the header comment in this file to enable.\\n';\n    exit;\n}"
+    },
+    {
+      "model": "qwen2.5-coder:1.5b",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": true,
+      "error": null,
+      "snippet": "if (!getenv('OPENEMR_ADMIN_PHP_ENABLED') && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== '1') {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    exit('admin.php is disabled by default. See the header comment in this file to enable.\\n');\n}"
+    }
+  ]
+}
