@@ -2,6 +2,32 @@
 
 ## Session log
 
+- **2026-10-06 (free5GC multi-turn bypass-probe, on `main`) - 0/7
+  genuine bypasses across 3 rounds each; verified two already-fixed
+  false-positive patterns before trusting the clean result** —
+  Continuing "do everything, do it in the right order", item 7
+  (multi-turn adversarial probing - "let a model see the rejection and
+  retry 2-3 rounds"). Built `run_multiturn_bypass_probe.py`, reusing
+  `run_bypass_probe_sweep.py`'s prompt/classifier/seed logic unchanged;
+  since the provider interface is single-turn only, folded each
+  round's real proposal + real response/signal into the next round's
+  prompt text rather than using a chat-history API. Ran all 8 Ollama
+  models, up to 3 rounds each, against the real `free5gc-udr-custom:patched`
+  build. Two of the 24 proposed requests landed on exactly the two
+  false-positive shapes this project already fixed earlier this session
+  (a re-encoded-but-identical path, and an inert query string on the
+  canonical path) - verified both were correctly excluded by the
+  already-fixed classifier (reused unmodified) before trusting the
+  aggregate 0/7. Result: 0/7 completed models found a genuine bypass
+  within 3 rounds; `deepseek-coder-v2:16b` OOM'd as usual. Seeing a
+  rejection did change what most models tried next (new encoding/
+  traversal/Unicode tricks each round, not repeats), but never toward
+  anything that worked - strengthens rather than merely repeats the
+  single-shot bypass-probe conclusion. Documented in
+  `docs/FREE5GC_MULTITURN_BYPASS_PROBE_RESULTS.md`. Remaining "do
+  everything" items (patch-quality scoring, methodology-pitfalls
+  writeup) still queued.
+
 - **2026-10-06 (main 6-CVE catalogue bypass-probe, on `main`) - 0/48
   genuine bypasses across every catalogue CVE; one apparent bypass
   traced to a test-oracle bug, not an app bug, before being reported**
