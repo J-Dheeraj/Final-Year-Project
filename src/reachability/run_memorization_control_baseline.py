@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -29,13 +28,11 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-os.environ["NO_PAID_BACKEND"] = "0"  # must precede any reachability import - see providers.py
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402 - import first
+from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402 - import first
 from src.reachability.patch import generate_patch  # noqa: E402
 from src.reachability.pipeline import PipelineConfig, run_pipeline  # noqa: E402
-from src.reachability.run_memorization_control import MODELS, CLAUDE_MODELS, _go_build  # noqa: E402
+from src.reachability.run_memorization_control import MODELS, _go_build  # noqa: E402
 
 REPO_URL = "https://github.com/free5gc/udr.git"
 FIX_COMMIT = "86686276a7e226183ee786e3dd6714ec56c78fda"
@@ -111,7 +108,7 @@ def main() -> int:
         print(f"\n{'='*70}\n{model}\n{'='*70}")
         entry = {"model": model, "compiles": False, "error": None, "diff": None, "cost_usd": None}
         try:
-            provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
+            provider = provider_for(backend, model)
             llm_patch = generate_patch(finding, provider, exploit_outcome=None)
             entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
             if entry["cost_usd"]:

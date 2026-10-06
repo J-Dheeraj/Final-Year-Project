@@ -30,7 +30,6 @@ Run: python catalog_bypass_probe.py
 from __future__ import annotations
 
 import json
-import os
 import re
 import socket
 import subprocess
@@ -41,13 +40,11 @@ from pathlib import Path
 
 import argparse
 
-os.environ["NO_PAID_BACKEND"] = "0"  # must precede any reachability import - see providers.py
-
 import requests  # noqa: E402
 
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
-from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402
+from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402
 
 CATALOG_DIR = HERE / "reports" / "claude_code_catalog_run_2026-09-25" / "reports"
 OUT_DIR = HERE / "reports" / "reachability"
@@ -62,10 +59,6 @@ CVES = [
 MODELS = [
     "deepseek-coder-v2:16b", "codellama:13b", "gemma2:9b", "mistral:7b",
     "llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b",
-]
-CLAUDE_MODELS = [
-    "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
-    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
 ]
 
 SYSTEM_PROMPT = (
@@ -148,7 +141,7 @@ def probe_one(cve_id: str, model: str, app_path: Path, marker: str, source: str,
     entry = {"cve_id": cve_id, "model": model, "proposal": None, "bypass_confirmed": False,
              "error": None, "cost_usd": None}
     try:
-        provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
+        provider = provider_for(backend, model)
     except Exception as e:
         entry["error"] = f"provider construction failed: {type(e).__name__}: {e}"
         return entry

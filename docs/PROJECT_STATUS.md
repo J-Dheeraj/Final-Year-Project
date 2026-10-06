@@ -2,6 +2,42 @@
 
 ## Session log
 
+- **2026-10-06 (Karpathy-guidelines cleanup pass, on `main`) - fixed
+  the classifier bug's root cause instead of a 4th patch, consolidated
+  5 scripts' duplicated Claude-backend wiring into one shared module,
+  added a results-summary index** — Per explicit instruction ("fix all
+  three. do it in the right order"), acted on 3 self-identified
+  improvement opportunities after being asked what else could improve
+  this update pass. (1) `_classify()`'s GET-method check now fires a
+  live request to the known-legitimate canonical path and compares the
+  two REAL responses, instead of enumerating path-string normalization
+  rules (3 successive patches this session each caught one more
+  disguise and left the next one possible). Verified against all 4
+  historical false positives plus a negative control via live HTTP
+  calls before trusting it; PUT/DELETE keep the path-based check
+  (double-firing would corrupt seeded test data) as a stated, narrower
+  scope. (2) Extracted `src/reachability/claude_backend.py`
+  (`CLAUDE_MODELS`, `provider_for()`, and the NO_PAID_BACKEND import-
+  order fix in one place) and updated all 5 scripts that had each
+  independently duplicated this wiring to import from it instead;
+  removed now-orphaned `os`/provider imports in each. Verified every
+  script still imports and parses `--help` correctly, and that the
+  OpenEMR script - which had the import-order bug originally - now
+  constructs a real `ClaudeCLIProvider` with the exact import order
+  that used to break it. (3) Added `docs/RESULTS_SUMMARY.md`, one table
+  per experiment linking to its full doc, so the headline numbers from
+  this entire update pass don't require reading ~20 files to find.
+  **A real mistake caught and reverted during verification**: a live
+  end-to-end smoke test of the newly-fixed classifier via `sweep.py`
+  accidentally overwrote `free5gc_sweep_bypass_ollama.json/.md` - the
+  exact report file `docs/FREE5GC_MULTI_RUN_VARIANCE_RESULTS.md` cites
+  as its evidence - with throwaway smoke-test output; caught via `git
+  status` immediately after and restored with `git checkout --`
+  before anything was committed. Also fixed a duplicate-numbering bug
+  in `docs/METHODOLOGY_PITFALLS.md` introduced while adding entries
+  earlier this session (entries 8-11 had been reused); renumbered 1-14
+  sequentially.
+
 - **2026-10-06 (Claude backend added to 4 free5GC/OpenEMR/catalog
   experiments, on `main`) - real paid run across 6 named models, 2 new
   real bugs found (a third classifier false-positive variant, a local

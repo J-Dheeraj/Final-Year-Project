@@ -124,36 +124,53 @@ would otherwise have claimed.
    reading the raw request/response before trusting the boolean, never
    by assuming the previous fix was complete.
 
-9. **A local plugin's own outage notice silently corrupted a model's
-   code output.** One Claude model's "patch" failed to compile; the
-   actual diff showed a `<system-reminder>` block about a `claude-mem`
-   memory-observer outage, injected unfenced directly into the
-   completion text the project's own cleanup logic parses as code.
-   Confirmed isolated to this one call by checking every other model's
-   diff for the same contamination string. Not a model capability
-   failure - a local environment artifact that happened to land inside
-   a code-generation response this one time.
+9. **After the third variant of the same classifier bug, the real fix
+    was to stop guessing.** Three successive patches each enumerated one
+    more string-normalization rule a model's disguised request could
+    hide behind (percent-decoding, then query-string stripping, then
+    `posixpath.normpath` for slashes/`..`). Each fix closed one gap and
+    left the *shape* of the bug - comparing path strings instead of
+    actual server behavior - completely intact, guaranteeing a fourth
+    variant was just a matter of time. Replaced the whole string-
+    comparison approach for GET with a live double-fetch: fire the
+    model's proposed request, fire the known-legitimate canonical
+    request, and compare the two REAL responses directly. Verified
+    against all 4 historical false positives (one per prior fix, plus
+    the original) in a single live check, with no path-normalization
+    logic left to extend. PUT/DELETE still use the path-based check
+    (double-firing a mutating request would corrupt the seeded test
+    data), a deliberately narrower, stated scope rather than a silent gap.
+
+10. **A local plugin's own outage notice silently corrupted a model's
+    code output.** One Claude model's "patch" failed to compile; the
+    actual diff showed a `<system-reminder>` block about a `claude-mem`
+    memory-observer outage, injected unfenced directly into the
+    completion text the project's own cleanup logic parses as code.
+    Confirmed isolated to this one call by checking every other model's
+    diff for the same contamination string. Not a model capability
+    failure - a local environment artifact that happened to land inside
+    a code-generation response this one time.
 
 ## From earlier in this project (kept for the same reason)
 
-8. **A WSL/Ollama port-forwarding gap** that made `OllamaProvider`
-   unreachable from a process on the wrong side of the WSL2/Windows
-   boundary - not a bug in the model, a networking assumption that
-   silently failed until explicitly checked.
+11. **A WSL/Ollama port-forwarding gap** that made `OllamaProvider`
+    unreachable from a process on the wrong side of the WSL2/Windows
+    boundary - not a bug in the model, a networking assumption that
+    silently failed until explicitly checked.
 
-9. **A markdown-commentary-corrupting-patch bug** in `generate_patch()`:
-   an LLM's response sometimes included trailing prose after a fenced
-   code block, or no fence at all, corrupting the target file when
-   spliced in verbatim. Fixed in two stages (fence-extraction, then a
-   fence-independent closing-brace truncation), because the first fix
-   covered only the common case.
+12. **A markdown-commentary-corrupting-patch bug** in `generate_patch()`:
+    an LLM's response sometimes included trailing prose after a fenced
+    code block, or no fence at all, corrupting the target file when
+    spliced in verbatim. Fixed in two stages (fence-extraction, then a
+    fence-independent closing-brace truncation), because the first fix
+    covered only the common case.
 
-10. **The original free5GC bypass-probe classifier bug** (predecessor
+13. **The original free5GC bypass-probe classifier bug** (predecessor
     to #3 above): the first version had no genuine-trick check at all,
     crediting 3 models with "bypasses" that were actually re-encoded
     copies of the exact legitimate request.
 
-11. **Anthropic's own real-time cyber safeguards refusing the patch-
+14. **Anthropic's own real-time cyber safeguards refusing the patch-
     generation prompt** for `claude-sonnet-5` (and, separately, two
     models outright refusing the bypass-probe's exploit-proposal
     prompt) - not a bug in this project's harness, but a real, billed,

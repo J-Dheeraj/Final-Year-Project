@@ -42,19 +42,17 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-os.environ["NO_PAID_BACKEND"] = "0"  # see src/reachability/providers.py's import-order note
-
 import requests  # noqa: E402
 
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
-# Import providers BEFORE run_harness: run_harness.py sets
+# Import claude_backend BEFORE run_harness: run_harness.py sets
 # NO_PAID_BACKEND=1 at its own top level, and providers.py's
 # NO_PAID_BACKEND constant is baked in at first import - importing
 # run_harness first would silently re-disable the paid backend before
 # providers.py ever saw this script's "0".
-from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402
+from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402
 import run_harness as base  # noqa: E402
 
 OUT_DIR = HERE.parent / "reports" / "reachability"
@@ -70,11 +68,6 @@ LEAK_MARKER = "Multi Site Administration"
 MODELS = [
     "deepseek-coder-v2:16b", "codellama:13b", "gemma2:9b", "mistral:7b",
     "llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b",
-]
-
-CLAUDE_MODELS = [
-    "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
-    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
 ]
 
 PATCH_SYSTEM_PROMPT = (
@@ -190,7 +183,7 @@ def run_patch_task(backend: str, models: list) -> None:
             print(f"\n{'='*70}\n{model}\n{'='*70}")
             entry = {"model": model, "lints": False, "default_denied": None, "optin_works": None, "error": None, "cost_usd": None}
             try:
-                provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
+                provider = provider_for(backend, model)
                 snippet = _strip_fences(provider.complete(PATCH_SYSTEM_PROMPT, PATCH_USER_PROMPT))
                 entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
                 if entry["cost_usd"]:
@@ -270,7 +263,7 @@ def run_bypass_task(backend: str, models: list) -> None:
             print(f"\n{'='*70}\n{model}\n{'='*70}")
             entry = {"model": model, "proposal": None, "bypass_confirmed": False, "error": None, "cost_usd": None}
             try:
-                provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
+                provider = provider_for(backend, model)
                 completion = provider.complete(BYPASS_SYSTEM_PROMPT, BYPASS_USER_PROMPT)
                 entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
                 if entry["cost_usd"]:

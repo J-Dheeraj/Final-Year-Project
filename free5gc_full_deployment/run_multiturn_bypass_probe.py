@@ -18,21 +18,18 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
-
-os.environ["NO_PAID_BACKEND"] = "0"  # must precede any reachability import - see providers.py
 
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402 - import first
+from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402 - import first
 
 import run_full_deployment_harness as base  # noqa: E402 - safe now, providers already cached
 import requests  # noqa: E402
 from run_bypass_probe_sweep import (  # noqa: E402
-    SYSTEM_PROMPT, USER_PROMPT, SEEDED_SUB_ID, SEEDED_DNN, _extract_json, _classify,
+    SYSTEM_PROMPT, USER_PROMPT, SEEDED_SUB_ID, SEEDED_DNN, CANONICAL_PATH, _extract_json, _classify,
 )
 
 HERE = Path(__file__).parent.resolve()
@@ -40,10 +37,6 @@ MAX_ROUNDS = 3
 MODELS = [
     "deepseek-coder-v2:16b", "codellama:13b", "gemma2:9b", "mistral:7b",
     "llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b",
-]
-CLAUDE_MODELS = [
-    "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
-    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
 ]
 
 OUT_DIR = HERE.parent / "reports" / "reachability"
@@ -86,7 +79,14 @@ def _execute_proposal(proposal: dict) -> dict:
         except requests.exceptions.RequestException:
             pass
 
-    classification = _classify(proposal, resp, follow_up_get)
+    canonical_get_resp = None
+    if method == "GET":
+        try:
+            canonical_get_resp = requests.get(f"http://127.0.0.1:8080{CANONICAL_PATH}", timeout=5)
+        except requests.exceptions.RequestException:
+            pass  # _classify falls back to the path-based check if this fetch failed
+
+    classification = _classify(proposal, resp, follow_up_get, canonical_get_resp)
     result.update(classification)
     return result
 
@@ -94,7 +94,7 @@ def _execute_proposal(proposal: dict) -> dict:
 def probe_multiturn(model: str, backend: str = "ollama") -> dict:
     entry = {"model": model, "rounds": [], "bypass_confirmed_any_round": False, "error": None}
     try:
-        provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
+        provider = provider_for(backend, model)
     except Exception as e:
         entry["error"] = f"provider construction failed: {type(e).__name__}: {e}"
         return entry
