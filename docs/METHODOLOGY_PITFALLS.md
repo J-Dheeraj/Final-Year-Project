@@ -108,6 +108,32 @@ would otherwise have claimed.
    Recorded as a probability judgment, not a certainty. See
    `docs/PATCH_QUALITY_SCORING_RESULTS.md`.
 
+8. **The same classifier bug class recurred a THIRD time, again in a
+   new shape, this time against stronger models.** Re-running the
+   multi-turn bypass-probe against 6 Claude models reported 3/6 found a
+   genuine bypass - the first time any bypass-probe in this project
+   reported more than a single-digit count. All 3 were the exact
+   correct, legitimate path disguised two new ways: a trailing slash
+   and a `..`-segment traversal, both of which Gin/Go's net-http
+   normalize away before routing but which `_is_genuine_trick()` still
+   compared as literally-different strings. Fixed with
+   `posixpath.normpath()`; before trusting the fix, re-scanned every
+   other free5GC bypass-probe report from the entire session for the
+   same gap - found none, confirming the fix was scoped correctly.
+   Three real bugs in the same ~15-line function, each caught by
+   reading the raw request/response before trusting the boolean, never
+   by assuming the previous fix was complete.
+
+9. **A local plugin's own outage notice silently corrupted a model's
+   code output.** One Claude model's "patch" failed to compile; the
+   actual diff showed a `<system-reminder>` block about a `claude-mem`
+   memory-observer outage, injected unfenced directly into the
+   completion text the project's own cleanup logic parses as code.
+   Confirmed isolated to this one call by checking every other model's
+   diff for the same contamination string. Not a model capability
+   failure - a local environment artifact that happened to land inside
+   a code-generation response this one time.
+
 ## From earlier in this project (kept for the same reason)
 
 8. **A WSL/Ollama port-forwarding gap** that made `OllamaProvider`

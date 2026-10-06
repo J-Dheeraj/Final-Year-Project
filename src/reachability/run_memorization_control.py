@@ -46,7 +46,9 @@ Run: python -m src.reachability.run_memorization_control
 """
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -55,11 +57,18 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+os.environ["NO_PAID_BACKEND"] = "0"  # must precede any reachability import - see providers.py
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from src.reachability.heuristics import find_missing_return_after_response
-from src.reachability.patch import generate_patch
-from src.reachability.pipeline import PipelineConfig, run_pipeline
-from src.reachability.providers import OllamaProvider
+from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402 - import first, bakes NO_PAID_BACKEND
+from src.reachability.heuristics import find_missing_return_after_response  # noqa: E402
+from src.reachability.patch import generate_patch  # noqa: E402
+from src.reachability.pipeline import PipelineConfig, run_pipeline  # noqa: E402
+
+CLAUDE_MODELS = [
+    "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
+    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
+]
 
 REPO_URL = "https://github.com/free5gc/udr.git"
 FIX_COMMIT = "86686276a7e226183ee786e3dd6714ec56c78fda"
@@ -175,6 +184,12 @@ def build_synthetic_case_file() -> tuple[Path, str, str]:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    args = ap.parse_args()
+    backend = args.backend
+    models = CLAUDE_MODELS if backend == "claude" else MODELS
+
     if shutil.which("git") is None or shutil.which("go") is None:
         print("Needs both `git` and `go` on PATH; aborting.")
         return 1
@@ -200,10 +215,12 @@ def main() -> int:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     sweep_results = []
+    total_cost = 0.0
+    stem = f"free5gc_memorization_control_{backend}" if backend == "claude" else "free5gc_memorization_control"
 
     def persist(results: list) -> None:
         report = {
-            "experiment": "memorization_control",
+            "experiment": "memorization_control", "backend": backend,
             "target_function": TARGET,
             "injection": "synthetic - deleted the real, correctly-present "
                          "`return` from the 'Malformed request syntax' guard; "
@@ -217,25 +234,30 @@ def main() -> int:
                            "runtime-confirmed - this handler's data path was "
                            "never wired into the Docker full-deployment harness",
         }
-        (OUT_DIR / "free5gc_memorization_control.json").write_text(
+        (OUT_DIR / f"{stem}.json").write_text(
             json.dumps(report, indent=2), encoding="utf-8")
-        lines = ["# free5GC memorization control: synthetic, never-disclosed bug", "",
+        lines = [f"# free5GC memorization control ({backend}): synthetic, never-disclosed bug", "",
                  f"Target: `{TARGET}` (NOT one of the four real CVE-2026-40248 "
                  f"handlers) - same bug class, injected fresh by this experiment.", "",
-                 "| Model | Compiles (fixes the synthetic bug) |",
-                 "|---|---|"]
+                 "| Model | Compiles (fixes the synthetic bug) | Cost (USD) |",
+                 "|---|---|---|"]
         for e in results:
             compiles = "yes" if e["compiles"] else f"NO ({e['error']})"
-            lines.append(f"| `{e['model']}` | {compiles} |")
-        (OUT_DIR / "free5gc_memorization_control.md").write_text(
+            cost = e.get("cost_usd")
+            cost_s = f"${cost:.4f}" if cost else "n/a"
+            lines.append(f"| `{e['model']}` | {compiles} | {cost_s} |")
+        (OUT_DIR / f"{stem}.md").write_text(
             "\n".join(lines) + "\n", encoding="utf-8")
 
-    for model in MODELS:
+    for model in models:
         print(f"\n{'='*70}\n{model}\n{'='*70}")
-        entry = {"model": model, "compiles": False, "error": None, "diff": None}
+        entry = {"model": model, "compiles": False, "error": None, "diff": None, "cost_usd": None}
         try:
-            provider = OllamaProvider(model)
+            provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
             patch = generate_patch(finding, provider, exploit_outcome=None)
+            entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+            if entry["cost_usd"]:
+                total_cost += entry["cost_usd"]
             entry["diff"] = patch.diff
 
             with tempfile.TemporaryDirectory(prefix="free5gc_udr_memcontrol_") as tmp:
@@ -288,7 +310,9 @@ def main() -> int:
     print(f"\n\n=== MEMORIZATION CONTROL SUMMARY ===")
     print(f"{n_ok}/{len(sweep_results)} models produced a compiling fix for the "
           f"synthetic, never-publicly-disclosed bug.")
-    print(f"Full report: {OUT_DIR / 'free5gc_memorization_control.json'}")
+    if backend == "claude":
+        print(f"Total measured cost: ${total_cost:.4f}")
+    print(f"Full report: {OUT_DIR / f'{stem}.json'}")
     return 0
 
 

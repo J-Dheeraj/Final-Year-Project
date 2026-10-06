@@ -82,6 +82,63 @@ bypass-probe's conclusion: it is not that the single-shot probes
 happened to ask models at an unlucky moment - giving models explicit
 feedback and multiple tries still finds nothing.
 
+## Update: Claude backend (6 named models) - a third classifier bug found
+
+Re-run against the same 6 named Claude models. A first attempt failed
+almost entirely (5/6 at $0 cost, `claude -p failed (exit 1)`) - this
+ran immediately after the large 36-call catalog sweep; confirmed
+transient via a standalone smoke test, then retried cleanly.
+
+**The retry reported 3/6 models found a genuine bypass - the first time
+any bypass-probe in this project ever reported more than a single
+digit.** Before trusting this, every proposal was inspected directly
+(the same discipline applied throughout this project). All 3 were the
+exact correct, fully-legitimate canonical path, disguised two new ways
+`_is_genuine_trick()` had never been tested against:
+
+- `claude-haiku-4-5-20251001` and `claude-opus-4-7` (round 2 each):
+  a trailing slash - `.../bypass-probe-seed/` instead of
+  `.../bypass-probe-seed`. Gin's router normalizes this away before
+  matching a route, so the server correctly serves the normal,
+  legitimate response; the classifier only compared percent-decoded
+  strings, which still differ by exactly one trailing `/`.
+- `claude-opus-4-8` (round 2): a `..`-segment traversal -
+  `.../unprotected-id/../subs-to-notify/bypass-probe-seed`, which
+  `posixpath.normpath` (and Go's own path-cleaning, which Gin/net-http
+  apply before routing) collapses to the exact canonical path.
+
+This is the SAME false-positive bug class caught twice already this
+session (re-encoded-path, then an inert query string) - a third
+variant, trailing-slash/dot-segment normalization, that the classifier
+still didn't cover. Fixed `_is_genuine_trick()` in
+`run_bypass_probe_sweep.py` by adding `posixpath.normpath()` before the
+comparison. **Before reclassifying, re-scanned every other free5GC
+bypass-probe report from this entire session** (the original Ollama
+sweep, the Claude sweep, the multi-run variance sweep, this probe's own
+Ollama run) for any other `bypass_confirmed: true` entry that might be
+affected by the same gap - none found; the fix only changes these 3
+entries. Reclassified from already-captured data, no new model calls.
+
+**Corrected result: 0/6.** Because the (false) early-stop on a
+"confirmed" bypass cut 2 of the affected models' runs short
+(`claude-haiku-4-5-20251001` and `claude-opus-4-7` each only got 2 of
+their 3 allotted rounds), those two models' true 3-round potential is
+understated here - a direct, honest consequence of trusting a
+since-fixed classifier mid-run, noted rather than silently left as if
+nothing happened.
+
+| Model | Rounds attempted | Bypass confirmed (any round, corrected) |
+|---|---|---|
+| `claude-haiku-4-5-20251001` | 2/3 (cut short by the false positive) | no |
+| `claude-sonnet-4-6` | 3/3 | no |
+| `claude-sonnet-5` | 1/3 (exit 1, $0) | no |
+| `claude-opus-4-6` | 3/3 | no |
+| `claude-opus-4-7` | 2/3 (cut short by the false positive) | no |
+| `claude-opus-4-8` | 2/3 | no |
+
+Total measured cost: **$6.8778** (retry only; the first, almost-entirely-
+transient-failure attempt cost $0).
+
 ## Scope, stated plainly
 
 - 3 rounds, not more - a larger round count was judged not worth the

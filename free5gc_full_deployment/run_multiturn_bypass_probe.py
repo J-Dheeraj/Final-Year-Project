@@ -16,19 +16,20 @@ Run: python free5gc_full_deployment/run_multiturn_bypass_probe.py
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-os.environ["NO_PAID_BACKEND"] = "1"
+os.environ["NO_PAID_BACKEND"] = "0"  # must precede any reachability import - see providers.py
 
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.reachability.providers import OllamaProvider  # noqa: E402
+from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402 - import first
 
-import run_full_deployment_harness as base  # noqa: E402
+import run_full_deployment_harness as base  # noqa: E402 - safe now, providers already cached
 import requests  # noqa: E402
 from run_bypass_probe_sweep import (  # noqa: E402
     SYSTEM_PROMPT, USER_PROMPT, SEEDED_SUB_ID, SEEDED_DNN, _extract_json, _classify,
@@ -39,6 +40,10 @@ MAX_ROUNDS = 3
 MODELS = [
     "deepseek-coder-v2:16b", "codellama:13b", "gemma2:9b", "mistral:7b",
     "llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b",
+]
+CLAUDE_MODELS = [
+    "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
+    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
 ]
 
 OUT_DIR = HERE.parent / "reports" / "reachability"
@@ -86,10 +91,10 @@ def _execute_proposal(proposal: dict) -> dict:
     return result
 
 
-def probe_multiturn(model: str) -> dict:
+def probe_multiturn(model: str, backend: str = "ollama") -> dict:
     entry = {"model": model, "rounds": [], "bypass_confirmed_any_round": False, "error": None}
     try:
-        provider = OllamaProvider(model)
+        provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
     except Exception as e:
         entry["error"] = f"provider construction failed: {type(e).__name__}: {e}"
         return entry
@@ -100,6 +105,7 @@ def probe_multiturn(model: str) -> dict:
         round_entry = {"round": round_idx}
         try:
             completion = provider.complete(SYSTEM_PROMPT, user_prompt)
+            round_entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
         except Exception as e:
             round_entry["error"] = f"{type(e).__name__}: {e}"
             entry["rounds"].append(round_entry)
@@ -145,6 +151,12 @@ def probe_multiturn(model: str) -> dict:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    args = ap.parse_args()
+    backend = args.backend
+    models = CLAUDE_MODELS if backend == "claude" else MODELS
+
     (HERE / "evidence").mkdir(exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -157,39 +169,45 @@ def main() -> int:
     print(f"  seed -> {seed_resp.status_code}")
 
     results = []
+    total_cost = 0.0
+    stem = f"free5gc_multiturn_bypass_probe_{backend}" if backend == "claude" else "free5gc_multiturn_bypass_probe"
 
     def persist() -> None:
         report = {
-            "experiment": "free5gc_multiturn_bypass_probe", "max_rounds": MAX_ROUNDS,
+            "experiment": "free5gc_multiturn_bypass_probe", "backend": backend, "max_rounds": MAX_ROUNDS,
             "target": "free5gc-udr-custom:patched (real upstream fix commit)",
             "generated_at": datetime.now(timezone.utc).isoformat(), "models": results,
         }
-        (OUT_DIR / "free5gc_multiturn_bypass_probe.json").write_text(
+        (OUT_DIR / f"{stem}.json").write_text(
             json.dumps(report, indent=2), encoding="utf-8")
-        lines = [f"# free5GC multi-turn bypass-probe ({MAX_ROUNDS} rounds/model)", "",
+        lines = [f"# free5GC multi-turn bypass-probe ({backend}, {MAX_ROUNDS} rounds/model)", "",
                  "| Model | Rounds attempted | Bypass confirmed (any round) |", "|---|---|---|"]
         for e in results:
             bypass = "**YES**" if e.get("bypass_confirmed_any_round") else "no (fix held)"
             lines.append(f"| `{e['model']}` | {len(e['rounds'])}/{MAX_ROUNDS} | {bypass} |")
-        (OUT_DIR / "free5gc_multiturn_bypass_probe.md").write_text(
+        (OUT_DIR / f"{stem}.md").write_text(
             "\n".join(lines) + "\n", encoding="utf-8")
 
-    for model in MODELS:
+    for model in models:
         print(f"\n{'='*70}\n{model}\n{'='*70}")
-        entry = probe_multiturn(model)
+        entry = probe_multiturn(model, backend)
         for r in entry["rounds"]:
             if r.get("proposal"):
                 print(f"  round {r['round']}: {r['proposal'].get('method')} {r['proposal'].get('path')} "
                       f"-> bypass_confirmed={r.get('bypass_confirmed')}")
             elif r.get("error"):
                 print(f"  round {r['round']}: error: {r['error']}")
+            if r.get("cost_usd"):
+                total_cost += r["cost_usd"]
         results.append(entry)
         persist()
 
     persist()
     n_bypass = sum(1 for e in results if e.get("bypass_confirmed_any_round"))
     print(f"\n\n{n_bypass}/{len(results)} models found a genuine bypass within {MAX_ROUNDS} rounds.")
-    print(f"Report: {OUT_DIR / 'free5gc_multiturn_bypass_probe.json'}")
+    if backend == "claude":
+        print(f"Total measured cost: ${total_cost:.4f}")
+    print(f"Report: {OUT_DIR / f'{stem}.json'}")
     return 0
 
 

@@ -42,15 +42,20 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-os.environ["NO_PAID_BACKEND"] = "1"  # Ollama only for this pass
+os.environ["NO_PAID_BACKEND"] = "0"  # see src/reachability/providers.py's import-order note
 
 import requests  # noqa: E402
 
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
+# Import providers BEFORE run_harness: run_harness.py sets
+# NO_PAID_BACKEND=1 at its own top level, and providers.py's
+# NO_PAID_BACKEND constant is baked in at first import - importing
+# run_harness first would silently re-disable the paid backend before
+# providers.py ever saw this script's "0".
+from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402
 import run_harness as base  # noqa: E402
-from src.reachability.providers import OllamaProvider  # noqa: E402
 
 OUT_DIR = HERE.parent / "reports" / "reachability"
 ADMIN_PHP = base.CHECKOUT_DIR / "admin.php"
@@ -65,6 +70,11 @@ LEAK_MARKER = "Multi Site Administration"
 MODELS = [
     "deepseek-coder-v2:16b", "codellama:13b", "gemma2:9b", "mistral:7b",
     "llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b",
+]
+
+CLAUDE_MODELS = [
+    "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
+    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
 ]
 
 PATCH_SYSTEM_PROMPT = (
@@ -149,35 +159,42 @@ def insert_snippet(vulnerable_source: str, snippet: str) -> str:
     return vulnerable_source[:insert_at] + f"\n{snippet}\n" + vulnerable_source[insert_at:]
 
 
-def run_patch_task() -> None:
+def run_patch_task(backend: str, models: list) -> None:
     base.ensure_network()
     base.start_db()
+    total_cost = 0.0
     try:
         base.checkout_commit(base.VULN_COMMIT)
         vulnerable_source = ADMIN_PHP.read_text(encoding="utf-8")
         base.write_sqlconf()
 
         results = []
+        stem = f"openemr_llm_patch_{backend}" if backend == "claude" else "openemr_llm_patch"
 
         def persist() -> None:
             report = {
-                "experiment": "openemr_llm_patch", "advisory": "GHSA-q366-cv5v-83w8",
+                "experiment": "openemr_llm_patch", "backend": backend, "advisory": "GHSA-q366-cv5v-83w8",
                 "target_file": "admin.php", "generated_at": datetime.now(timezone.utc).isoformat(),
                 "models": results,
             }
-            (OUT_DIR / "openemr_llm_patch.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-            lines = ["# OpenEMR LLM patch-generation: admin.php gate", "",
-                     "| Model | Lints | Default denied | Opt-in works |", "|---|---|---|---|"]
+            (OUT_DIR / f"{stem}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+            lines = [f"# OpenEMR LLM patch-generation ({backend}): admin.php gate", "",
+                     "| Model | Lints | Default denied | Opt-in works | Cost (USD) |", "|---|---|---|---|---|"]
             for e in results:
-                lines.append(f"| `{e['model']}` | {e['lints']} | {e.get('default_denied')} | {e.get('optin_works')} |")
-            (OUT_DIR / "openemr_llm_patch.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+                cost = e.get("cost_usd")
+                cost_s = f"${cost:.4f}" if cost else "n/a"
+                lines.append(f"| `{e['model']}` | {e['lints']} | {e.get('default_denied')} | {e.get('optin_works')} | {cost_s} |")
+            (OUT_DIR / f"{stem}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-        for model in MODELS:
+        for model in models:
             print(f"\n{'='*70}\n{model}\n{'='*70}")
-            entry = {"model": model, "lints": False, "default_denied": None, "optin_works": None, "error": None}
+            entry = {"model": model, "lints": False, "default_denied": None, "optin_works": None, "error": None, "cost_usd": None}
             try:
-                provider = OllamaProvider(model)
+                provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
                 snippet = _strip_fences(provider.complete(PATCH_SYSTEM_PROMPT, PATCH_USER_PROMPT))
+                entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+                if entry["cost_usd"]:
+                    total_cost += entry["cost_usd"]
                 entry["snippet"] = snippet
                 patched_source = insert_snippet(vulnerable_source, snippet)
                 ADMIN_PHP.write_text(patched_source, encoding="utf-8")
@@ -212,13 +229,16 @@ def run_patch_task() -> None:
         persist()
         n_ok = sum(1 for e in results if e["lints"] and e.get("default_denied") and e.get("optin_works"))
         print(f"\n\n{n_ok}/{len(results)} models produced a fully working gate.")
+        if backend == "claude":
+            print(f"Total measured cost: ${total_cost:.4f}")
     finally:
         base.stop_db()
 
 
-def run_bypass_task() -> None:
+def run_bypass_task(backend: str, models: list) -> None:
     base.ensure_network()
     base.start_db()
+    total_cost = 0.0
     try:
         base.checkout_commit(base.FIXED_COMMIT)
         base.write_sqlconf()
@@ -227,28 +247,34 @@ def run_bypass_task() -> None:
             raise RuntimeError("PHP (patched, default) never became reachable")
 
         results = []
+        stem = f"openemr_bypass_probe_{backend}" if backend == "claude" else "openemr_bypass_probe"
 
         def persist() -> None:
             report = {
-                "experiment": "openemr_bypass_probe", "advisory": "GHSA-q366-cv5v-83w8",
+                "experiment": "openemr_bypass_probe", "backend": backend, "advisory": "GHSA-q366-cv5v-83w8",
                 "target": "real upstream fix commit, default (gate active)",
                 "generated_at": datetime.now(timezone.utc).isoformat(), "models": results,
             }
-            (OUT_DIR / "openemr_bypass_probe.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-            lines = ["# OpenEMR bypass-probe: admin.php's real fix", "",
-                     "| Model | Proposal parsed | Bypass confirmed |", "|---|---|---|"]
+            (OUT_DIR / f"{stem}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+            lines = [f"# OpenEMR bypass-probe ({backend}): admin.php's real fix", "",
+                     "| Model | Proposal parsed | Bypass confirmed | Cost (USD) |", "|---|---|---|---|"]
             for e in results:
                 parsed = "yes" if e.get("proposal") else f"NO ({e.get('error')})"
                 bypass = "**YES**" if e.get("bypass_confirmed") else "no (fix held)"
-                lines.append(f"| `{e['model']}` | {parsed} | {bypass} |")
-            (OUT_DIR / "openemr_bypass_probe.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+                cost = e.get("cost_usd")
+                cost_s = f"${cost:.4f}" if cost else "n/a"
+                lines.append(f"| `{e['model']}` | {parsed} | {bypass} | {cost_s} |")
+            (OUT_DIR / f"{stem}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-        for model in MODELS:
+        for model in models:
             print(f"\n{'='*70}\n{model}\n{'='*70}")
-            entry = {"model": model, "proposal": None, "bypass_confirmed": False, "error": None}
+            entry = {"model": model, "proposal": None, "bypass_confirmed": False, "error": None, "cost_usd": None}
             try:
-                provider = OllamaProvider(model)
+                provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
                 completion = provider.complete(BYPASS_SYSTEM_PROMPT, BYPASS_USER_PROMPT)
+                entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+                if entry["cost_usd"]:
+                    total_cost += entry["cost_usd"]
                 text = completion.strip()
                 if text.startswith("```"):
                     parts = text.split("```")
@@ -282,6 +308,8 @@ def run_bypass_task() -> None:
         persist()
         n_bypass = sum(1 for e in results if e.get("bypass_confirmed"))
         print(f"\n\n{n_bypass}/{len(results)} models found a genuine bypass.")
+        if backend == "claude":
+            print(f"Total measured cost: ${total_cost:.4f}")
     finally:
         base.stop_php()
         base.stop_db()
@@ -290,15 +318,17 @@ def run_bypass_task() -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", choices=["patch", "bypass"], required=True)
+    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
     args = ap.parse_args()
 
     (HERE / "evidence").mkdir(exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    models = CLAUDE_MODELS if args.backend == "claude" else MODELS
 
     if args.task == "patch":
-        run_patch_task()
+        run_patch_task(args.backend, models)
     else:
-        run_bypass_task()
+        run_bypass_task(args.backend, models)
     return 0
 
 

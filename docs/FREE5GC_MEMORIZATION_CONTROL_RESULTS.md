@@ -111,6 +111,55 @@ data point against the memorization explanation, not as proof it didn't
 happen - a larger model sample (once more Ollama models are pulled, or
 against the Claude backend) would make this a stronger result either way.
 
+## Update: Claude backend (6 named models, both arms)
+
+Re-run both arms (synthetic bug, real-CVE baseline) against the same 6
+named Claude models used throughout this update pass.
+
+**Synthetic bug arm**: 4/6 compiled. Investigated the 2 failures before
+accepting them as model capability results: `claude-sonnet-5` failed
+with the same consistent `exit 1` pattern seen throughout this update.
+`claude-opus-4-7`'s failure was traced to something else entirely - its
+raw diff showed an injected `<system-reminder>` block about a local
+`claude-mem` plugin outage ("Provider reported the inference allowance
+exhausted") prepended, unfenced, directly into the model's completion
+text, corrupting the Go source (`non-declaration statement outside
+function body`). Confirmed this was isolated to this one call by
+checking every other model's diff for the same contamination string -
+none found. Not a genuine model failure; a local environment artifact
+polluting the subprocess output this specific time.
+
+| Model | Compiles (synthetic bug) |
+|---|---|
+| `claude-haiku-4-5-20251001` | yes |
+| `claude-sonnet-4-6` | yes |
+| `claude-sonnet-5` | NO (exit 1, $0) |
+| `claude-opus-4-6` | yes |
+| `claude-opus-4-7` | NO (claude-mem injection artifact, not a real failure) |
+| `claude-opus-4-8` | yes |
+
+Total measured cost: $1.2046.
+
+**Real-CVE baseline arm (matched comparison)**: 5/6 compiled -
+`claude-sonnet-5` the only failure, same consistent pattern. Once the
+`opus-4-7` contamination artifact is set aside (not a genuine capability
+result either way), both arms show the same 5/6 success rate against
+the matched model set - still no observed memorization advantage for
+the real, potentially-trainable-on CVE over the synthetic, provably-
+never-disclosed one, now with a larger model sample than the original
+small-local-model comparison.
+
+| Model | Compiles (real CVE) | Cost (USD) |
+|---|---|---|
+| `claude-haiku-4-5-20251001` | yes | $0.0552 |
+| `claude-sonnet-4-6` | yes | $0.1494 |
+| `claude-sonnet-5` | NO (exit 1) | $0 |
+| `claude-opus-4-6` | yes | $0.2480 |
+| `claude-opus-4-7` | yes | $0.3427 |
+| `claude-opus-4-8` | yes | $0.3882 |
+
+Total measured cost: $1.1835.
+
 ## Scope, stated plainly
 
 - Compile-verification only, same tier as this handler family's very

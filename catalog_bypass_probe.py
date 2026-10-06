@@ -39,13 +39,15 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-os.environ["NO_PAID_BACKEND"] = "1"  # Ollama only for this pass
+import argparse
+
+os.environ["NO_PAID_BACKEND"] = "0"  # must precede any reachability import - see providers.py
 
 import requests  # noqa: E402
 
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
-from src.reachability.providers import OllamaProvider  # noqa: E402
+from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402
 
 CATALOG_DIR = HERE / "reports" / "claude_code_catalog_run_2026-09-25" / "reports"
 OUT_DIR = HERE / "reports" / "reachability"
@@ -60,6 +62,10 @@ CVES = [
 MODELS = [
     "deepseek-coder-v2:16b", "codellama:13b", "gemma2:9b", "mistral:7b",
     "llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b",
+]
+CLAUDE_MODELS = [
+    "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
+    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
 ]
 
 SYSTEM_PROMPT = (
@@ -138,18 +144,21 @@ def get_marker(app_path: Path) -> str:
     return m.group(1)
 
 
-def probe_one(cve_id: str, model: str, app_path: Path, marker: str, source: str) -> dict:
-    entry = {"cve_id": cve_id, "model": model, "proposal": None, "bypass_confirmed": False, "error": None}
+def probe_one(cve_id: str, model: str, app_path: Path, marker: str, source: str, backend: str = "ollama") -> dict:
+    entry = {"cve_id": cve_id, "model": model, "proposal": None, "bypass_confirmed": False,
+             "error": None, "cost_usd": None}
     try:
-        provider = OllamaProvider(model)
+        provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
     except Exception as e:
         entry["error"] = f"provider construction failed: {type(e).__name__}: {e}"
         return entry
 
     try:
         completion = provider.complete(SYSTEM_PROMPT, USER_PROMPT_TEMPLATE.format(source=source))
+        entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
     except Exception as e:
         entry["error"] = f"{type(e).__name__}: {e}"
+        entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
         return entry
 
     proposal = _extract_json(completion)
@@ -181,28 +190,40 @@ def probe_one(cve_id: str, model: str, app_path: Path, marker: str, source: str)
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    ap.add_argument("--cves", default=None, help="comma-separated CVE IDs to limit the run to")
+    args = ap.parse_args()
+    backend = args.backend
+    models = CLAUDE_MODELS if backend == "claude" else MODELS
+    cves = args.cves.split(",") if args.cves else CVES
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     results: list = []
+    total_cost = 0.0
+    stem = f"catalog_bypass_probe_{backend}" if backend == "claude" else "catalog_bypass_probe"
 
     def persist() -> None:
         report = {
-            "experiment": "catalog_bypass_probe",
+            "experiment": "catalog_bypass_probe", "backend": backend,
             "note": "adversarial bypass-probe against the main 6-CVE catalogue's "
                      "own already-validated patches, same idea as the free5GC and "
                      "OpenEMR bypass-probes",
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "results": results,
         }
-        (OUT_DIR / "catalog_bypass_probe.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-        lines = ["# Main-catalogue bypass-probe: 6 CVEs x 8 models", "",
-                 "| CVE | Model | Proposal parsed | Bypass confirmed |", "|---|---|---|---|"]
+        (OUT_DIR / f"{stem}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        lines = [f"# Main-catalogue bypass-probe ({backend}): {len(cves)} CVEs x {len(models)} models", "",
+                 "| CVE | Model | Proposal parsed | Bypass confirmed | Cost (USD) |", "|---|---|---|---|---|"]
         for e in results:
             parsed = "yes" if e.get("proposal") else f"NO ({e.get('error')})"
             bypass = "**YES**" if e.get("bypass_confirmed") else "no (fix held)"
-            lines.append(f"| `{e['cve_id']}` | `{e['model']}` | {parsed} | {bypass} |")
-        (OUT_DIR / "catalog_bypass_probe.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            cost = e.get("cost_usd")
+            cost_s = f"${cost:.4f}" if cost else "n/a"
+            lines.append(f"| `{e['cve_id']}` | `{e['model']}` | {parsed} | {bypass} | {cost_s} |")
+        (OUT_DIR / f"{stem}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    for cve_id in CVES:
+    for cve_id in cves:
         app_path = CATALOG_DIR / cve_id / "target_app.iter1.v0.patched.py"
         if not app_path.exists():
             print(f"[{cve_id}] no patched target app found, skipping")
@@ -218,15 +239,17 @@ def main() -> int:
             continue
 
         try:
-            for model in MODELS:
+            for model in models:
                 print(f"\n{'='*70}\n{cve_id} / {model}\n{'='*70}")
-                entry = probe_one(cve_id, model, app_path, marker, source)
+                entry = probe_one(cve_id, model, app_path, marker, source, backend)
                 if entry.get("proposal"):
                     print(f"  proposal: {entry['proposal'].get('method')} {entry['proposal'].get('path')}")
                 if entry.get("error"):
                     print(f"  error: {entry['error']}")
                 if "bypass_confirmed" in entry and entry.get("executed_request"):
                     print(f"  bypass_confirmed: {entry['bypass_confirmed']}")
+                if entry.get("cost_usd"):
+                    total_cost += entry["cost_usd"]
                 results.append(entry)
                 persist()
         finally:
@@ -235,7 +258,9 @@ def main() -> int:
     persist()
     n_bypass = sum(1 for e in results if e.get("bypass_confirmed"))
     print(f"\n\n{n_bypass}/{len(results)} (cve, model) pairs found a genuine bypass.")
-    print(f"Report: {OUT_DIR / 'catalog_bypass_probe.json'}")
+    if backend == "claude":
+        print(f"Total measured cost: ${total_cost:.4f}")
+    print(f"Report: {OUT_DIR / f'{stem}.json'}")
     return 0
 
 

@@ -83,6 +83,35 @@ both Ollama and Claude), this is now two independent real-upstream
 fixes, in two different languages/frameworks, that held against every
 model asked to find a way past them.
 
+## Update: Claude backend (6 named models)
+
+Re-run against the same 6 named Claude models as the patch-generation
+pass. A first attempt mostly failed with transient `claude -p failed
+(exit 1)` errors on 4 of 6 models - confirmed transient (not a real
+block) by a standalone smoke-test construction of the same provider,
+which succeeded immediately. Retried cleanly.
+
+**Result**: 0/5 completed models found a genuine bypass (`claude-
+sonnet-5` failed again, consistently). Notably more sophisticated
+reasoning than the Ollama models: every Claude proposal correctly
+targeted the actual mechanism (whether a SAPI/CGI misconfiguration
+could map a client header into `$_SERVER` without the `HTTP_` prefix),
+rather than the Ollama models' simpler guesses - still correctly
+blocked (403, no leak) in every case, verified from the raw
+request/response for each proposal before trusting the aggregate.
+
+| Model | Proposal | Bypass confirmed | Cost (USD) |
+|---|---|---|---|
+| `claude-haiku-4-5-20251001` | `OPENEMR_ADMIN_PHP_ENABLED: 1` header | no | $0.2314 |
+| `claude-sonnet-4-6` | underscore/hyphen CGI header-mapping theory | no | $0.6578 |
+| `claude-sonnet-5` | — | failed (exit 1), $0 | |
+| `claude-opus-4-6` | `Openemr-Admin-Php-Enabled: 1` header | no | $0.2968 |
+| `claude-opus-4-7` | same header-mapping theory | no | $1.4124 |
+| `claude-opus-4-8` | same header-mapping theory | no | $1.4542 |
+
+Total measured cost: **$4.0526** (retry; the first, mostly-transient-
+failure attempt cost an additional $0.0974).
+
 ## Scope, stated plainly
 
 - Single run per model - not repeated for variance.

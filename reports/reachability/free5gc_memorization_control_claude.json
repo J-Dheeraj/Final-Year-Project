@@ -1,0 +1,53 @@
+{
+  "experiment": "memorization_control",
+  "backend": "claude",
+  "target_function": "HandleCreateAuthenticationStatus",
+  "injection": "synthetic - deleted the real, correctly-present `return` from the 'Malformed request syntax' guard; this exact vulnerable function text has never existed in any public free5gc/udr commit",
+  "vulnerable_commit_used_for_compile_verification": "86686276a7e226183ee786e3dd6714ec56c78fda^",
+  "generated_at": "2026-10-06T06:55:04.257289+00:00",
+  "models": [
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
+      "cost_usd": 0.055741200000000005
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
+      "cost_usd": 0.1521519
+    },
+    {
+      "model": "claude-sonnet-5",
+      "compiles": false,
+      "error": "RuntimeError: claude -p failed (exit 1): ",
+      "diff": null,
+      "cost_usd": null
+    },
+    {
+      "model": "claude-opus-4-6",
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
+      "cost_usd": 0.2513465
+    },
+    {
+      "model": "claude-opus-4-7",
+      "compiles": false,
+      "error": "# github.com/free5gc/udr/internal/sbi\ninternal\\sbi\\api_datarepository.go:978:1: syntax error: non-declaration statement outside function body\ninternal\\sbi\\api_datarepository.go:984:25: more than one character in rune literal\ninternal\\sbi\\api_datarepository.go:984: newline in rune literal\ninternal\\sbi\\api_datarepository.go:986:3: string not terminated\n",
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -1,3 +1,12 @@\n+<system-reminder>\n+Claude-mem outage detected. Memory capture is disabled this session.\n+\n+Latest error: Provider reported the inference allowance exhausted\n+</system-reminder>\n+\n+Heads up: claude-mem can't save memories right now. Latest error: \"Provider reported the inference allowance exhausted\" (the memory observer's allowance on claude is used up since 2026-10-06T04:21:00.294Z). Nothing from this session will be remembered until the allowance resets or capacity is added. I won't restart the worker.\n+\n+```\n func (s *Server) HandleCreateAuthenticationStatus(c *gin.Context) {\n \tvar authEvent models.AuthEvent\n \n@@ -26,6 +35,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
+      "cost_usd": 0.3512235
+    },
+    {
+      "model": "claude-opus-4-8",
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
+      "cost_usd": 0.394121
+    }
+  ],
+  "scope_note": "compile-verification only (same tier as run_free5gc_llm_patch.py's first result), not runtime-confirmed - this handler's data path was never wired into the Docker full-deployment harness"
+}

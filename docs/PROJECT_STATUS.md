@@ -2,6 +2,51 @@
 
 ## Session log
 
+- **2026-10-06 (Claude backend added to 4 free5GC/OpenEMR/catalog
+  experiments, on `main`) - real paid run across 6 named models, 2 new
+  real bugs found (a third classifier false-positive variant, a local
+  plugin injecting text into a model's code output), total measured
+  cost $29.53** — Per explicit instruction ("test them now with claude
+  models": haiku-4.5, sonnet-4.6, sonnet-5, opus-4.6/4.7/4.8), extended
+  4 experiments that had been Ollama-only this session (memorization
+  control, OpenEMR patch-gen + bypass-probe, catalog bypass-probe,
+  free5GC multi-turn probe) with a `--backend claude` flag added to
+  each script, reusing `ClaudeCLIProvider` throughout. Found and fixed
+  the SAME `NO_PAID_BACKEND` import-order bug (providers.py's constant
+  gets baked in at first import; several scripts imported a module
+  that resets the env var to "1" BEFORE importing providers.py) in 4
+  separate scripts proactively, after finding it the first time on
+  OpenEMR's patch-gen task (confirmed by a failed first attempt costing
+  $0 across all 6 models with an explicit refusal error).
+  **OpenEMR patch-gen**: 5/6 clean ($4.74) - much better than Ollama's
+  1/7. **OpenEMR bypass-probe**: 0/5 completed ($4.05, after a
+  transient-failure first attempt confirmed via standalone smoke test)
+  - notably more sophisticated reasoning than Ollama (correctly
+  targeting SAPI/CGI header-mapping theories), still blocked.
+  **Memorization control, both arms**: 4/6 and 5/6 compiling
+  ($1.20 + $1.18) - one "failure" traced to a local `claude-mem`
+  plugin's outage notice getting injected unfenced into a model's raw
+  completion text, corrupting the Go source; confirmed isolated to
+  that one call by checking every other model's diff. **Catalog
+  bypass-probe**: 3/36 initially reported as bypasses, all against the
+  same already-documented XSS oracle bug - this time the Claude models
+  explicitly self-diagnosed the oracle flaw in their own reasoning
+  field before "triggering" it anyway; reclassified to 0/36 ($8.50 +
+  $1.21 smoke test). **Multi-turn probe**: 3/6 initially reported
+  bypasses - the first time any bypass-probe in this project exceeded
+  a single digit. Traced to a THIRD variant of the same classifier
+  false-positive class already fixed twice this session (re-encoded
+  path, then an inert query string): a trailing slash and a
+  `..`-segment path traversal, both of which Gin/Go's net-http
+  normalize away before routing. Fixed `_is_genuine_trick()` with
+  `posixpath.normpath()`; before trusting the fix, re-scanned every
+  other free5GC bypass-probe report from the entire session for the
+  same gap - found none beyond these 3 entries. Corrected result: 0/6
+  ($6.88). All 5 affected docs updated with dated "Claude backend"
+  sections; `docs/METHODOLOGY_PITFALLS.md` extended with the two new
+  bug classes (entries 8-9). Total measured spend across this entire
+  pass, including 2 standalone debug smoke-tests: **$29.5302**.
+
 - **2026-10-06 (methodology-pitfalls writeup; "do everything" list
   complete, on `main`)** — Final item (9) of the brainstormed
   enhancement list, per "do everything, do it in the right order".

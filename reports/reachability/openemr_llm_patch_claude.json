@@ -1,0 +1,62 @@
+{
+  "experiment": "openemr_llm_patch",
+  "backend": "claude",
+  "advisory": "GHSA-q366-cv5v-83w8",
+  "target_file": "admin.php",
+  "generated_at": "2026-10-06T04:18:42.134882+00:00",
+  "models": [
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.217291,
+      "snippet": "$enabled = (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') ||\n           (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1');\n\nif (!$enabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.627681,
+      "snippet": "$adminPhpEnabled = (($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? '') === '1')\n    || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1');\n\nif (!$adminPhpEnabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "claude-sonnet-5",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "RuntimeError: claude -p failed (exit 1): ",
+      "cost_usd": null
+    },
+    {
+      "model": "claude-opus-4-6",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 1.0515450000000002,
+      "snippet": "$_adminEnabled = (\n    (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') ||\n    (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1')\n);\nif (!$_adminEnabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}\nunset($_adminEnabled);"
+    },
+    {
+      "model": "claude-opus-4-7",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 1.40853,
+      "snippet": "$enabled = (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1')\n    || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1');\nif (!$enabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "claude-opus-4-8",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 1.4332145000000003,
+      "snippet": "$adminEnabled = (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1')\n    || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1');\n\nif (!$adminEnabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    }
+  ]
+}

@@ -19,7 +19,9 @@ Run: python -m src.reachability.run_memorization_control_baseline
 """
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -27,11 +29,13 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+os.environ["NO_PAID_BACKEND"] = "0"  # must precede any reachability import - see providers.py
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from src.reachability.patch import generate_patch
-from src.reachability.pipeline import PipelineConfig, run_pipeline
-from src.reachability.providers import OllamaProvider
-from src.reachability.run_memorization_control import MODELS, _go_build
+from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402 - import first
+from src.reachability.patch import generate_patch  # noqa: E402
+from src.reachability.pipeline import PipelineConfig, run_pipeline  # noqa: E402
+from src.reachability.run_memorization_control import MODELS, CLAUDE_MODELS, _go_build  # noqa: E402
 
 REPO_URL = "https://github.com/free5gc/udr.git"
 FIX_COMMIT = "86686276a7e226183ee786e3dd6714ec56c78fda"
@@ -51,6 +55,12 @@ OUT_DIR = Path(__file__).resolve().parents[2] / "reports" / "reachability"
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    args = ap.parse_args()
+    backend = args.backend
+    models = CLAUDE_MODELS if backend == "claude" else MODELS
+
     if shutil.which("git") is None or shutil.which("go") is None:
         print("Needs both `git` and `go` on PATH; aborting.")
         return 1
@@ -69,10 +79,12 @@ def main() -> int:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     results = []
+    total_cost = 0.0
+    stem = f"free5gc_memorization_control_baseline_{backend}" if backend == "claude" else "free5gc_memorization_control_baseline"
 
     def persist() -> None:
         report = {
-            "experiment": "memorization_control_baseline",
+            "experiment": "memorization_control_baseline", "backend": backend,
             "note": "same compile-verification methodology and model set as "
                      "run_memorization_control.py, applied to the REAL "
                      "CVE-2026-40248 handler instead of the synthetic one - "
@@ -82,23 +94,28 @@ def main() -> int:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "models": results,
         }
-        (OUT_DIR / "free5gc_memorization_control_baseline.json").write_text(
+        (OUT_DIR / f"{stem}.json").write_text(
             json.dumps(report, indent=2), encoding="utf-8")
-        lines = ["# free5GC memorization control: REAL CVE baseline (matched models)", "",
+        lines = [f"# free5GC memorization control: REAL CVE baseline ({backend})", "",
                  f"Target: `{LLM_TARGET}` (the real, disclosed CVE-2026-40248 handler).", "",
-                 "| Model | Compiles (fixes the real CVE) |", "|---|---|"]
+                 "| Model | Compiles (fixes the real CVE) | Cost (USD) |", "|---|---|---|"]
         for e in results:
             compiles = "yes" if e["compiles"] else f"NO ({e['error']})"
-            lines.append(f"| `{e['model']}` | {compiles} |")
-        (OUT_DIR / "free5gc_memorization_control_baseline.md").write_text(
+            cost = e.get("cost_usd")
+            cost_s = f"${cost:.4f}" if cost else "n/a"
+            lines.append(f"| `{e['model']}` | {compiles} | {cost_s} |")
+        (OUT_DIR / f"{stem}.md").write_text(
             "\n".join(lines) + "\n", encoding="utf-8")
 
-    for model in MODELS:
+    for model in models:
         print(f"\n{'='*70}\n{model}\n{'='*70}")
-        entry = {"model": model, "compiles": False, "error": None, "diff": None}
+        entry = {"model": model, "compiles": False, "error": None, "diff": None, "cost_usd": None}
         try:
-            provider = OllamaProvider(model)
+            provider = ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
             llm_patch = generate_patch(finding, provider, exploit_outcome=None)
+            entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+            if entry["cost_usd"]:
+                total_cost += entry["cost_usd"]
             entry["diff"] = llm_patch.diff
 
             with tempfile.TemporaryDirectory(prefix="free5gc_udr_memcontrol_baseline_") as tmp:
@@ -136,7 +153,9 @@ def main() -> int:
     n_ok = sum(1 for e in results if e["compiles"])
     print(f"\n\n=== BASELINE SUMMARY ===")
     print(f"{n_ok}/{len(results)} models produced a compiling fix for the REAL CVE handler.")
-    print(f"Full report: {OUT_DIR / 'free5gc_memorization_control_baseline.json'}")
+    if backend == "claude":
+        print(f"Total measured cost: ${total_cost:.4f}")
+    print(f"Full report: {OUT_DIR / f'{stem}.json'}")
     return 0
 
 

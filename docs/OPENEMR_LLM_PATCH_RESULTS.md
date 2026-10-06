@@ -125,6 +125,45 @@ even partially functionally (as in the three `isset()`-missing cases),
 making a lint pass alone a much weaker signal here than a `go build`
 pass was for free5GC.
 
+## Update: Claude backend (6 named models)
+
+Per explicit instruction, re-run against 6 named Claude models
+(`claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, `claude-sonnet-5`,
+`claude-opus-4-6/4-7/4-8`) via the same `ClaudeCLIProvider` used
+throughout this project, added to this script via a new `--backend
+claude` flag.
+
+**A real import-order bug found before any model ran**: the first
+attempt reported `NO_PAID_BACKEND is set - refusing to construct
+ClaudeCLIProvider` for all 6 models, at $0 cost. This script's own
+`import run_harness as base` happens before `from
+src.reachability.providers import ...`, and `run_harness.py` sets
+`NO_PAID_BACKEND="1"` at its own top level - so even though this
+script set it to `"0"` first, `run_harness`'s import reset it before
+`providers.py` ever baked the constant in. Fixed by importing
+`providers` before `run_harness` (the same fix already applied
+elsewhere in this project for the identical ordering hazard).
+Confirmed fixed with a standalone `ClaudeCLIProvider(...)` construction
+check before re-running anything paid.
+
+**Result**: 5/6 models produced a fully working gate (lints + correct
+default-denied + correct opt-in-works) - a much higher clean-pass rate
+than the Ollama sweep's 1/7. `claude-sonnet-5` failed both times it was
+tried (`claude -p failed (exit 1)`, no stderr, $0 cost both times) -
+consistent with this project's own prior-documented history of
+resolution/policy issues specific to that model name string.
+
+| Model | Lints | Default denied | Opt-in works | Cost (USD) |
+|---|---|---|---|---|
+| `claude-haiku-4-5-20251001` | yes | yes | yes | $0.2173 |
+| `claude-sonnet-4-6` | yes | yes | yes | $0.6277 |
+| `claude-sonnet-5` | — | — | — | failed (exit 1), $0 |
+| `claude-opus-4-6` | yes | yes | yes | $1.0515 |
+| `claude-opus-4-7` | yes | yes | yes | $1.4085 |
+| `claude-opus-4-8` | yes | yes | yes | $1.4332 |
+
+Total measured cost: **$4.7383**.
+
 ## Scope, stated plainly
 
 - Single run per model, not repeated - a natural target for this
