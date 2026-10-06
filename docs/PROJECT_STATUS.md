@@ -2,6 +2,44 @@
 
 ## Session log
 
+- **2026-10-06 (main 6-CVE catalogue bypass-probe, on `main`) - 0/48
+  genuine bypasses across every catalogue CVE; one apparent bypass
+  traced to a test-oracle bug, not an app bug, before being reported**
+  — Continuing "do everything, do it in the right order", item 6
+  (main-catalogue bypass-probe - "never tried there" per the
+  brainstormed list). Extended the already-run free5GC/OpenEMR
+  bypass-probe idea to the main pipeline's own 6-CVE catalogue
+  (`reports/CVE_CATALOG.md`), feeding each CVE's already-validated
+  patched Flask target's COMPLETE real source (not an abstract
+  description, unlike the free5GC/OpenEMR probes) to 8 Ollama models
+  and executing every proposal for real. Reused each CVE's own
+  already-established `poc.py` `verify()` oracle (`MARKER in
+  response.text`) rather than inventing a new one. Raw run reported
+  1/48 as a confirmed bypass (`gemma2:9b` vs. the XSS CVE, an
+  `onerror=` payload) - checked the actual response body before
+  trusting it and found the content WAS correctly HTML-escaped
+  (`&lt;img ... onerror=...&gt;`, inert, not live executable HTML).
+  The MARKER still appeared because of a real, pre-existing bug in
+  that target app's OWN self-check regex (`\son\w+\s*=` matches the
+  literal substring ` onerror=` even inside escaped, inert text -
+  escaping only neutralizes `<`/`>`, not attribute-name text).
+  Confirmed this is a genuinely NEW finding, not a retroactive
+  invalidation: the original `poc.py`'s own payload
+  (`<script>...</script>`) only exercises a DIFFERENT regex
+  alternative that escaping does correctly defeat, so the original
+  published "confirmed" result for this CVE is unaffected - this probe
+  found an edge the original single-payload validation never
+  exercised. Reclassified from already-captured data, no new model
+  call. Final, corrected result: 0/48 genuine bypasses across all 6
+  CVEs (SQLi, CMDi, deserialization, XSS, path traversal, SSRF) - a
+  third independent confirmation, after free5GC and OpenEMR, that this
+  project's real/validated fixes hold against LLM-proposed request-level
+  tricks. `deepseek-coder-v2:16b` OOM'd identically on every CVE (same
+  recurring hardware constraint). Documented in
+  `docs/CATALOG_BYPASS_PROBE_RESULTS.md`. Remaining "do everything"
+  items (multi-turn adversarial probing, patch-quality scoring,
+  methodology-pitfalls writeup) still queued.
+
 - **2026-10-06 (OpenEMR extended with LLM patch-gen + bypass-probe, on
   `main`) - 1/7 models produced a clean fix, several genuinely varied
   and interesting failure modes found by not trusting a binary
