@@ -113,7 +113,17 @@ def materialize_and_verify(model: str, provider_factory=OllamaProvider) -> dict:
         # models under CPU inference - one model's failure must not stop
         # the sweep from recording it and moving on to the next model.
         result["error"] = f"generate_patch failed: {type(e).__name__}: {e}"
+        result["usage"] = getattr(provider, "last_usage", None)
+        result["duration_s"] = getattr(provider, "last_duration_s", None)
+        result["thread_id"] = getattr(provider, "last_thread_id", None)
+        result["raw_usage_events"] = getattr(provider, "last_raw_events", None)
+        result["billing_basis"] = "codex-cli ChatGPT auth" if provider.__class__.__name__ == "CodexCLIProvider" else None
         return result
+    result["usage"] = getattr(provider, "last_usage", None)
+    result["duration_s"] = getattr(provider, "last_duration_s", None)
+    result["thread_id"] = getattr(provider, "last_thread_id", None)
+    result["raw_usage_events"] = getattr(provider, "last_raw_events", None)
+    result["billing_basis"] = "codex-cli ChatGPT auth" if provider.__class__.__name__ == "CodexCLIProvider" else None
     result["patch_method"] = llm_patch.method
     result["diff"] = llm_patch.diff
 

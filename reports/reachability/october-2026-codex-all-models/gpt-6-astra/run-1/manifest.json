@@ -1,0 +1,38 @@
+{
+  "model": "gpt-6-astra",
+  "run": 1,
+  "compile": {
+    "patch_method": "llm-codex-cli",
+    "applied": 4,
+    "compiles": true,
+    "error": null,
+    "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+    "cost_usd": null,
+    "duration_s": 15.968748100000084,
+    "usage": {
+      "input_tokens": 27649,
+      "cached_input_tokens": 7296,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 343,
+      "reasoning_output_tokens": 0
+    },
+    "thread_id": "01a11212-4785-70f3-b255-eb8a679bc649",
+    "billing_basis": "codex-cli ChatGPT auth"
+  },
+  "runtime": {
+    "collection_get_leak_confirmed_vulnerable": true,
+    "collection_get_leak_fixed": true,
+    "single_get_leak_confirmed_vulnerable": true,
+    "single_get_leak_fixed": true,
+    "single_put_unauthorized_write_confirmed_vulnerable": true,
+    "single_put_unauthorized_write_fixed": true,
+    "single_delete_confirmed_exploit_vulnerable": true,
+    "single_delete_fixed": true,
+    "benign_path_preserved_vulnerable": true,
+    "benign_path_preserved_patched": true,
+    "overall_verdict": "confirmed_fix_all_four_handlers"
+  },
+  "build_ok": true,
+  "generation_outcome": "llm_live_success",
+  "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\october-2026-codex-all-models\\gpt-6-astra\\run-1"
+}

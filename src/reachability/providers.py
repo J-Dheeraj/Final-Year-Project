@@ -134,6 +134,60 @@ class ClaudeCLIProvider(Provider):
         return (data.get("result") or "").strip()
 
 
+class CodexCLIProvider(Provider):
+    """Run the authenticated Codex CLI and retain its JSONL usage event.
+
+    This is deliberately separate from OpenAIProvider: Codex CLI uses the
+    user's ChatGPT/Codex authentication, while OpenAIProvider uses an API key.
+    The CLI is constrained to a read-only, ephemeral session so a model cannot
+    modify the experiment checkout while producing a patch or probe proposal.
+    """
+
+    name = "codex-cli"
+
+    def __init__(self, model: str | None = None):
+        self._model = model
+        self.last_cost_usd: float | None = None
+        self.last_duration_s: float | None = None
+        self.last_usage: dict = {}
+        self.last_thread_id: str | None = None
+        self.last_raw_events: list[dict] = []
+
+    def complete(self, system: str, user: str) -> str:
+        import time
+
+        prompt = f"{system}\n\n{user}"
+        cmd = ["codex", "exec", "--ephemeral", "--sandbox", "read-only",
+               "--json", "--skip-git-repo-check", "--disable", "skill_search"]
+        if self._model:
+            cmd += ["--model", self._model]
+        cmd.append("-")
+        started = time.perf_counter()
+        result = subprocess.run(cmd, input=prompt, capture_output=True,
+                                text=True, encoding="utf-8", errors="replace",
+                                timeout=900)
+        self.last_duration_s = time.perf_counter() - started
+        events: list[dict] = []
+        for line in result.stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            events.append(event)
+            if event.get("type") == "thread.started":
+                self.last_thread_id = event.get("thread_id")
+            if event.get("type") == "turn.completed":
+                self.last_usage = event.get("usage") or {}
+        self.last_raw_events = events
+        messages = [e.get("item", {}).get("text", "") for e in events
+                    if e.get("type") == "item.completed"
+                    and e.get("item", {}).get("type") == "agent_message"]
+        if result.returncode != 0 or not messages:
+            detail = result.stderr[-1000:] or result.stdout[-1000:]
+            raise RuntimeError(f"codex exec failed (exit {result.returncode}): {detail}")
+        return messages[-1].strip()
+
+
 class OpenAIProvider(Provider):
     """Also works for any OpenAI-compatible chat completions API - e.g.
     Zhipu/z.ai's GLM models - by pointing OPENAI_BASE_URL at their endpoint

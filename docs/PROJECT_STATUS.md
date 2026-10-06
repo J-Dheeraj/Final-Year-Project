@@ -2,6 +2,14 @@
 
 ## Session log
 
+- **2026-10-07 (Codex CLI model sweep)** — Added a dedicated read-only,
+  ephemeral Codex CLI provider with per-call duration and token-usage capture.
+  Ran 12 requested model IDs through patch generation and bypass probing. Seven
+  models completed patch generation, compilation, and four-handler runtime
+  validation; the bypass phase executed five proposals and confirmed zero
+  bypasses. Older or unavailable IDs remain explicitly environment-limited.
+  See `docs/FREE5GC_CODEX_SWEEP_2026-10-07.md` and the raw reports.
+
 - **2026-10-06 (all-installed-Ollama bypass probe)** — Asked all eight installed
   Ollama models to probe the patched real free5GC deployment. Seven proposals
   executed and **0/7 produced a confirmed bypass**; one model failed before

@@ -218,8 +218,18 @@ def probe_one_model(model: str, provider_factory=OllamaProvider) -> dict:
     except Exception as e:
         entry["error"] = f"{type(e).__name__}: {e}"
         entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+        entry["duration_s"] = getattr(provider, "last_duration_s", None)
+        entry["usage"] = getattr(provider, "last_usage", None)
+        entry["thread_id"] = getattr(provider, "last_thread_id", None)
+        entry["billing_basis"] = getattr(provider, "name", None)
+        entry["raw_usage_events"] = getattr(provider, "last_raw_events", None)
         return entry
     entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+    entry["duration_s"] = getattr(provider, "last_duration_s", None)
+    entry["usage"] = getattr(provider, "last_usage", None)
+    entry["thread_id"] = getattr(provider, "last_thread_id", None)
+    entry["billing_basis"] = getattr(provider, "name", None)
+    entry["raw_usage_events"] = getattr(provider, "last_raw_events", None)
 
     proposal = _extract_json(completion)
     if proposal is None:

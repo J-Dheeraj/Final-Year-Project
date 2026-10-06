@@ -535,6 +535,16 @@ limitation, not counted as a security result. See
 and the raw report
 [`reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json`](reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json).
 
+The same pipeline was then run through the authenticated **Codex CLI** across
+12 requested model IDs, including older GPT-5, GPT-4, and o-series names. Seven
+models completed patch generation, compilation, and four-handler runtime
+validation; all seven were confirmed fixes. Five older IDs failed before a
+usage event or patch was returned and remain recorded as environment-limited.
+The bypass phase executed 5 proposals and found **0 genuine bypasses**. Each
+completed Codex call records duration and input/output token usage, including
+cached and reasoning-token fields when supplied by the CLI. See
+[`docs/FREE5GC_CODEX_SWEEP_2026-10-07.md`](docs/FREE5GC_CODEX_SWEEP_2026-10-07.md).
+
 ---
 
 ## OpenEMR transfer case — GHSA-q366-cv5v-83w8

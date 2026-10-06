@@ -45,13 +45,18 @@ sys.path.insert(0, str(HERE / "udr_build"))
 sys.path.insert(0, str(HERE.parent))
 
 import prepare_llm_patched_source as prep  # noqa: E402 - bakes NO_PAID_BACKEND into providers.py
-from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402
+from src.reachability.providers import OllamaProvider, ClaudeCLIProvider, CodexCLIProvider  # noqa: E402
 
 import run_full_deployment_harness as base  # noqa: E402 - safe: providers.py already cached by now
 from run_model_sweep import docker_build, safe_tag, verdict_from  # noqa: E402
 from run_bypass_probe_sweep import probe_one_model, SEEDED_SUB_ID, SEEDED_DNN  # noqa: E402
 
 DEFAULT_MODELS = {
+    ("patch", "codex"): [
+        "gpt-6-astra", "gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna",
+        "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+        "gpt-5", "gpt-4.1", "gpt-4o", "o3", "o4-mini",
+    ],
     ("patch", "ollama"): [
         "deepseek-coder-v2:16b", "codellama:13b", "gemma2:9b", "mistral:7b",
         "llama3.1:8b", "qwen2.5-coder:7b", "qwen2.5-coder:3b", "qwen2.5-coder:1.5b",
@@ -74,10 +79,17 @@ DEFAULT_MODELS = {
         "claude-opus-4-7", "claude-opus-4-8", "claude-opus-4-9",
         "claude-opus-5", "claude-opus-5-5",
     ],
+    ("bypass", "codex"): [
+        "gpt-6-astra", "gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna",
+        "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+        "gpt-5", "gpt-4.1", "gpt-4o", "o3", "o4-mini",
+    ],
 }
 
 
 def provider_factory_for(backend: str):
+    if backend == "codex":
+        return CodexCLIProvider
     return ClaudeCLIProvider if backend == "claude" else OllamaProvider
 
 
@@ -100,6 +112,10 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
             provider = ClaudeCLIProvider(model)
             compile_result = prep.materialize_and_verify(model, provider_factory=lambda m: provider)
             cost = getattr(provider, "last_cost_usd", None)
+        elif backend == "codex":
+            provider = CodexCLIProvider(model)
+            compile_result = prep.materialize_and_verify(model, provider_factory=lambda m: provider)
+            cost = getattr(provider, "last_cost_usd", None)
         else:
             compile_result = prep.materialize_and_verify(model)
             cost = None
@@ -110,6 +126,11 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
             "error": compile_result["error"],
             "diff": compile_result["diff"],
             "cost_usd": cost,
+            "duration_s": compile_result.get("duration_s"),
+            "usage": compile_result.get("usage"),
+            "thread_id": compile_result.get("thread_id"),
+            "billing_basis": compile_result.get("billing_basis"),
+            "raw_usage_events": compile_result.get("raw_usage_events"),
         }
         if compile_result.get("patch_method"):
             entry["generation_outcome"] = "llm_live_success"
@@ -154,7 +175,7 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--task", choices=["patch", "bypass"], required=True)
-    ap.add_argument("--backend", choices=["ollama", "claude"], required=True)
+    ap.add_argument("--backend", choices=["ollama", "claude", "codex"], required=True)
     ap.add_argument("--models", default=None,
                      help="comma-separated override; default is the task/backend's established list")
     ap.add_argument("--runs", type=int, default=1,
@@ -259,7 +280,12 @@ def main() -> None:
             persist()
 
     persist()
-    print(f"\n\nDone. Total measured cost: ${total_cost:.4f}" if args.backend == "claude" else "\n\nDone (free backend).")
+    if args.backend == "claude":
+        print(f"\n\nDone. Total measured cost: ${total_cost:.4f}")
+    elif args.backend == "codex":
+        print("\n\nDone (Codex CLI; token usage recorded, no direct API charge returned).")
+    else:
+        print("\n\nDone (free backend).")
     print(f"Report: {out_dir / f'{report_stem}.json'}")
 
 
