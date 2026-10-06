@@ -1,0 +1,27 @@
+{
+  "model": "codellama:13b",
+  "run": 3,
+  "compile": {
+    "patch_method": "llm-ollama",
+    "applied": 4,
+    "compiles": true,
+    "error": null,
+    "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn // <--- Add this line\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn // <--- Add this line\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+    "cost_usd": null
+  },
+  "runtime": {
+    "collection_get_leak_confirmed_vulnerable": true,
+    "collection_get_leak_fixed": true,
+    "single_get_leak_confirmed_vulnerable": true,
+    "single_get_leak_fixed": true,
+    "single_put_unauthorized_write_confirmed_vulnerable": true,
+    "single_put_unauthorized_write_fixed": true,
+    "single_delete_confirmed_exploit_vulnerable": true,
+    "single_delete_fixed": true,
+    "benign_path_preserved_vulnerable": true,
+    "benign_path_preserved_patched": true,
+    "overall_verdict": "confirmed_fix_all_four_handlers"
+  },
+  "build_ok": true,
+  "generation_outcome": "llm_live_success"
+}

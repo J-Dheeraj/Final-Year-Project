@@ -5,6 +5,20 @@
 
 # ── Pipeline output ───────────────────────────────────────────────
 reports/
+!reports/
+reports/*
+!reports/reachability/
+reports/reachability/*
+!reports/reachability/free5gc_sweep_patch_ollama_october-2026-patch-repeat.json
+!reports/reachability/free5gc_sweep_patch_ollama_october-2026-patch-repeat.md
+!reports/reachability/free5gc_sweep_patch_ollama_october-2026-all-ollama.json
+!reports/reachability/free5gc_sweep_patch_ollama_october-2026-all-ollama.md
+!reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json
+!reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.md
+!reports/reachability/october-2026-patch-repeat/
+!reports/reachability/october-2026-patch-repeat/**
+!reports/reachability/october-2026-all-ollama/
+!reports/reachability/october-2026-all-ollama/**
 seen_cves.json
 watcher.log
 watcher_stdout.log
@@ -29,6 +43,9 @@ env/
 # ── OS noise ──────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+*.stackdump
+graphify-out/
+build-check-report/
 
 # Real-upstream case study venvs (reproducible via pip install, not committed)
 real_upstream_case/**/venv_*/

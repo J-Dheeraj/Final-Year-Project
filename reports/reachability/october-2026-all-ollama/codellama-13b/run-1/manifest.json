@@ -1,0 +1,16 @@
+{
+  "model": "codellama:13b",
+  "run": 1,
+  "compile": {
+    "patch_method": "llm-ollama",
+    "applied": 4,
+    "compiles": false,
+    "error": "patched source doesn't build",
+    "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -28,5 +28,7 @@\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n \t}\n \n-\ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)\n-}\n+\tif len(dnn) > 32 || len(internalGroupId) > 32 || len(supi) > 32 || (snssai != nil && len(*snssai) > 32) {\n+\t\tproblemDetails := models.ProblemDetails{\n+\t\t\tStatus: http.StatusBadRequest,\n+\t\t\tDetail: \"",
+    "cost_usd": null
+  },
+  "runtime": null,
+  "build_ok": null,
+  "generation_outcome": "llm_live_success",
+  "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\october-2026-all-ollama\\codellama-13b\\run-1"
+}

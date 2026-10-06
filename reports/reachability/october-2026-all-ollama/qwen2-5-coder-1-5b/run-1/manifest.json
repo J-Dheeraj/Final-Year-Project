@@ -1,0 +1,16 @@
+{
+  "model": "qwen2.5-coder:1.5b",
+  "run": 1,
+  "compile": {
+    "patch_method": "llm-ollama",
+    "applied": 4,
+    "compiles": false,
+    "error": "patched source doesn't build",
+    "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -28,5 +28,9 @@\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n \t}\n \n+\tif !c.Request.ShouldClose() {\n+\t\tc.Request.Close()\n+\t}\n+\n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)\n }",
+    "cost_usd": null
+  },
+  "runtime": null,
+  "build_ok": null,
+  "generation_outcome": "llm_live_success",
+  "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\october-2026-all-ollama\\qwen2-5-coder-1-5b\\run-1"
+}

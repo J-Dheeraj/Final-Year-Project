@@ -91,6 +91,34 @@ patched three times for three different disguises before being
 replaced with a live-comparison check that doesn't need to guess the
 next one. [docs/METHODOLOGY_PITFALLS.md](METHODOLOGY_PITFALLS.md)
 
+## 10. Repeated patch-generation study
+
+The final October study ran four local models three times each against the
+same real free5GC deployment. **9/12 attempts were runtime-confirmed**:
+`codellama:13b` 2/3, `gemma2:9b` 3/3, `qwen2.5-coder:7b` 3/3, and
+`qwen2.5-coder:1.5b` 1/3. One attempt failed compilation and two compiled
+patches left the collection-GET leak open. No hosted-model calls were used.
+[docs/FREE5GC_PATCH_REPEAT_RESULTS.md](FREE5GC_PATCH_REPEAT_RESULTS.md)
+
+Raw report: `reports/reachability/free5gc_sweep_patch_ollama_october-2026-patch-repeat.json`.
+
+## 11. All-installed-Ollama snapshot
+
+On 6 October, all eight installed Ollama models were run once in a fresh
+snapshot. **5/8 were runtime-confirmed**, two failed compilation, and one
+failed before generation because of the model/runtime environment. This is a
+separate snapshot from the repeated study and does not replace its 9/12
+result. [docs/FREE5GC_ALL_OLLAMA_SWEEP_2026-10-06.md](FREE5GC_ALL_OLLAMA_SWEEP_2026-10-06.md)
+
+## 12. All-installed-Ollama bypass probe
+
+All eight installed Ollama models were also asked once to probe the patched
+free5GC deployment for a request that could restore the vulnerable behaviour.
+Seven proposals executed and **0/7 produced a genuine bypass**. The remaining
+model failed before generation because of an Ollama runtime error, so it is
+recorded as unevaluated rather than as a security success or failure.
+[docs/FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md](FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md)
+
 ## Total measured paid-backend cost (Claude re-run pass)
 
 **$29.53** across all 4 re-run experiments plus debug smoke tests -

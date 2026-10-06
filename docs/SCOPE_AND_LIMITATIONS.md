@@ -251,9 +251,10 @@ patch, from scratch, for the one free5GC handler the rule-based patcher
 is known to under-fix; it produced a correct patch, compile-verified
 against a live clone of the real upstream module and runtime-confirmed
 against the real deployment in Limitation 4's update above. This was
-then swept across all 8 locally-hosted models (7/8 compiled and were
+then swept across all 8 locally-hosted models (6/8 compiled and were
 runtime-confirmed; the 1.5B model compiled a patch that did *not*
-actually fix the bug, caught only by the runtime check) and, later, the
+actually fix the bug, caught only by the runtime check, while the 16B
+model failed before generation because of available memory) and, later, the
 `claude` CLI became available in this environment and the same
 patch-generation task was repeated against 8 named hosted Claude models
 across two sweeps (7/8 compiled and were runtime-confirmed; one,
@@ -292,5 +293,5 @@ does not own or have permission to test.
 | "Reachability analysis narrows 102 real functions to 4 relevant ones" | Real, AST-based | `src/reachability/`, free5GC |
 | "The generated free5GC patch compiles against the real project" | Real, compile-time | `verify_against_real_upstream.py` |
 | "The real free5GC fix closes the bug at runtime, all four handlers" | **Dynamic, real HTTP exchange, 2026-09-28** | `free5gc_full_deployment/evidence/verdict.json` |
-| "An LLM-*generated* free5GC patch closes the bug at runtime" | **Dynamic, real HTTP exchange, 7/8 local + 7/8 Claude models, 2026-10-05** | `docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`, `docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md` |
+| "An LLM-*generated* free5GC patch closes the bug at runtime" | **Dynamic, real HTTP exchange, 6/8 local models in the recorded sweep; the remaining two were one partial fix and one pre-generation OOM. Hosted Claude results are reported separately.** | `reports/reachability/free5gc_llm_model_sweep.json`, `docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`, `docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md` |
 | "This system fuzzes to find unknown bugs" | Not attempted, not claimed | — |

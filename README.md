@@ -70,13 +70,19 @@ compile-verified or reproduced:
   against a live clone of the real `free5gc/udr` module, and was
   runtime-confirmed against the real Docker stack
   (`confirmed_fix_all_four_handlers`). Swept across all 8 locally-pulled
-  Ollama models: 7/8 confirmed the fix; `qwen2.5-coder:1.5b` compiled
-  cleanly but genuinely failed to fix the bug (caught only by the
-  runtime harness, not compile-verification); `deepseek-coder-v2:16b`
-  failed to load (a real out-of-memory error, not a patching failure).
+  Ollama models: 6/8 were confirmed to fix all four handlers;
+  `qwen2.5-coder:1.5b` compiled cleanly but genuinely failed to fix the
+  bug (caught only by the runtime harness, not compile-verification), and
+  `deepseek-coder-v2:16b` failed to load (a real out-of-memory error, not
+  a patching failure). The raw sweep preserves both non-success outcomes.
   See [`docs/FREE5GC_LLM_PATCH_SCOPE.md`](docs/FREE5GC_LLM_PATCH_SCOPE.md),
   [`docs/FREE5GC_LLM_PATCH_RESULTS.md`](docs/FREE5GC_LLM_PATCH_RESULTS.md),
   and [`docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`](docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md).
+  The October repeatability study then ran four local models three times
+  each: 9/12 attempts were runtime-confirmed, with one compile failure and
+  two compiled patches rejected by the runtime validator. See
+  [`docs/FREE5GC_PATCH_REPEAT_RESULTS.md`](docs/FREE5GC_PATCH_REPEAT_RESULTS.md)
+  and [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).
 
 The full written account of both results, alongside the main six-CVE
 catalogue and the hosted-model comparisons below, is
@@ -518,6 +524,16 @@ other model accepted; the Claude run cost $11.62 total, the largest
 single spend in this project. See
 [`docs/FREE5GC_BYPASS_PROBE_RESULTS.md`](docs/FREE5GC_BYPASS_PROBE_RESULTS.md)
 and [`docs/FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md`](docs/FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md).
+
+On 6 October 2026, the current harness repeated the bypass probe across all
+eight installed Ollama models in a separate run. **7 proposals executed and
+0/7 produced a genuine bypass** against the patched deployment. The
+`deepseek-coder-v2:16b` model was unevaluated because the local Ollama runtime
+ran out of memory before generation; this is preserved as an environment
+limitation, not counted as a security result. See
+[`docs/FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md`](docs/FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md)
+and the raw report
+[`reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json`](reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json).
 
 ---
 

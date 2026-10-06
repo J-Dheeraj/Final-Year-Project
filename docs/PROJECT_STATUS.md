@@ -2,6 +2,32 @@
 
 ## Session log
 
+- **2026-10-06 (all-installed-Ollama bypass probe)** — Asked all eight installed
+  Ollama models to probe the patched real free5GC deployment. Seven proposals
+  executed and **0/7 produced a confirmed bypass**; one model failed before
+  generation because of an Ollama runtime error. Preserved the raw report and
+  per-model evidence separately from the patch-generation sweeps; no hosted
+  calls were used.
+
+- **2026-10-06 (all-installed-Ollama snapshot)** — Ran all eight installed
+  Ollama models once through the real free5GC patch-generation, compilation,
+  and four-handler runtime validator under experiment ID
+  `october-2026-all-ollama`. Result: **5/8 runtime-confirmed**, two compile
+  failures, and one pre-generation model failure. Preserved the raw report,
+  per-model artifacts, and process logs separately from the 12-run
+  repeatability study; no hosted-model calls were used.
+
+- **2026-10-06 (October R&D freeze preparation)** — Added
+  `docs/EVIDENCE_LEDGER.md` and `docs/RESEARCH_FREEZE.md`, reconciled the
+  current raw local sweep count to **6/8 runtime-confirmed**, and corrected
+  the README, scope table, and upgraded report wording that had described
+  the current artifact as 7/8. Hardened `free5gc_full_deployment/sweep.py`
+  so repeated patch runs accept a unique `--run-id`, preserve a manifest and
+  generated source per model/run, record live-generation outcome, and keep
+  failed or inconclusive attempts in the persisted report. Existing tests
+  pass; the final repeated patch-generation study completed under the
+  October experiment ID with 9/12 runtime-confirmed attempts.
+
 - **2026-10-06 (Karpathy-guidelines cleanup pass, on `main`) - fixed
   the classifier bug's root cause instead of a 4th patch, consolidated
   5 scripts' duplicated Claude-backend wiring into one shared module,

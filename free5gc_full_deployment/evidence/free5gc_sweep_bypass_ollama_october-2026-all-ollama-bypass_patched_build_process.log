@@ -1,0 +1,14 @@
+2026-10-06T15:43:21.494795244Z[36m [INFO][UDR][Main] [0mUDR version:  
+	Not specify ldflags (which link version) during go build
+	go version: go1.26.8 linux/amd64
+2026-10-06T15:43:21.499559007Z[36m [INFO][UDR][CFG] [0mRead config from [./config/udrcfg.yaml]
+2026-10-06T15:43:21.501209530Z[36m [INFO][UDR][Util] [0mudrconfig Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-06T15:43:21.501253323Z[36m [INFO][UDR][Main] [0mLog enable is set to [true]
+2026-10-06T15:43:21.501256497Z[36m [INFO][UDR][Main] [0mLog level is set to [info]
+2026-10-06T15:43:21.501258481Z[36m [INFO][UDR][Main] [0mReport Caller is set to [false]
+2026-10-06T15:43:21.518310882Z[36m [INFO][UDR][Main] [0mOAuth2 setting receive from NRF: false
+2026-10-06T15:43:21.518334487Z[36m [INFO][UDR][Init] [0mregister to NRF successfully
+2026-10-06T15:43:21.518336978Z[36m [INFO][UDR][Init] [0mServer started
+2026-10-06T15:43:21.518341040Z[36m [INFO][UDR][Init] [0mUDR Config Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-06T15:43:21.519041254Z[36m [INFO][UDR][SBI] [0mStarting server...
+2026-10-06T15:43:22.561280659Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify |  |

@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 
 os.environ["NO_PAID_BACKEND"] = "0"  # see src/reachability/providers.py's import-order note
 
@@ -80,8 +81,20 @@ def provider_factory_for(backend: str):
     return ClaudeCLIProvider if backend == "claude" else OllamaProvider
 
 
-def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict) -> dict:
-    entry = {"model": model, "run": run_idx, "compile": None, "runtime": None, "build_ok": None}
+def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
+                  artifact_root: Path | None = None,
+                  experiment_id: str | None = None) -> dict:
+    entry = {"model": model, "run": run_idx, "compile": None, "runtime": None,
+             "build_ok": None, "generation_outcome": "llm_live_failed"}
+    if artifact_root is not None:
+        artifact_root.mkdir(parents=True, exist_ok=True)
+        entry["artifact_dir"] = str(artifact_root)
+
+    def persist_artifact() -> None:
+        if artifact_root is not None:
+            (artifact_root / "manifest.json").write_text(
+                json.dumps(entry, indent=2), encoding="utf-8")
+
     try:
         if backend == "claude":
             provider = ClaudeCLIProvider(model)
@@ -98,27 +111,43 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict) -> 
             "diff": compile_result["diff"],
             "cost_usd": cost,
         }
+        if compile_result.get("patch_method"):
+            entry["generation_outcome"] = "llm_live_success"
+        elif compile_result.get("error"):
+            entry["generation_outcome"] = "llm_live_failed"
         if not compile_result["compiles"]:
+            persist_artifact()
             return entry
 
-        tag = f"sweep-{safe_tag(model)}-r{run_idx}"
+        tag_prefix = safe_tag(experiment_id) if experiment_id else "sweep"
+        tag = f"{tag_prefix}-{safe_tag(model)}-r{run_idx}"
         patched_file = Path(compile_result["output_file"])
+        if artifact_root is not None:
+            # Preserve the generated source even when the subsequent Docker
+            # build or runtime stage fails.
+            shutil.copy2(patched_file, artifact_root / patched_file.name)
+            persist_artifact()
         build_ok, build_log = docker_build(patched_file, tag)
         entry["build_ok"] = build_ok
         if not build_ok:
             entry["build_log_tail"] = build_log[-1000:]
+            persist_artifact()
             return entry
 
         base.bring_up(tag)
         patched_result = base.run_case(f"{tag}_sweep")
         base.save_container_log(f"{tag}_sweep")
         entry["runtime"] = verdict_from(vuln_result, patched_result)
+        persist_artifact()
     except Exception as e:
         # One model/run's crash must not lose every other already-completed result.
         print(f"[{model} run {run_idx}] UNEXPECTED ERROR: {type(e).__name__}: {e}")
         if entry["compile"] is None:
             entry["compile"] = {"patch_method": None, "applied": 0, "compiles": False,
                                  "error": f"{type(e).__name__}: {e}", "diff": None, "cost_usd": None}
+        entry["generation_outcome"] = "llm_live_failed"
+        if artifact_root is not None:
+            persist_artifact()
     return entry
 
 
@@ -130,13 +159,19 @@ def main() -> None:
                      help="comma-separated override; default is the task/backend's established list")
     ap.add_argument("--runs", type=int, default=1,
                      help="repeat each model N times to measure confirmation-rate variance (default 1)")
+    ap.add_argument("--run-id", default=None,
+                    help="unique label for this experiment; isolates reports and artifacts")
     args = ap.parse_args()
 
     models = args.models.split(",") if args.models else DEFAULT_MODELS[(args.task, args.backend)]
     out_dir = HERE.parent / "reports" / "reachability"
     out_dir.mkdir(parents=True, exist_ok=True)
     (HERE / "evidence").mkdir(exist_ok=True)
-    report_stem = f"free5gc_sweep_{args.task}_{args.backend}"
+    if args.runs < 1:
+        ap.error("--runs must be at least 1")
+    run_suffix = f"_{safe_tag(args.run_id)}" if args.run_id else ""
+    report_stem = f"free5gc_sweep_{args.task}_{args.backend}{run_suffix}"
+    artifact_base = out_dir / (args.run_id or report_stem)
 
     vuln_result = None
     print("Bringing up db + real NRF (idempotent if already up)...")
@@ -160,7 +195,8 @@ def main() -> None:
 
     def persist() -> None:
         report = {
-            "task": args.task, "backend": args.backend, "runs_per_model": args.runs,
+            "task": args.task, "backend": args.backend, "experiment_id": args.run_id or report_stem,
+            "runs_per_model": args.runs,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "models": results,
         }
@@ -208,7 +244,10 @@ def main() -> None:
             label = f"{model} (run {run_idx}/{args.runs})" if args.runs > 1 else model
             print(f"\n{'='*70}\n{label}\n{'='*70}")
             if args.task == "patch":
-                entry = run_patch_one(model, args.backend, run_idx, vuln_result)
+                artifact_root = artifact_base / safe_tag(model) / f"run-{run_idx}"
+                entry = run_patch_one(model, args.backend, run_idx, vuln_result,
+                                      artifact_root=artifact_root,
+                                      experiment_id=args.run_id or report_stem)
                 cost = entry["compile"].get("cost_usd") if entry.get("compile") else None
             else:
                 entry = probe_one_model(model, provider_factory=provider_factory_for(args.backend))

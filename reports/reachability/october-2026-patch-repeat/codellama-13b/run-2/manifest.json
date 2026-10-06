@@ -1,0 +1,15 @@
+{
+  "model": "codellama:13b",
+  "run": 2,
+  "compile": {
+    "patch_method": "llm-ollama",
+    "applied": 4,
+    "compiles": false,
+    "error": "patched source doesn't build",
+    "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -1,3 +1,5 @@\n+The corrected function body is:\n+```go\n func (s *Server) HandleApplicationDataInfluenceDataSubsToNotifyGet(c *gin.Context) {\n \tlogger.DataRepoLog.Tracef(\"Handle ApplicationDataInfluenceDataSubsToNotifyGet\")\n \n@@ -26,6 +28,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+    "cost_usd": null
+  },
+  "runtime": null,
+  "build_ok": null,
+  "generation_outcome": "llm_live_success"
+}

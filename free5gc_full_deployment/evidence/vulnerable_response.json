@@ -4,7 +4,7 @@
     "status_code": 200,
     "headers": {
       "Content-Type": "application/json; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "69"
     },
     "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
@@ -13,7 +13,7 @@
     "status_code": 400,
     "headers": {
       "Content-Type": "application/json; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "174"
     },
     "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}[{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}]"
@@ -23,7 +23,7 @@
     "status_code": 404,
     "headers": {
       "Content-Type": "text/plain; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "87"
     },
     "body": "404 page not found{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
@@ -33,7 +33,7 @@
     "status_code": 404,
     "headers": {
       "Content-Type": "text/plain; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "96"
     },
     "body": "404 page not found{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
@@ -42,7 +42,7 @@
     "status_code": 200,
     "headers": {
       "Content-Type": "application/json; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "78"
     },
     "body": "{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
@@ -52,7 +52,7 @@
     "status_code": 200,
     "headers": {
       "Content-Type": "application/json; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "69"
     },
     "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
@@ -61,7 +61,7 @@
     "status_code": 404,
     "headers": {
       "Content-Type": "text/plain; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "18"
     },
     "body": "404 page not found"
@@ -70,7 +70,7 @@
     "status_code": 404,
     "headers": {
       "Content-Type": "application/json; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "64"
     },
     "body": "{\"title\":\"User not found\",\"status\":404,\"cause\":\"USER_NOT_FOUND\"}"
@@ -80,7 +80,7 @@
     "status_code": 200,
     "headers": {
       "Content-Type": "application/json; charset=utf-8",
-      "Date": "Mon, 28 Sep 2026 00:31:29 GMT",
+      "Date": "Tue, 06 Oct 2026 15:23:58 GMT",
       "Content-Length": "69"
     },
     "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
