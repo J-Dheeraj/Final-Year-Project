@@ -2,6 +2,35 @@
 
 ## Session log
 
+- **2026-10-06 (methodology-pitfalls writeup; "do everything" list
+  complete, on `main`)** — Final item (9) of the brainstormed
+  enhancement list, per "do everything, do it in the right order".
+  `docs/METHODOLOGY_PITFALLS.md` synthesizes every real bug found and
+  caught this session (7 entries: the memorization-control CRLF bug,
+  the malformed-headers crash, a second classifier false-positive
+  variant, the OAuth2 hidden second authorization layer, three LLM
+  logic bugs in the OpenEMR extension, the main-catalogue XSS
+  oracle false positive, and the investigated-but-not-a-bug Claude
+  patch-clustering pattern) alongside 4 earlier, equally real findings
+  from before this session (WSL/Ollama port gap, markdown-commentary
+  patch corruption, the original bypass-probe classifier bug,
+  Anthropic's own cyber safeguards refusing a prompt). All 9 items
+  from the brainstormed list are now done:
+  1. Sweep-script unification (`sweep.py`)
+  2. Memorization control (synthetic vs. real CVE, matched models)
+  3. Multi-run variance (bypass-probe, 3 runs x 2 models)
+  4. Real OAuth2 enforcement (opt-in override, independent of the fix)
+  5. OpenEMR extension (LLM patch-gen + bypass-probe)
+  6. Main 6-CVE catalogue bypass-probe (0/48, one false positive caught)
+  7. Multi-turn adversarial probing (0/7 within 3 rounds)
+  8. Patch-quality scoring beyond pass/fail (9/14 byte-identical to the real fix)
+  9. This methodology-pitfalls writeup
+  Every item is documented, committed, and pushed individually with
+  its own doc under `docs/`. Three explicit check-ins with the user
+  happened along the way (before OAuth2, before extending OpenEMR's
+  previously-locked scope); everything else proceeded directly per the
+  standing instruction.
+
 - **2026-10-06 (free5GC patch-quality scoring beyond pass/fail, on
   `main`) - 9/14 already-generated patches are byte-identical to the
   real fix; an unexpected clustering investigated and explained before
