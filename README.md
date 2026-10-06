@@ -535,12 +535,12 @@ limitation, not counted as a security result. See
 and the raw report
 [`reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json`](reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json).
 
-The same pipeline was then run through the authenticated **Codex CLI** across
-12 requested model IDs, including older GPT-5, GPT-4, and o-series names. Seven
-models completed patch generation, compilation, and four-handler runtime
-validation; all seven were confirmed fixes. Five older IDs failed before a
-usage event or patch was returned and remain recorded as environment-limited.
-The bypass phase executed 5 proposals and found **0 genuine bypasses**. Each
+An initial pass through the authenticated **Codex CLI** covered 12 requested
+model IDs, including older GPT-5, GPT-4, and o-series names. Seven models
+completed patch generation, compilation, and four-handler runtime validation;
+all seven were confirmed fixes. Five older IDs failed before a usage event or
+patch was returned and remain recorded as environment-limited. That pass's
+bypass phase executed 5 proposals and found **0 genuine bypasses**. Each
 completed Codex call records duration and input/output token usage, including
 cached and reasoning-token fields when supplied by the CLI. See
 [`docs/FREE5GC_CODEX_SWEEP_2026-10-07.md`](docs/FREE5GC_CODEX_SWEEP_2026-10-07.md).
@@ -549,10 +549,12 @@ GPT-3.5, `text-davinci-003`, and `davinci`; all six were preserved as
 environment-limited because the Codex CLI terminated during skill discovery
 before returning a completion or usage event.
 
-The final 18-model Codex matrix re-ran both stages in one experiment: 7/18
-patches were runtime-confirmed across all four handlers, and 4 bypass proposals
-executed with 0 genuine bypasses. The final raw reports preserve the 14
-environment-limited model attempts and their per-run timing and usage fields.
+The final 18-model Codex matrix then re-ran both stages in one experiment:
+**7/18 patches were runtime-confirmed across all four handlers**, and 4 bypass
+proposals executed with **0 genuine bypasses**. The final raw reports preserve
+the 14 environment-limited model attempts and their per-run timing and usage
+fields: [patch results](reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-final.json)
+and [bypass results](reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-final-bypass.json).
 
 ---
 
