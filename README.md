@@ -549,6 +549,11 @@ GPT-3.5, `text-davinci-003`, and `davinci`; all six were preserved as
 environment-limited because the Codex CLI terminated during skill discovery
 before returning a completion or usage event.
 
+The final 18-model Codex matrix re-ran both stages in one experiment: 7/18
+patches were runtime-confirmed across all four handlers, and 4 bypass proposals
+executed with 0 genuine bypasses. The final raw reports preserve the 14
+environment-limited model attempts and their per-run timing and usage fields.
+
 ---
 
 ## OpenEMR transfer case — GHSA-q366-cv5v-83w8

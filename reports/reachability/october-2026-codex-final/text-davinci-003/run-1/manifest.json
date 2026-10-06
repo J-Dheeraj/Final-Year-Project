@@ -1,0 +1,55 @@
+{
+  "model": "text-davinci-003",
+  "run": 1,
+  "compile": {
+    "patch_method": null,
+    "applied": 0,
+    "compiles": false,
+    "error": "generate_patch failed: RuntimeError: codex exec failed (exit 1): 2026-10-06T17:00:37.648173Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+    "diff": null,
+    "cost_usd": null,
+    "duration_s": 4.2811689999944065,
+    "usage": {},
+    "thread_id": "01a11228-f857-7b23-b3c9-45d8b1b81015",
+    "billing_basis": "codex-cli ChatGPT auth",
+    "raw_usage_events": [
+      {
+        "type": "thread.started",
+        "thread_id": "01a11228-f857-7b23-b3c9-45d8b1b81015"
+      },
+      {
+        "type": "item.completed",
+        "item": {
+          "id": "item_0",
+          "type": "error",
+          "message": "Model metadata for `text-davinci-003` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+        }
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "type": "item.completed",
+        "item": {
+          "id": "item_1",
+          "type": "error",
+          "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+        }
+      },
+      {
+        "type": "error",
+        "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'text-davinci-003' model is not supported when using Codex with a ChatGPT account.\"}}"
+      },
+      {
+        "type": "turn.failed",
+        "error": {
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'text-davinci-003' model is not supported when using Codex with a ChatGPT account.\"}}"
+        }
+      }
+    ]
+  },
+  "runtime": null,
+  "build_ok": null,
+  "generation_outcome": "llm_live_failed",
+  "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\october-2026-codex-final\\text-davinci-003\\run-1"
+}

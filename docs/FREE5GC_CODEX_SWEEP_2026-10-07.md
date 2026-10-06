@@ -77,3 +77,17 @@ Raw GPT-3-era reports:
 
 - `reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-gpt3-models.json`
 - `reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-gpt3-bypass.json`
+
+## Final 18-model matrix
+
+The final matrix re-ran all 18 IDs in one isolated experiment. **7/18 patches
+compiled and all 7 were runtime-confirmed across the four handlers.** The
+bypass phase produced 4 executable proposals and **0/4 confirmed bypasses**;
+the other 14 models failed before returning a parseable proposal. The final
+run recorded 186,270 input and 2,528 output tokens for patch generation, plus
+104,317 input and 974 output tokens for bypass probing.
+
+Final raw reports:
+
+- `reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-final.json`
+- `reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-final-bypass.json`

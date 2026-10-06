@@ -1,0 +1,55 @@
+{
+  "model": "gpt-4.1",
+  "run": 1,
+  "compile": {
+    "patch_method": null,
+    "applied": 0,
+    "compiles": false,
+    "error": "generate_patch failed: RuntimeError: codex exec failed (exit 1): 2026-10-06T17:00:07.606494Z ERROR codex_skills_extension::loader::host: skills scan reached its traversal limit (root: file:///C:/Users/dheer/.agents/skills)\n",
+    "diff": null,
+    "cost_usd": null,
+    "duration_s": 3.888670500004082,
+    "usage": {},
+    "thread_id": "01a11228-830a-73d3-b451-374e3fb02bf9",
+    "billing_basis": "codex-cli ChatGPT auth",
+    "raw_usage_events": [
+      {
+        "type": "thread.started",
+        "thread_id": "01a11228-830a-73d3-b451-374e3fb02bf9"
+      },
+      {
+        "type": "item.completed",
+        "item": {
+          "id": "item_0",
+          "type": "error",
+          "message": "Model metadata for `gpt-4.1` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+        }
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "type": "item.completed",
+        "item": {
+          "id": "item_1",
+          "type": "error",
+          "message": "Exceeded skills context budget. All skill descriptions were removed and 652 additional skills were not included in the model-visible skills list."
+        }
+      },
+      {
+        "type": "error",
+        "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-4.1' model is not supported when using Codex with a ChatGPT account.\"}}"
+      },
+      {
+        "type": "turn.failed",
+        "error": {
+          "message": "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-4.1' model is not supported when using Codex with a ChatGPT account.\"}}"
+        }
+      }
+    ]
+  },
+  "runtime": null,
+  "build_ok": null,
+  "generation_outcome": "llm_live_failed",
+  "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\october-2026-codex-final\\gpt-4-1\\run-1"
+}
