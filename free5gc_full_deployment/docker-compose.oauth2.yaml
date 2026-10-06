@@ -1,0 +1,16 @@
+# OPT-IN override for the OAuth2 enforcement experiment
+# (docs/FREE5GC_OAUTH2_ENFORCEMENT_RESULTS.md). Only takes effect when
+# explicitly included with `-f`:
+#
+#   docker compose -f docker-compose.yaml -f docker-compose.override.yaml \
+#       -f docker-compose.oauth2.yaml up -d free5gc-nrf
+#
+# Every other script/doc in this project assumes the default
+# docker-compose.yaml's nrfcfg.yaml (oauth: false) and must keep working
+# unmodified - this file exists so OAuth2 can be turned on for this one
+# experiment without touching that shared default.
+services:
+  free5gc-nrf:
+    volumes:
+      - ./config/nrfcfg_oauth2.yaml:/free5gc/config/nrfcfg.yaml
+      - ./cert:/free5gc/cert

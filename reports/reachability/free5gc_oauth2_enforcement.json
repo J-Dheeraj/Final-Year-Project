@@ -1,0 +1,186 @@
+{
+  "experiment": "oauth2_enforcement",
+  "cve_id": "CVE-2026-40248",
+  "note": "Every other free5GC result in this project runs with OAuth2 explicitly disabled on the NRF. This experiment turns it on via an opt-in compose override and re-runs the same probe sequence with and without a valid, correctly-scoped bearer token, against both the vulnerable and the real-fix-patched UDR image.",
+  "generated_at": "2026-10-06T02:50:07.860261+00:00",
+  "results": {
+    "vulnerable": {
+      "oauth2_confirmed_active": true,
+      "no_credentials": {
+        "label": "vulnerable_no_token",
+        "token_present": false,
+        "seed": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "collection_get_empty_query": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "collection_get_leaked_data": false,
+        "single_get_wrong_influence_id": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "single_get_leaked_data": false,
+        "benign_get_correct_influence_id": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "benign_path_preserved": false
+      },
+      "valid_scoped_token": {
+        "label": "vulnerable_valid_token",
+        "token_present": true,
+        "seed": {
+          "status_code": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "69"
+          },
+          "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+        },
+        "collection_get_empty_query": {
+          "status_code": 400,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "174"
+          },
+          "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}[{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}]"
+        },
+        "collection_get_leaked_data": true,
+        "single_get_wrong_influence_id": {
+          "status_code": 404,
+          "headers": {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "87"
+          },
+          "body": "404 page not found{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+        },
+        "single_get_leaked_data": true,
+        "benign_get_correct_influence_id": {
+          "status_code": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:05 GMT",
+            "Content-Length": "69"
+          },
+          "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+        },
+        "benign_path_preserved": true
+      }
+    },
+    "patched": {
+      "oauth2_confirmed_active": true,
+      "no_credentials": {
+        "label": "patched_no_token",
+        "token_present": false,
+        "seed": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "collection_get_empty_query": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "collection_get_leaked_data": false,
+        "single_get_wrong_influence_id": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "single_get_leaked_data": false,
+        "benign_get_correct_influence_id": {
+          "status_code": 401,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "53"
+          },
+          "body": "{\"error\":\"verify OAuth Authorization header invalid\"}"
+        },
+        "benign_path_preserved": false
+      },
+      "valid_scoped_token": {
+        "label": "patched_valid_token",
+        "token_present": true,
+        "seed": {
+          "status_code": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "69"
+          },
+          "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+        },
+        "collection_get_empty_query": {
+          "status_code": 400,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "103"
+          },
+          "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}"
+        },
+        "collection_get_leaked_data": false,
+        "single_get_wrong_influence_id": {
+          "status_code": 404,
+          "headers": {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "18"
+          },
+          "body": "404 page not found"
+        },
+        "single_get_leaked_data": false,
+        "benign_get_correct_influence_id": {
+          "status_code": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8",
+            "Date": "Tue, 06 Oct 2026 02:50:07 GMT",
+            "Content-Length": "69"
+          },
+          "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+        },
+        "benign_path_preserved": true
+      }
+    }
+  }
+}

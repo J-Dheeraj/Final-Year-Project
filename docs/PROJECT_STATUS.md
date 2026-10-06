@@ -2,6 +2,55 @@
 
 ## Session log
 
+- **2026-10-06 (free5GC real OAuth2 enforcement, on `main`) - OAuth2
+  blocks unauthenticated callers but provides zero additional
+  protection against CVE-2026-40248 once any validly-scoped token is
+  held; two real complications traced and resolved before trusting the
+  result** — Continuing "do everything, do it in the right order", item
+  4 (OAuth2 enforcement). Every prior free5GC result in this project
+  runs with OAuth2 explicitly disabled on the NRF
+  (`run_full_deployment_harness.py`'s own docstring calls this "out of
+  scope"). Added an opt-in compose override
+  (`compose/docker-compose.oauth2.yaml` + `compose/config/nrfcfg_oauth2.yaml`,
+  activated only via an explicit third `-f` file so the default stack
+  every other script relies on is untouched) that turns `oauth: true`
+  on, confirmed genuinely active via the UDR's own startup log line
+  ("OAuth2 setting receive from NRF: true") rather than assumed. Minted
+  an RS512 JWT directly with the NRF's own already-committed private
+  key (`compose/cert/nrf.key`) - not "forging" a token, constructing
+  one server-side with the same key the real NRF would use - and tested
+  both the vulnerable and real-fix-patched UDR image under (a) no
+  credentials at all and (b) a valid, correctly-scoped token. Found and
+  resolved two real complications before trusting anything: (1) a first
+  attempt with a made-up `sub` claim got rejected on every PUT with
+  `401 REQUESTER_IDENTITY_UNRESOLVED` - traced into the real vendored
+  source to a SECOND, independent authorization layer
+  (`subscriptionCallbackTargetFromContext` doing a live `GetNFInstance`
+  lookup against the NRF, only when OAuth2Required is true) that
+  `VerifyOAuth()`'s basic scope check never exercises; fixed by using a
+  real, currently-registered NF instance ID (queried live from NRF's
+  own `NfProfile` collection) as `sub` instead. (2) a leaked-collection
+  response body that looked suspiciously concatenated
+  (`{"status":400,...}[{"dnns":...}]` with no separator) was verified
+  via `repr()` and the response's own `Content-Length` header before
+  being trusted - confirmed as a real, single response reproducing the
+  same already-established leak heuristic, not a new artifact. Result:
+  401 for both builds with no credentials (OAuth2 genuinely gates
+  everything); with a valid token, the vulnerable build's collection
+  and single-record leaks reproduce exactly as in every OAuth2-disabled
+  result while the patched build's fix still holds, and the legitimate
+  caller's benign path is preserved in both. Conclusion: OAuth2 and the
+  CWE-285 fix are independent, complementary layers, not substitutes -
+  OAuth2 blocks anonymous callers but provides no protection against a
+  credentialed attacker (e.g. a compromised NF) once the CWE-285 bug is
+  present. Documented in `docs/FREE5GC_OAUTH2_ENFORCEMENT_RESULTS.md`.
+  Stack restored to its default OAuth2-disabled state afterward
+  (confirmed via the same log line) so every other script/doc in this
+  project keeps working as documented. Remaining "do everything" items
+  (OpenEMR extension, main-catalogue bypass-probe, multi-turn
+  adversarial probing, patch-quality scoring, methodology-pitfalls
+  writeup) still queued.
+
 - **2026-10-06 (free5GC multi-run variance via the new sweep.py, on
   `main`) - two more real bugs found and fixed, including a second
   variant of an already-fixed classifier false-positive** — Continuing
