@@ -1,0 +1,148 @@
+{
+  "experiment": "patch_quality_scoring",
+  "target_function": "HandleApplicationDataInfluenceDataSubsToNotifyGet",
+  "method": "difflib.SequenceMatcher ratio + line-based diff stats against the real upstream fix's own version of the same function; no new model calls - scores already-generated, already compile/runtime-confirmed patches from prior sessions",
+  "generated_at": "2026-10-06T04:04:03.618961+00:00",
+  "models": [
+    {
+      "model": "qwen2.5-coder:7b (original single-model run)",
+      "file": "api_datarepository_llm_patched.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "file": "api_datarepository_llm_patched_claude-haiku-4-5-20251001.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "claude-opus-4-6",
+      "file": "api_datarepository_llm_patched_claude-opus-4-6.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "claude-opus-4-7",
+      "file": "api_datarepository_llm_patched_claude-opus-4-7.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "claude-opus-4-8",
+      "file": "api_datarepository_llm_patched_claude-opus-4-8.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "claude-opus-5-5",
+      "file": "api_datarepository_llm_patched_claude-opus-5-5.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "file": "api_datarepository_llm_patched_claude-sonnet-4-6.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "file": "api_datarepository_llm_patched_claude-sonnet-5-5.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "gemma2:9b",
+      "file": "api_datarepository_llm_patched_gemma2-9b.go",
+      "diff_similarity_ratio": 1.0,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 0,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": true
+    },
+    {
+      "model": "codellama:13b",
+      "file": "api_datarepository_llm_patched_codellama-13b.go",
+      "diff_similarity_ratio": 0.9851,
+      "lines_added_vs_real_fix": 0,
+      "lines_removed_vs_real_fix": 1,
+      "model_function_line_count": 33,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": false
+    },
+    {
+      "model": "qwen2.5-coder:1.5b",
+      "file": "api_datarepository_llm_patched_qwen2-5-coder-1-5b.go",
+      "diff_similarity_ratio": 0.9552,
+      "lines_added_vs_real_fix": 1,
+      "lines_removed_vs_real_fix": 2,
+      "model_function_line_count": 33,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": false
+    },
+    {
+      "model": "llama3.1:8b",
+      "file": "api_datarepository_llm_patched_llama3-1-8b.go",
+      "diff_similarity_ratio": 0.9412,
+      "lines_added_vs_real_fix": 2,
+      "lines_removed_vs_real_fix": 2,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": false
+    },
+    {
+      "model": "qwen2.5-coder:3b",
+      "file": "api_datarepository_llm_patched_qwen2-5-coder-3b.go",
+      "diff_similarity_ratio": 0.9412,
+      "lines_added_vs_real_fix": 2,
+      "lines_removed_vs_real_fix": 2,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": false
+    },
+    {
+      "model": "mistral:7b",
+      "file": "api_datarepository_llm_patched_mistral-7b.go",
+      "diff_similarity_ratio": 0.9118,
+      "lines_added_vs_real_fix": 3,
+      "lines_removed_vs_real_fix": 3,
+      "model_function_line_count": 34,
+      "real_fix_function_line_count": 34,
+      "minimal_fix_shape": false
+    }
+  ]
+}

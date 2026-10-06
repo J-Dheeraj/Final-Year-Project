@@ -2,6 +2,37 @@
 
 ## Session log
 
+- **2026-10-06 (free5GC patch-quality scoring beyond pass/fail, on
+  `main`) - 9/14 already-generated patches are byte-identical to the
+  real fix; an unexpected clustering investigated and explained before
+  trusting the scores** — Continuing "do everything, do it in the
+  right order", item 8 (patch-quality scoring). Built
+  `src/reachability/score_patch_quality.py` - pure analysis, no new
+  model calls - scoring diff-similarity (difflib, line-based) of the
+  14 already-generated, already compile/runtime-confirmed free5GC LLM
+  patches against the real upstream fix's own version of the same
+  function. 9/14 scored a perfect 1.0 (byte-identical). Checked whole-
+  file MD5s before trusting this: found two clusters of identical
+  files (qwen2.5-coder:7b + gemma2:9b + claude-haiku-4-5-20251001 all
+  identical; separately, 6 Claude model names - opus-4-6/4-7/4-8/5-5,
+  sonnet-4-6/5-5 - all identical to each other). Investigated whether
+  this meant some Claude model names were secretly resolving to the
+  same underlying model (a real concern, given this project's own
+  documented history of Claude model-name resolution issues) by
+  checking the already-recorded per-model COST data from the original
+  sweeps: each of the 6 has a distinct, real cost ($0.1494-$1.1334),
+  evidence these were genuinely separate API calls, not one cached
+  response. Concluded the most likely explanation is genuine
+  convergence on the single, narrowly-constrained obviously-correct
+  fix (echo the whole short function back with one idiomatic `return`
+  inserted) rather than a measurement bug - stated as a probability
+  judgment, not asserted with certainty, and flagged for anyone who
+  wants to investigate further. The remaining 5 (weaker Ollama models)
+  showed a real, modest quality gradient (1-3 extra added/removed
+  lines each) pass/fail never surfaced before. Documented in
+  `docs/PATCH_QUALITY_SCORING_RESULTS.md`. Only item 9 (methodology-
+  pitfalls writeup) remains from the "do everything" list.
+
 - **2026-10-06 (free5GC multi-turn bypass-probe, on `main`) - 0/7
   genuine bypasses across 3 rounds each; verified two already-fixed
   false-positive patterns before trusting the clean result** —
