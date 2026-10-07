@@ -119,6 +119,17 @@ model failed before generation because of an Ollama runtime error, so it is
 recorded as unevaluated rather than as a security success or failure.
 [docs/FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md](FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md)
 
+## 13. Final Codex CLI model matrix
+
+The final Codex CLI matrix attempted 18 model IDs, including GPT-3-era,
+GPT-4, GPT-5, GPT-5.6, GPT-6, and o-series names. **7/18 patches compiled and
+all 7 were runtime-confirmed across the four handlers.** The bypass phase
+executed 4 proposals and found **0 genuine bypasses**; the remaining attempts
+were preserved as environment-limited failures. The final run recorded
+186,270 input and 2,528 output tokens for patch generation, plus 104,317 input
+and 974 output tokens for bypass probing.
+[docs/FREE5GC_CODEX_SWEEP_2026-10-07.md](FREE5GC_CODEX_SWEEP_2026-10-07.md)
+
 ## Total measured paid-backend cost (Claude re-run pass)
 
 **$29.53** across all 4 re-run experiments plus debug smoke tests -

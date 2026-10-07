@@ -10,6 +10,13 @@
   bypasses. Older or unavailable IDs remain explicitly environment-limited.
   See `docs/FREE5GC_CODEX_SWEEP_2026-10-07.md` and the raw reports.
 
+- **2026-10-07 (final Codex matrix and Ollama accounting)** — Re-ran the
+  18-model Codex matrix: **7/18** patches were runtime-confirmed and 4 bypass
+  proposals executed with zero confirmed bypasses. Added native Ollama usage
+  capture for duration, prompt/output tokens, total tokens, and timing
+  breakdowns; the historical Ollama reports remain explicitly marked as
+  predating that instrumentation.
+
 - **2026-10-06 (all-installed-Ollama bypass probe)** — Asked all eight installed
   Ollama models to probe the patched real free5GC deployment. Seven proposals
   executed and **0/7 produced a confirmed bypass**; one model failed before
