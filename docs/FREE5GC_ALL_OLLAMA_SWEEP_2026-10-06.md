@@ -29,3 +29,8 @@ could be evaluated. No hosted-model calls were used.
 This is a separate single-run snapshot. The controlled repeatability result
 remains the 12-run study in `docs/FREE5GC_PATCH_REPEAT_RESULTS.md`.
 
+New Ollama sweeps now preserve per-call accounting from the native response:
+wall-clock duration, prompt-evaluation input tokens, generated output tokens,
+total tokens, model-load duration, prompt-evaluation duration, and generation
+duration. This historical snapshot predates that instrumentation, so its raw
+report does not contain these fields.

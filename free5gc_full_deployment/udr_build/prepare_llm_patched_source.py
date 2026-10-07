@@ -117,13 +117,13 @@ def materialize_and_verify(model: str, provider_factory=OllamaProvider) -> dict:
         result["duration_s"] = getattr(provider, "last_duration_s", None)
         result["thread_id"] = getattr(provider, "last_thread_id", None)
         result["raw_usage_events"] = getattr(provider, "last_raw_events", None)
-        result["billing_basis"] = "codex-cli ChatGPT auth" if provider.__class__.__name__ == "CodexCLIProvider" else None
+        result["billing_basis"] = getattr(provider, "billing_basis", None)
         return result
     result["usage"] = getattr(provider, "last_usage", None)
     result["duration_s"] = getattr(provider, "last_duration_s", None)
     result["thread_id"] = getattr(provider, "last_thread_id", None)
     result["raw_usage_events"] = getattr(provider, "last_raw_events", None)
-    result["billing_basis"] = "codex-cli ChatGPT auth" if provider.__class__.__name__ == "CodexCLIProvider" else None
+    result["billing_basis"] = getattr(provider, "billing_basis", None)
     result["patch_method"] = llm_patch.method
     result["diff"] = llm_patch.diff
 

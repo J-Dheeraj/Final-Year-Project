@@ -534,6 +534,11 @@ limitation, not counted as a security result. See
 [`docs/FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md`](docs/FREE5GC_ALL_OLLAMA_BYPASS_2026-10-06.md)
 and the raw report
 [`reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json`](reports/reachability/free5gc_sweep_bypass_ollama_october-2026-all-ollama-bypass.json).
+The Ollama provider now preserves native per-call accounting in new sweeps:
+wall-clock duration, `prompt_eval_count` as input tokens, `eval_count` as
+output tokens, total tokens, and Ollama's nanosecond timing breakdown. Local
+Ollama runs have a zero monetary backend charge; these fields support hardware
+runtime analysis and any separately defined equivalent-cost calculation.
 
 An initial pass through the authenticated **Codex CLI** covered 12 requested
 model IDs, including older GPT-5, GPT-4, and o-series names. Seven models

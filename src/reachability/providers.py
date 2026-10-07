@@ -16,6 +16,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
@@ -112,6 +113,7 @@ class ClaudeCLIProvider(Provider):
             )
         self._model = model
         self.last_cost_usd: float | None = None
+        self.billing_basis = "claude-cli metered"
 
     def complete(self, system: str, user: str) -> str:
         prompt = f"{system}\n\n{user}"
@@ -148,6 +150,7 @@ class CodexCLIProvider(Provider):
     def __init__(self, model: str | None = None):
         self._model = model
         self.last_cost_usd: float | None = None
+        self.billing_basis = "codex-cli ChatGPT auth"
         self.last_duration_s: float | None = None
         self.last_usage: dict = {}
         self.last_thread_id: str | None = None
@@ -277,6 +280,11 @@ class OllamaProvider(Provider):
     def __init__(self, model: str | None = None):
         self._base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
         self._model = model or os.environ.get("REACHCRS_MODEL", "llama3.2:3b")
+        self.last_cost_usd: float = 0.0
+        self.billing_basis = "ollama-local zero-cost"
+        self.last_duration_s: float | None = None
+        self.last_usage: dict = {}
+        self.last_raw_events: list[dict] = []
         # Fail fast with a clear message rather than a raw connection-refused
         # traceback if Ollama isn't actually reachable at this URL.
         try:
@@ -292,6 +300,7 @@ class OllamaProvider(Provider):
             ) from e
 
     def complete(self, system: str, user: str) -> str:
+        started = time.perf_counter()
         body = json.dumps({
             "model": self._model,
             "messages": [
@@ -319,6 +328,20 @@ class OllamaProvider(Provider):
         except urllib.error.HTTPError as e:
             detail = e.read().decode("utf-8", errors="replace")
             raise RuntimeError(f"Ollama request failed ({e.code}): {detail}") from e
+        self.last_duration_s = time.perf_counter() - started
+        prompt_tokens = data.get("prompt_eval_count")
+        output_tokens = data.get("eval_count")
+        self.last_usage = {
+            "input_tokens": prompt_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": ((prompt_tokens or 0) + (output_tokens or 0))
+            if prompt_tokens is not None or output_tokens is not None else None,
+            "total_duration_ns": data.get("total_duration"),
+            "load_duration_ns": data.get("load_duration"),
+            "prompt_eval_duration_ns": data.get("prompt_eval_duration"),
+            "eval_duration_ns": data.get("eval_duration"),
+        }
+        self.last_raw_events = [data]
         return data.get("message", {}).get("content", "")
 
 
