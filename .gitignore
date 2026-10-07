@@ -63,7 +63,18 @@ env/
 Thumbs.db
 *.stackdump
 graphify-out/
+!graphify-out/
+graphify-out/*
+!graphify-out/graph.html
+!graphify-out/GRAPH_REPORT.md
 build-check-report/
+
+# Archify diagram output: keep the finalized HTML + authoring source,
+# ignore the regeneration receipts (regenerated each `finalize` run)
+.archify/**/*.finalize.json
+.archify/**/*.finalize-summary.json
+.archify/**/*.delivery.json
+.archify/**/*.browser-check.json
 
 # Real-upstream case study venvs (reproducible via pip install, not committed)
 real_upstream_case/**/venv_*/
