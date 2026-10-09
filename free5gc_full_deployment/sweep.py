@@ -45,7 +45,8 @@ sys.path.insert(0, str(HERE / "udr_build"))
 sys.path.insert(0, str(HERE.parent))
 
 import prepare_llm_patched_source as prep  # noqa: E402 - bakes NO_PAID_BACKEND into providers.py
-from src.reachability.providers import OllamaProvider, ClaudeCLIProvider, CodexCLIProvider  # noqa: E402
+from src.reachability.providers import OllamaProvider, ClaudeCLIProvider, CodexCLIProvider, OpenAIProvider  # noqa: E402
+from src.reachability.claude_backend import OPENAI_MODELS  # noqa: E402
 
 import run_full_deployment_harness as base  # noqa: E402 - safe: providers.py already cached by now
 from run_model_sweep import docker_build, safe_tag, verdict_from  # noqa: E402
@@ -84,12 +85,16 @@ DEFAULT_MODELS = {
         "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
         "gpt-5", "gpt-4.1", "gpt-4o", "o3", "o4-mini",
     ],
+    ("patch", "openai"): OPENAI_MODELS,
+    ("bypass", "openai"): OPENAI_MODELS,
 }
 
 
 def provider_factory_for(backend: str):
     if backend == "codex":
         return CodexCLIProvider
+    if backend == "openai":
+        return OpenAIProvider
     return ClaudeCLIProvider if backend == "claude" else OllamaProvider
 
 
@@ -114,6 +119,10 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
             cost = getattr(provider, "last_cost_usd", None)
         elif backend == "codex":
             provider = CodexCLIProvider(model)
+            compile_result = prep.materialize_and_verify(model, provider_factory=lambda m: provider)
+            cost = getattr(provider, "last_cost_usd", None)
+        elif backend == "openai":
+            provider = OpenAIProvider(model)
             compile_result = prep.materialize_and_verify(model, provider_factory=lambda m: provider)
             cost = getattr(provider, "last_cost_usd", None)
         else:
@@ -175,7 +184,7 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--task", choices=["patch", "bypass"], required=True)
-    ap.add_argument("--backend", choices=["ollama", "claude", "codex"], required=True)
+    ap.add_argument("--backend", choices=["ollama", "claude", "codex", "openai"], required=True)
     ap.add_argument("--models", default=None,
                      help="comma-separated override; default is the task/backend's established list")
     ap.add_argument("--runs", type=int, default=1,

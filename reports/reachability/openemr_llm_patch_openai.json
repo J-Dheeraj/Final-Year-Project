@@ -1,0 +1,349 @@
+{
+  "experiment": "openemr_llm_patch",
+  "backend": "openai",
+  "advisory": "GHSA-q366-cv5v-83w8",
+  "target_file": "admin.php",
+  "generated_at": "2026-10-09T16:08:09.623176+00:00",
+  "models": [
+    {
+      "model": "gpt-3.5-turbo",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.0002345,
+      "usage": {
+        "input_tokens": 253,
+        "output_tokens": 72,
+        "total_tokens": 325
+      },
+      "duration_s": 2.7153827999718487,
+      "snippet": "if ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== \"1\" && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== \"1\") {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-3.5-turbo-0125",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.0002345,
+      "usage": {
+        "input_tokens": 253,
+        "output_tokens": 72,
+        "total_tokens": 325
+      },
+      "duration_s": 1.587494700041134,
+      "snippet": "if ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== '1' && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1') {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-3.5-turbo-1106",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "NotFoundError: Error code: 404 - {'error': {'message': 'The model `gpt-3.5-turbo-1106` has been deprecated, learn more here: https://platform.openai.com/docs/deprecations', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}",
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": null
+    },
+    {
+      "model": "gpt-4",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.01191,
+      "usage": {
+        "input_tokens": 253,
+        "output_tokens": 72,
+        "total_tokens": 325
+      },
+      "duration_s": 4.157861299987417,
+      "snippet": "if ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== \"1\" && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== \"1\") {\n    http_response_code(403);\n    header(\"Content-Type: text/plain\");\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-4-turbo",
+      "lints": true,
+      "default_denied": false,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.00484,
+      "usage": {
+        "input_tokens": 253,
+        "output_tokens": 77,
+        "total_tokens": 330
+      },
+      "duration_s": 3.568455600005109,
+      "snippet": "if ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== \"1\" && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== \"1\") {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-4o",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.00173,
+      "usage": {
+        "input_tokens": 256,
+        "output_tokens": 109,
+        "total_tokens": 365
+      },
+      "duration_s": 1.5845871000201441,
+      "snippet": "if ((isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1')) {\n    // Environment variable is correctly set to enable access\n} else {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-4.1",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.001328,
+      "usage": {
+        "input_tokens": 256,
+        "output_tokens": 102,
+        "total_tokens": 358
+      },
+      "duration_s": 2.144312299962621,
+      "snippet": "$enabled = (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === \"1\") ||\n           (getenv('OPENEMR_ADMIN_PHP_ENABLED') === \"1\");\nif (!$enabled) {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 0.0002528,
+      "usage": {
+        "input_tokens": 256,
+        "output_tokens": 94,
+        "total_tokens": 350
+      },
+      "duration_s": 1.457264499971643,
+      "snippet": "if (\n    (!isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) || $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] !== '1') &&\n    (getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1')\n) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-4.1-nano",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": 7.480000000000002e-05,
+      "usage": {
+        "input_tokens": 256,
+        "output_tokens": 123,
+        "total_tokens": 379
+      },
+      "duration_s": 1.31662649998907,
+      "snippet": "if (\n    (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') ||\n    (getenv('OPENEMR_ADMIN_PHP_ENABLED') !== false && getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1')\n) {\n    // Access granted, do nothing.\n} else {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 1841,
+        "total_tokens": 2096
+      },
+      "duration_s": 17.170768600015435,
+      "snippet": "$enabled_server = isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) ? $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] : null;\n$enabled_env = getenv('OPENEMR_ADMIN_PHP_ENABLED');\nif ($enabled_server !== '1' && $enabled_env !== '1') {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5-mini",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 951,
+        "total_tokens": 1206
+      },
+      "duration_s": 7.371216800005641,
+      "snippet": "$env1 = isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) ? $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] : null;\n$env2 = getenv('OPENEMR_ADMIN_PHP_ENABLED');\nif (!($env1 === '1' || $env2 === '1')) {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5-nano",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 1611,
+        "total_tokens": 1866
+      },
+      "duration_s": 20.95778469997458,
+      "snippet": "$enabled = false;\nif (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') {\n    $enabled = true;\n} elseif (($envVal = getenv('OPENEMR_ADMIN_PHP_ENABLED')) !== false && $envVal === '1') {\n    $enabled = true;\n}\nif (!$enabled) {\n    header('HTTP/1.1 403 Forbidden');\n    header('Content-Type: text/plain');\n    echo 'admin.php is disabled by default. See the header comment in this file to enable.' . \"\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5.1",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 163,
+        "total_tokens": 418
+      },
+      "duration_s": 2.4209648000542074,
+      "snippet": "$envFlagServer = isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) ? $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] : null;\n$envFlagGetenv = getenv('OPENEMR_ADMIN_PHP_ENABLED');\n$adminEnabled = ($envFlagServer === '1' || $envFlagGetenv === '1');\n\nif (!$adminEnabled) {\n    if (!headers_sent()) {\n        if (php_sapi_name() !== 'cli') {\n            header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden', true, 403);\n        }\n        header('Content-Type: text/plain');\n    }\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5.2",
+      "lints": true,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "ConnectionError: ('Connection aborted.', BadStatusLine('HTTP/1.1\\r\\n'))",
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 147,
+        "total_tokens": 402
+      },
+      "duration_s": 2.7576921000145376,
+      "snippet": "$enabled = false;\n\nif (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') {\n    $enabled = true;\n} elseif (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1') {\n    $enabled = true;\n}\n\nif (!$enabled) {\n    if (!headers_sent()) {\n        header($_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1' . ' 403 Forbidden', true, 403);\n        header('Content-Type: text/plain');\n    }\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5.4",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 120,
+        "total_tokens": 375
+      },
+      "duration_s": 2.004996299976483,
+      "snippet": "$adminPhpEnabled = (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1')\n    || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1');\n\nif (!$adminPhpEnabled) {\n    if (!headers_sent()) {\n        header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden');\n        header('Content-Type: text/plain');\n    }\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": false,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 92,
+        "total_tokens": 347
+      },
+      "duration_s": 1.5853349000099115,
+      "snippet": "if ((isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1')) {\n    return;\n}\nhttp_response_code(403);\nheader('Content-Type: text/plain');\necho \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\nexit;"
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 154,
+        "total_tokens": 409
+      },
+      "duration_s": 2.6431962000206113,
+      "snippet": "if (($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? null) !== '1' && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1') {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5.6-sol",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 105,
+        "total_tokens": 360
+      },
+      "duration_s": 2.367335799965076,
+      "snippet": "$adminPhpEnabled = (\n    (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1')\n    || getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1'\n);\n\nif (!$adminPhpEnabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-5.6-terra",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 102,
+        "total_tokens": 357
+      },
+      "duration_s": 4.106138200033456,
+      "snippet": "$adminPhpEnabled = (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1')\n    || getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1';\n\nif (!$adminPhpEnabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-6-astra",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 79,
+        "total_tokens": 334
+      },
+      "duration_s": 2.947166800033301,
+      "snippet": "if (($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? null) !== '1'\n    && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1') {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    exit(\"admin.php is disabled by default. See the header comment in this file to enable.\\n\");\n}"
+    },
+    {
+      "model": "gpt-6.1-sol",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 79,
+        "total_tokens": 334
+      },
+      "duration_s": 2.7173448000103235,
+      "snippet": "if (($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? null) !== '1'\n    && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1') {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    exit(\"admin.php is disabled by default. See the header comment in this file to enable.\\n\");\n}"
+    },
+    {
+      "model": "gpt-6-luna",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 170,
+        "total_tokens": 425
+      },
+      "duration_s": 2.282854999997653,
+      "snippet": "if (($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? null) !== '1' && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1') {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "gpt-6-sol",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 255,
+        "output_tokens": 84,
+        "total_tokens": 339
+      },
+      "duration_s": 2.0270006000064313,
+      "snippet": "if (\n    ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? null) !== '1'\n    && getenv('OPENEMR_ADMIN_PHP_ENABLED') !== '1'\n) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    }
+  ]
+}
