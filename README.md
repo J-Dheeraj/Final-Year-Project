@@ -1238,6 +1238,6 @@ rejections remain preserved as environment/model outcomes.
 
 ### OpenAI API reruns: OpenEMR and free5GC (2026-10-10)
 
-The new OpenAI API reruns used the existing local validation harnesses and all 23 model IDs exposed by the project. OpenEMR completed both experiments: **0/23 bypasses** and **16/23 fully working patch gates**. The free5GC bypass run completed with **0/23 bypasses** against the real upstream patched deployment. Its patch run reached six models before a Docker build interruption: **4/6 runtime-confirmed all four-handler fixes**, one compile failure, and one deprecated-model failure. The partial run is preserved and is not presented as a complete 23-model patch sweep.
+The new OpenAI API reruns used the existing local validation harnesses and all 23 model IDs exposed by the project. OpenEMR completed both experiments: **0/23 bypasses** and **16/23 fully working patch gates**. The free5GC bypass run completed with **0/23 bypasses** against the real upstream patched deployment. Its patch run now covers all 23 models: **18/23 runtime-confirmed all four-handler fixes**, five compile failures, and one deprecated-model failure. The interrupted and continuation runs are combined in the final report with source report references.
 
 Per-model runtime, input/output tokens, estimated cost, proposals, diffs, and failures are preserved in the raw reports listed in [`docs/RESULTS_SUMMARY.md`](docs/RESULTS_SUMMARY.md).

@@ -158,10 +158,10 @@ The OpenAI API results are:
   fully working gates.
 - `reports/reachability/free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json`:
   23 models; 0/23 bypasses against the real patched deployment.
-- `reports/reachability/free5gc_sweep_patch_openai_openai-2026-10-10.json`:
-  six models completed before a Docker-build interruption; 4/6 runtime
-  confirmed across all four handlers, one compile failure, and one deprecated
-  model. This is explicitly a partial run, not a 23-model completion claim.
+- `reports/reachability/free5gc_sweep_patch_openai_combined_2026-10-10.json`:
+  all 23 models completed across the initial, continuation, and final single-model
+  runs; 18/23 runtime confirmed across all four handlers, five compile failures,
+  and one deprecated model. The source reports remain preserved separately.
 
 The implementation and reports were pushed in commits `4aa4964`, `af8d41e`,
 and `d4ac713`.

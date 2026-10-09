@@ -1,0 +1,123 @@
+{
+  "task": "patch",
+  "backend": "openai",
+  "experiment_id": "openai-2026-10-10-gpt-4-1-final",
+  "runs_per_model": 1,
+  "generated_at": "2026-10-09T16:48:31.439280+00:00",
+  "models": [
+    {
+      "model": "gpt-4.1",
+      "run": 1,
+      "compile": {
+        "patch_method": "llm-openai",
+        "applied": 4,
+        "compiles": false,
+        "error": "patched source doesn't build",
+        "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -1,32 +1,30 @@\n-func (s *Server) HandleApplicationDataInfluenceDataSubsToNotifyGet(c *gin.Context) {\n-\tlogger.DataRepoLog.Tracef(\"Handle ApplicationDataInfluenceDataSubsToNotifyGet\")\n+logger.DataRepoLog.Tracef(\"Handle ApplicationDataInfluenceDataSubsToNotifyGet\")\n \n-\tdnn := c.Query(\"dnn\")\n-\tinternalGroupId := c.Query(\"internal-Group-Id\")\n-\tsupi := c.Query(\"supi\")\n+dnn := c.Query(\"dnn\")\n+internalGroupId := c.Query(\"internal-Group-Id\")\n+supi := c.Query(\"supi\")\n \n-\tvar snssai *models.Snssai\n-\tif c.Query(\"snssai\") != \"\" {\n-\t\tsnssai = new(models.Snssai)\n-\t\terr := openapi.Deserialize(snssai, []byte(c.Query(\"snssai\")), \"application/json\")\n-\t\tif err != nil {\n-\t\t\tproblemDetails := models.ProblemDetails{\n-\t\t\t\tStatus: http.StatusBadRequest,\n-\t\t\t\tDetail: err.Error(),\n-\t\t\t}\n-\t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n-\t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n-\t\t}\n-\t}\n-\n-\tif dnn == \"\" && snssai == nil && internalGroupId == \"\" && supi == \"\" {\n+var snssai *models.Snssai\n+if c.Query(\"snssai\") != \"\" {\n+\tsnssai = new(models.Snssai)\n+\terr := openapi.Deserialize(snssai, []byte(c.Query(\"snssai\")), \"application/json\")\n+\tif err != nil {\n \t\tproblemDetails := models.ProblemDetails{\n \t\t\tStatus: http.StatusBadRequest,\n-\t\t\tDetail: \"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\",\n+\t\t\tDetail: err.Error(),\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n+}\n \n-\ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)\n+if dnn == \"\" && snssai == nil && internalGroupId == \"\" && supi == \"\" {\n+\tproblemDetails := models.ProblemDetails{\n+\t\tStatus: http.StatusBadRequest,\n+\t\tDetail: \"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\",\n+\t}\n+\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n+\tc.JSON(http.StatusBadRequest, problemDetails)\n+\treturn\n }",
+        "cost_usd": 0.00347,
+        "duration_s": 4.753161400032695,
+        "usage": {
+          "input_tokens": 515,
+          "output_tokens": 305,
+          "total_tokens": 820
+        },
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_success",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-2026-10-10-gpt-4-1-final\\gpt-4-1\\run-1"
+    }
+  ],
+  "vulnerable_baseline_run": {
+    "label": "free5gc_sweep_patch_openai_openai-2026-10-10-gpt-4-1-final_vulnerable_baseline",
+    "seed": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:10 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "collection_get_empty_query": {
+      "status_code": 400,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:10 GMT",
+        "Content-Length": "174"
+      },
+      "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}[{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}]"
+    },
+    "collection_get_leaked_data": true,
+    "single_get_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:10 GMT",
+        "Content-Length": "87"
+      },
+      "body": "404 page not found{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_get_leaked_data": true,
+    "single_put_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:10 GMT",
+        "Content-Length": "96"
+      },
+      "body": "404 page not found{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "confirm_unauthorized_write": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:10 GMT",
+        "Content-Length": "78"
+      },
+      "body": "{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_put_unauthorized_write": true,
+    "delete_seed": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:10 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_delete_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:10 GMT",
+        "Content-Length": "18"
+      },
+      "body": "404 page not found"
+    },
+    "post_delete_check": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:11 GMT",
+        "Content-Length": "64"
+      },
+      "body": "{\"title\":\"User not found\",\"status\":404,\"cause\":\"USER_NOT_FOUND\"}"
+    },
+    "single_delete_confirmed_exploit": true,
+    "benign_get_correct_influence_id": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Fri, 09 Oct 2026 16:48:11 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "benign_path_preserved": true
+  }
+}

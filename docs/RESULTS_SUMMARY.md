@@ -208,8 +208,8 @@ The OpenAI API rerun used the same local validation harnesses and the 23 model I
 | OpenEMR bypass | 23/23 | 0/23 bypasses; 20 parseable proposals | 207.30 s | 6,796 / 14,358 | US$0.0239 |
 | OpenEMR patch | 23/23 | 16/23 fully working gates | 91.89 s | 5,606 / 6,419 | US$0.0206 |
 | free5GC bypass | 23/23 | 0/23 bypasses; 19 parseable proposals | 166.74 s | 8,589 / 12,739 | US$0.0296 |
-| free5GC patch | 6/23 before Docker-build interruption | 4/6 runtime-confirmed all four handlers; 1 compile failure; 1 deprecated model | 32.90 s | 2,543 / 1,649 | US$0.0559 |
+| free5GC patch | 23/23 | 18/23 runtime-confirmed all four handlers; 5 compile failures; 1 deprecated model | 125.77 s | 11,284 / 9,141 | US$0.0603 |
 
 Reports: [`openemr_bypass_probe_openai.json`](../reports/reachability/openemr_bypass_probe_openai.json), [`openemr_llm_patch_openai.json`](../reports/reachability/openemr_llm_patch_openai.json), [`free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json`](../reports/reachability/free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json), and [`free5gc_sweep_patch_openai_openai-2026-10-10.json`](../reports/reachability/free5gc_sweep_patch_openai_openai-2026-10-10.json).
 
-The free5GC patch report is intentionally marked partial: each model requires a fresh Go clone, compilation, Docker image build, and four-handler runtime check, and the next image build exceeded the interactive run window. No uncompleted model is counted as a result.
+The combined free5GC patch report now covers all 23 model IDs. Each model required a fresh Go clone, compilation, Docker image build, and four-handler runtime check. Five generated patches failed compilation and one deprecated model failed before generation; 18 produced runtime-confirmed fixes.
