@@ -1,0 +1,93 @@
+{
+  "experiment": "openemr_llm_patch",
+  "backend": "aixtech",
+  "advisory": "GHSA-q366-cv5v-83w8",
+  "target_file": "admin.php",
+  "generated_at": "2026-10-09T10:51:50.436609+00:00",
+  "models": [
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "snippet": "$admin_php_enabled = ($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? null) === '1' || getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1';\nif (!$admin_php_enabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "claude-haiku-5-5",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "snippet": "$oeAdminEnabled = (($_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] ?? null) === '1') || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1');\nif (!$oeAdminEnabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "snippet": "$adminPhpEnabled = (\n    (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1') ||\n    (getenv('OPENEMR_ADMIN_PHP_ENABLED') !== false && getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1')\n);\n\nif (!$adminPhpEnabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "claude-sonnet-5",
+      "lints": true,
+      "default_denied": true,
+      "optin_works": true,
+      "error": null,
+      "cost_usd": null,
+      "snippet": "$enabled = (isset($_SERVER['OPENEMR_ADMIN_PHP_ENABLED']) && $_SERVER['OPENEMR_ADMIN_PHP_ENABLED'] === '1')\n    || (getenv('OPENEMR_ADMIN_PHP_ENABLED') === '1');\n\nif (!$enabled) {\n    http_response_code(403);\n    header('Content-Type: text/plain');\n    echo \"admin.php is disabled by default. See the header comment in this file to enable.\\n\";\n    exit;\n}"
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-sonnet-5-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
+      "cost_usd": null
+    },
+    {
+      "model": "claude-opus-4-6",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-6' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
+      "cost_usd": null
+    },
+    {
+      "model": "claude-opus-4-7",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-7' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
+      "cost_usd": null
+    },
+    {
+      "model": "claude-opus-4-8",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-8' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
+      "cost_usd": null
+    },
+    {
+      "model": "claude-opus-5",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
+      "cost_usd": null
+    },
+    {
+      "model": "claude-opus-5-5",
+      "lints": false,
+      "default_denied": null,
+      "optin_works": null,
+      "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-5-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
+      "cost_usd": null
+    }
+  ]
+}

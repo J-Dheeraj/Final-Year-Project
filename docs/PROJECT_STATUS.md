@@ -2,6 +2,32 @@
 
 ## Session log
 
+- **2026-10-09 (AIxTech gateway: all 10 named models x all 4
+  experiment families x all CVEs)** — Ran the user's 10 requested
+  Claude model names through every experiment this project tracks via
+  `--backend aixtech`: the 6-CVE main catalogue bypass-probe, the
+  OpenEMR patch-gen + bypass-probe pair (GHSA-q366), the free5GC
+  memorization-control pair (synthetic + real CVE-2026-40248), and the
+  free5GC multi-turn bypass-probe (CVE-2026-40248). Only 4 of the 10
+  model names resolve on this gateway key - the other 6 (`claude-
+  sonnet-5-5`, all 5 `claude-opus-*`) return 403
+  `team_model_access_denied` on every single call, recorded as the
+  model's own error in every report rather than silently dropped.
+  Results for the 4 reachable models were clean across all 4 families
+  (patch-gen gates passed, 0 genuine bypasses, no memorization
+  advantage), with one false-positive bypass caught and verified before
+  being trusted: `claude-haiku-5-5` tripped the already-documented
+  `_EXEC_HTML` oracle regex bug on the catalogue's XSS CVE - a third
+  occurrence of a bug already found twice this project and deliberately
+  left unfixed, not a new finding. All per-experiment docs
+  (`docs/CATALOG_BYPASS_PROBE_RESULTS.md`,
+  `docs/OPENEMR_LLM_PATCH_RESULTS.md`,
+  `docs/OPENEMR_BYPASS_PROBE_RESULTS.md`,
+  `docs/FREE5GC_MEMORIZATION_CONTROL_RESULTS.md`,
+  `docs/FREE5GC_MULTITURN_BYPASS_PROBE_RESULTS.md`) and
+  `docs/RESULTS_SUMMARY.md`'s index updated with an "AIxTech gateway
+  backend" section each.
+
 - **2026-10-09 (AIxTech gateway backend added)** — Wired a new
   `--backend aixtech` option into the 5 `claude_backend.py` experiment
   scripts (`catalog_bypass_probe.py`, `openemr_transfer_case/llm_experiment.py`,

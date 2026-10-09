@@ -16,7 +16,8 @@ No experimental result - consolidated 5 duplicated scripts into
 | Backend | Models | Synthetic bug | Real CVE (matched) |
 |---|---|---|---|
 | Ollama | 4 (small, locally available) | 1/4 compiled | 1/4 compiled |
-| Claude | 6 named | 4/6 compiled (1 failure was a local-plugin artifact, not a real failure) | 5/6 compiled |
+| Claude (`claude -p`) | 6 named | 4/6 compiled (1 failure was a local-plugin artifact, not a real failure) | 5/6 compiled |
+| AIxTech gateway | 10 named (6 403-denied by key) | 4/4 reachable compiled | 4/4 reachable compiled |
 
 No memorization advantage observed for the real, potentially-trainable-on
 CVE over the synthetic, provably-never-disclosed twin, in either backend.
@@ -48,7 +49,8 @@ credentialed attacker once the CWE-285 bug is present.
 | Backend | Patch-gen clean pass | Bypass-probe (0 = fix held) |
 |---|---|---|
 | Ollama (8 models) | 1/7 completed | 0/7 |
-| Claude (6 models) | 5/6 | 0/5 completed |
+| Claude (`claude -p`, 6 models) | 5/6 | 0/5 completed |
+| AIxTech gateway (10 models, 6 403-denied) | 4/4 reachable | 0/3 completed |
 
 Ollama's patch-gen failures were genuinely varied: a missing `isset()`
 guard (functionally safe, wrong status code), a swapped boolean
@@ -62,7 +64,8 @@ open. [docs/OPENEMR_LLM_PATCH_RESULTS.md](OPENEMR_LLM_PATCH_RESULTS.md),
 | Backend | Pairs tested | Genuine bypasses | False positives caught |
 |---|---|---|---|
 | Ollama | 48 (6 CVEs x 8 models) | 0 | 1 (XSS oracle regex bug) |
-| Claude | 36 (6 CVEs x 6 models) | 0 | 3 (same oracle bug, self-diagnosed by the models) |
+| Claude (`claude -p`) | 36 (6 CVEs x 6 models) | 0 | 3 (same oracle bug, self-diagnosed by the models) |
+| AIxTech gateway | 60 (6 CVEs x 10 models, 36 pairs 403-denied) | 0 | 1 (same oracle bug again, self-diagnosed) |
 
 [docs/CATALOG_BYPASS_PROBE_RESULTS.md](CATALOG_BYPASS_PROBE_RESULTS.md)
 
@@ -71,7 +74,8 @@ open. [docs/OPENEMR_LLM_PATCH_RESULTS.md](OPENEMR_LLM_PATCH_RESULTS.md),
 | Backend | Models x rounds | Genuine bypasses |
 |---|---|---|
 | Ollama | 8 models x up to 3 rounds | 0/7 completed |
-| Claude | 6 models x up to 3 rounds | 0/6 (after fixing a third classifier false-positive variant) |
+| Claude (`claude -p`) | 6 models x up to 3 rounds | 0/6 (after fixing a third classifier false-positive variant) |
+| AIxTech gateway | 10 models x up to 3 rounds (6 403-denied) | 0/4 completed, clean (classifier fix already in place) |
 
 Seeing a rejection changed what models tried next but never toward
 something that worked. [docs/FREE5GC_MULTITURN_BYPASS_PROBE_RESULTS.md](FREE5GC_MULTITURN_BYPASS_PROBE_RESULTS.md)
@@ -85,11 +89,13 @@ lines while still passing every runtime check.
 
 ## 9. Methodology pitfalls
 
-14 real bugs found and fixed before being reported, across this pass
+15 real bugs found and fixed before being reported, across this pass
 and earlier sessions - including the free5GC bypass-probe classifier,
 patched three times for three different disguises before being
 replaced with a live-comparison check that doesn't need to guess the
-next one. [docs/METHODOLOGY_PITFALLS.md](METHODOLOGY_PITFALLS.md)
+next one, and a stray ambient env var that broke a brand-new gateway
+provider's auth on its first live call.
+[docs/METHODOLOGY_PITFALLS.md](METHODOLOGY_PITFALLS.md)
 
 ## 10. Repeated patch-generation study
 
@@ -130,8 +136,28 @@ were preserved as environment-limited failures. The final run recorded
 and 974 output tokens for bypass probing.
 [docs/FREE5GC_CODEX_SWEEP_2026-10-07.md](FREE5GC_CODEX_SWEEP_2026-10-07.md)
 
+## 14. AIxTech gateway backend pass (10 named models)
+
+The user's 10 requested model names (haiku 4.5/5.5, sonnet 4.6/5/5.5,
+opus 4.6/4.7/4.8/5/5.5) were run through all 4 experiment families via
+the new `--backend aixtech` option. Only 4 resolve on this gateway key
+(`claude-haiku-4-5-20251001`, `claude-haiku-5-5`, `claude-sonnet-4-6`,
+`claude-sonnet-5`); the other 6 (`claude-sonnet-5-5`, all 5
+`claude-opus-*`) are blocked by the key's own team-scoped model
+allowlist (403 `team_model_access_denied`), recorded as the model's
+error in every experiment rather than silently omitted. Of the 4
+reachable models, results were clean across the board (patch-gen gates
+passed, no genuine bypasses, no memorization advantage) with one
+exception: `claude-haiku-5-5` tripped the already-documented
+`_EXEC_HTML` oracle regex bug on the catalogue's XSS CVE - a third
+occurrence of a bug this project has already found twice and
+deliberately left unfixed, not a new finding. This gateway does not
+report a dollar cost per call; `docs/METHODOLOGY_PITFALLS.md` #15
+documents an auth bug found and fixed during this pass.
+
 ## Total measured paid-backend cost (Claude re-run pass)
 
 **$29.53** across all 4 re-run experiments plus debug smoke tests -
 see each doc's own "Update: Claude backend" section for the per-model
-breakdown.
+breakdown. The AIxTech gateway pass (section 14) is additional and
+separately costed by that gateway's own account, not reported here.

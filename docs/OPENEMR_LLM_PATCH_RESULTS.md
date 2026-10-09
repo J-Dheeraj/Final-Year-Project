@@ -164,6 +164,30 @@ resolution/policy issues specific to that model name string.
 
 Total measured cost: **$4.7383**.
 
+## Update: AIxTech gateway backend (10 named models)
+
+Re-run via `--backend aixtech` against the user's 10 requested model
+names. Only 4 resolve on this gateway key
+(`claude-haiku-4-5-20251001`, `claude-haiku-5-5`, `claude-sonnet-4-6`,
+`claude-sonnet-5`); the other 6 (`claude-sonnet-5-5`, all 5
+`claude-opus-*`) return 403 `team_model_access_denied`.
+
+**Result: 4/4 reachable models produced a fully working gate** (lints +
+correct default-denied + correct opt-in-works) - unlike the `claude -p`
+run above, `claude-sonnet-5` succeeded here rather than failing with
+exit 1, suggesting that earlier failure was specific to the CLI path
+rather than the model itself.
+
+| Model | Lints | Default denied | Opt-in works |
+|---|---|---|---|
+| `claude-haiku-4-5-20251001` | yes | yes | yes |
+| `claude-haiku-5-5` | yes | yes | yes |
+| `claude-sonnet-4-6` | yes | yes | yes |
+| `claude-sonnet-5` | yes | yes | yes |
+
+This gateway does not report a dollar cost per call; see
+`docs/METHODOLOGY_PITFALLS.md` #15.
+
 ## Scope, stated plainly
 
 - Single run per model, not repeated - a natural target for this

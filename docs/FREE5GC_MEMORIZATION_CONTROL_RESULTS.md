@@ -160,6 +160,26 @@ small-local-model comparison.
 
 Total measured cost: $1.1835.
 
+## Update: AIxTech gateway backend (10 named models, both arms)
+
+Re-run both arms via `--backend aixtech` against the user's 10 requested
+model names. Only 4 resolve on this gateway key
+(`claude-haiku-4-5-20251001`, `claude-haiku-5-5`, `claude-sonnet-4-6`,
+`claude-sonnet-5`); the other 6 (`claude-sonnet-5-5`, all 5
+`claude-opus-*`) return 403 `team_model_access_denied` on both arms,
+recorded as the model's error rather than silently omitted.
+
+**Both arms: 4/4 reachable models compiled clean** - no failures, no
+contamination artifacts this time. Still no observed memorization
+advantage for the real CVE over the synthetic twin: the same 4 models
+succeed on both arms with this backend, extending the existing
+"no advantage observed" finding to a gateway-routed Claude access path
+in addition to `claude -p`.
+
+This gateway does not report a dollar cost per call (see
+`docs/METHODOLOGY_PITFALLS.md` #15); token counts are captured in each
+model's report entry instead.
+
 ## Scope, stated plainly
 
 - Compile-verification only, same tier as this handler family's very

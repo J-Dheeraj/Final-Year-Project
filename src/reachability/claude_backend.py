@@ -33,13 +33,21 @@ CLAUDE_MODELS = [
 ]
 
 # The AIxTech gateway (ANTHROPIC_BASE_URL/ANTHROPIC_AUTH_TOKEN) is a
-# separately-keyed proxy with its own per-team model allowlist - verified
-# live on 2026-10-09 that only these 4 resolve with this project's key
-# (claude-opus-4-8 and the other CLAUDE_MODELS entries return 403
-# team_model_access_denied here even though they work via ClaudeCLIProvider).
+# separately-keyed proxy with its own per-team model allowlist. The user's
+# requested 10-model list (2026-10-09) is kept in full rather than
+# pre-filtered: live smoke-testing confirmed only the first 4 resolve with
+# this project's key (sonnet-5-5 and every opus-* entry return 403
+# team_model_access_denied here even though opus works via ClaudeCLIProvider).
+# The per-model experiment scripts already catch a provider/completion
+# failure and record it in that model's own report entry, so running the
+# full 10 here produces an honest "4 worked, 6 environment-limited" record
+# instead of silently dropping the inaccessible ones.
 AIXTECH_MODELS = [
-    "claude-haiku-4-5-20251001", "claude-haiku-4-5", "claude-haiku-5-5",
-    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001", "claude-haiku-5-5",
+    "claude-sonnet-4-6", "claude-sonnet-5",
+    "claude-sonnet-5-5",
+    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
+    "claude-opus-5", "claude-opus-5-5",
 ]
 
 
