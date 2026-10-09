@@ -137,3 +137,31 @@ facts, re-cut so "what actually executed the call" is the primary
 axis instead of "which experiment." Use `RESULTS_SUMMARY.md` to answer
 "what happened in experiment X"; use this page to answer "what has
 this project actually measured through access path Y."
+
+## 6. Run through the OpenAI API (`OpenAIProvider`)
+
+These results used the project-scoped OpenAI API key with the OpenAI SDK,
+not Codex CLI authentication, ChatGPT web access, Claude, AIxTech, or Ollama.
+The provider records model identity, input/output tokens, wall-clock duration,
+and estimated cost where a published rate is known. Deprecated models,
+cybersecurity-policy refusals, connection failures, compile failures, and
+interrupted Docker runs remain visible as their actual outcomes.
+
+The OpenAI API results are:
+
+- `reports/reachability/catalog_bypass_probe_openai.json`: six-CVE catalogue,
+  138 model/CVE pairs; 0 genuine bypasses after auditing 12 raw XSS-oracle
+  positives.
+- `reports/reachability/openemr_bypass_probe_openai.json`: 23 models; 0/23
+  bypasses.
+- `reports/reachability/openemr_llm_patch_openai.json`: 23 models; 16/23
+  fully working gates.
+- `reports/reachability/free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json`:
+  23 models; 0/23 bypasses against the real patched deployment.
+- `reports/reachability/free5gc_sweep_patch_openai_openai-2026-10-10.json`:
+  six models completed before a Docker-build interruption; 4/6 runtime
+  confirmed across all four handlers, one compile failure, and one deprecated
+  model. This is explicitly a partial run, not a 23-model completion claim.
+
+The implementation and reports were pushed in commits `4aa4964`, `af8d41e`,
+and `d4ac713`.
