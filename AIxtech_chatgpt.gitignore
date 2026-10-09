@@ -1,0 +1,4 @@
+# Environment / credentials
+AIxTech.env
+AIxtech_chatgpt.env
+*.env
