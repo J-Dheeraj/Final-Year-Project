@@ -3,7 +3,10 @@
 One table per experiment from the "do everything" enhancement pass and
 its subsequent Claude-backend re-run. Each row links to the doc with
 full method, verification steps, and raw data - this page exists so
-the headline numbers don't require reading ~20 documents to find.
+the headline numbers don't require reading ~20 documents to find. See
+`docs/RESULTS_BY_ACCESS_METHOD.md` for the same results re-cut by
+access mechanism (Claude API key / Claude Code / Claude CLI / Codex
+CLI / Ollama) instead of by experiment.
 
 ## 1. Sweep-script unification
 
