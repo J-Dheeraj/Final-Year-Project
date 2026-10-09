@@ -328,6 +328,37 @@ class CodexCLIProvider(Provider):
         return messages[-1].strip()
 
 
+def _estimate_openai_cost(model: str, usage: dict) -> float | None:
+    """Return a transparent estimate using USD per 1M tokens.
+
+    The API does not include a dollar charge in each completion response.
+    Unknown model aliases remain unpriced instead of receiving a guessed rate.
+    """
+    rates = {
+        "gpt-3.5-turbo": (0.50, 1.50),
+        "gpt-3.5-turbo-0125": (0.50, 1.50),
+        "gpt-3.5-turbo-1106": (1.00, 2.00),
+        "gpt-4": (30.00, 60.00),
+        "gpt-4-0613": (30.00, 60.00),
+        "gpt-4-turbo": (10.00, 30.00),
+        "gpt-4-turbo-2024-04-09": (10.00, 30.00),
+        "gpt-4o": (2.50, 10.00),
+        "gpt-4o-2024-05-13": (5.00, 15.00),
+        "gpt-4o-2024-08-06": (2.50, 10.00),
+        "gpt-4o-2024-11-20": (2.50, 10.00),
+        "gpt-4.1": (2.00, 8.00),
+        "gpt-4.1-2025-04-14": (2.00, 8.00),
+        "gpt-4.1-mini": (0.40, 1.60),
+        "gpt-4.1-mini-2025-04-14": (0.40, 1.60),
+        "gpt-4.1-nano": (0.10, 0.40),
+        "gpt-4.1-nano-2025-04-14": (0.10, 0.40),
+    }
+    rate = rates.get(model)
+    if rate is None:
+        return None
+    return (usage.get("input_tokens", 0) * rate[0] + usage.get("output_tokens", 0) * rate[1]) / 1_000_000
+
+
 class OpenAIProvider(Provider):
     """Also works for any OpenAI-compatible chat completions API - e.g.
     Zhipu/z.ai's GLM models - by pointing OPENAI_BASE_URL at their endpoint
@@ -354,8 +385,13 @@ class OpenAIProvider(Provider):
         base_url = os.environ.get("OPENAI_BASE_URL")
         self._client = OpenAI(api_key=api_key, base_url=base_url)
         self._model = model or os.environ.get("REACHCRS_MODEL", "gpt-4o")
+        self.last_usage: dict = {}
+        self.last_duration_s: float | None = None
+        self.last_cost_usd: float | None = None
+        self.billing_basis = "OpenAI API published pricing estimate"
 
     def complete(self, system: str, user: str) -> str:
+        started = time.perf_counter()
         resp = self._client.chat.completions.create(
             model=self._model,
             messages=[
@@ -363,6 +399,14 @@ class OpenAIProvider(Provider):
                 {"role": "user", "content": user},
             ],
         )
+        self.last_duration_s = time.perf_counter() - started
+        usage = getattr(resp, "usage", None)
+        self.last_usage = {
+            "input_tokens": int(getattr(usage, "prompt_tokens", 0) or 0),
+            "output_tokens": int(getattr(usage, "completion_tokens", 0) or 0),
+            "total_tokens": int(getattr(usage, "total_tokens", 0) or 0),
+        }
+        self.last_cost_usd = _estimate_openai_cost(self._model, self.last_usage)
         return resp.choices[0].message.content or ""
 
 

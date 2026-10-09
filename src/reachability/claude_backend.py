@@ -24,6 +24,7 @@ os.environ["NO_PAID_BACKEND"] = "0"  # must precede the providers.py import belo
 from src.reachability.providers import (  # noqa: E402
     AIxTechGatewayProvider,
     ClaudeCLIProvider,
+    OpenAIProvider,
     OllamaProvider,
 )
 
@@ -50,10 +51,21 @@ AIXTECH_MODELS = [
     "claude-opus-5", "claude-opus-5-5",
 ]
 
+OPENAI_MODELS = [
+    "gpt-3.5-turbo", "gpt-3.5-turbo-0125", "gpt-3.5-turbo-1106",
+    "gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-4.1", "gpt-4.1-mini",
+    "gpt-4.1-nano", "gpt-5", "gpt-5-mini", "gpt-5-nano",
+    "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.4-mini",
+    "gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra",
+    "gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna", "gpt-6-sol",
+]
+
 
 def provider_for(backend: str, model: str):
     if backend == "claude":
         return ClaudeCLIProvider(model)
     if backend == "aixtech":
         return AIxTechGatewayProvider(model)
+    if backend == "openai":
+        return OpenAIProvider(model)
     return OllamaProvider(model)

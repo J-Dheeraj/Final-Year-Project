@@ -171,3 +171,30 @@ experiment) are in each experiment's own doc.
 see each doc's own "Update: Claude backend" section for the per-model
 breakdown. The AIxTech gateway pass (section 14) is additional and
 separately costed by that gateway's own account, not reported here.
+
+## OpenAI API catalog bypass sweep (2026-10-09)
+
+Using the project-scoped OpenAI API key, the patched targets for all six
+main-catalogue CVEs were probed with 23 exposed GPT model IDs (138
+model/CVE pairs). The raw report is
+[`reports/reachability/catalog_bypass_probe_openai.json`](../reports/reachability/catalog_bypass_probe_openai.json), with the concise summary in
+[`reports/reachability/catalog_bypass_probe_openai.md`](../reports/reachability/catalog_bypass_probe_openai.md).
+
+| Measure | Result |
+|---|---:|
+| Model/CVE pairs | 138 |
+| Parsed proposals | 108 |
+| API/runtime errors | 30 |
+| Raw oracle positives | 12 |
+| Genuine bypasses after response audit | **0** |
+| Total model-call runtime | **1,176.50 s** |
+| Input/output tokens | **90,735 / 91,997** |
+| Estimated cost for priced model IDs | **US$0.2879** |
+
+All 12 raw positives were on the XSS target (CVE-2026-46492). The patched
+renderer escaped the proposed markup; the target's existing self-check regex
+matched literal `onerror=` or `javascript:` text inside escaped content. They
+are therefore retained as raw oracle positives but reclassified as false
+positives, consistent with the earlier Ollama and Claude audits. No genuine
+bypass was confirmed. Deprecated models and API cybersecurity-policy errors
+remain visible in the raw report and are not counted as model-quality failures.

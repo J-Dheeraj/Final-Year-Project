@@ -1218,3 +1218,20 @@ This tool is for authorized security research and education only. Running exploi
 probes or PoC scripts against systems you do not own or have explicit written
 permission to test is illegal. The SSRF lab is bound to `127.0.0.1` by design —
 never expose it on a public interface.
+
+### OpenAI API catalog bypass sweep (2026-10-09)
+
+The project-scoped OpenAI API key was used to probe all six main-catalogue
+patched targets with the 23 GPT model IDs exposed by the account (138
+model/CVE pairs). The raw per-pair report is
+[`reports/reachability/catalog_bypass_probe_openai.json`](reports/reachability/catalog_bypass_probe_openai.json), with its summary at
+[`reports/reachability/catalog_bypass_probe_openai.md`](reports/reachability/catalog_bypass_probe_openai.md).
+
+The run produced 108 parseable proposals, 30 model/API errors, and 12 raw
+XSS-oracle positives. Auditing the response bodies showed all 12 were false
+positives caused by the patched renderer's escaped output matching the
+existing self-check regex; **zero genuine bypasses** were confirmed. Total
+model-call runtime was **1,176.50 seconds**, with **90,735 input tokens** and
+**91,997 output tokens**. The estimated cost for model IDs with a known
+published rate was **US$0.2879**. Deprecated models and cybersecurity-policy
+rejections remain preserved as environment/model outcomes.
