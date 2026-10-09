@@ -177,6 +177,33 @@ would otherwise have claimed.
     externally-imposed constraint that had to be reported honestly
     rather than silently retried or omitted.
 
+15. **A stray ambient `ANTHROPIC_API_KEY`/`ANTHROPIC_BASE_URL` broke a
+    brand-new bearer-token-only provider's first live call**, and the
+    failure mode was non-obvious: `AIxTechGatewayProvider` (added
+    2026-10-09 to use the AIxTech LLM gateway) raised
+    `AuthenticationError: invalid x-api-key` even though no `x-api-key`
+    was ever passed to it. Root cause, found by reading the `anthropic`
+    SDK's own source: inside a Claude Code session, the subprocess
+    environment already has `ANTHROPIC_API_KEY=""` (set, but empty) and
+    `ANTHROPIC_BASE_URL=https://api.anthropic.com` - and the SDK sends an
+    `X-Api-Key` header whenever `api_key` is any string, even an empty
+    one, not only when it's genuinely configured. The project's existing
+    `.env` loader convention ("never overwrite an already-set shell var")
+    made this worse, not better: it silently kept the ambient
+    `ANTHROPIC_BASE_URL`, shadowing the real gateway URL from `.env`.
+    Fixed at the root with two narrow, scoped changes rather than a
+    blanket rule change: (1) the two new gateway keys get an
+    override-capable loader, since an ambient default defeats the entire
+    point of a custom gateway URL; every other key keeps the
+    non-destructive convention unchanged; (2) `ANTHROPIC_API_KEY` is
+    popped from `os.environ` for the duration of just this provider's
+    client construction and restored immediately after, so a stray empty
+    key never reaches the SDK but nothing else in the process is affected.
+    Verified live, twice: once with the ambient vars left in place
+    (confirming the bug), once after the fix with the same ambient vars
+    still present (confirming the fix, not just a workaround in the test
+    command).
+
 ## What these pitfalls have in common
 
 Every one of these was caught by the same small set of habits, applied

@@ -52,7 +52,7 @@ sys.path.insert(0, str(HERE.parent))
 # NO_PAID_BACKEND constant is baked in at first import - importing
 # run_harness first would silently re-disable the paid backend before
 # providers.py ever saw this script's "0".
-from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402
+from src.reachability.claude_backend import AIXTECH_MODELS, CLAUDE_MODELS, provider_for  # noqa: E402
 import run_harness as base  # noqa: E402
 
 OUT_DIR = HERE.parent / "reports" / "reachability"
@@ -162,7 +162,7 @@ def run_patch_task(backend: str, models: list) -> None:
         base.write_sqlconf()
 
         results = []
-        stem = f"openemr_llm_patch_{backend}" if backend == "claude" else "openemr_llm_patch"
+        stem = f"openemr_llm_patch_{backend}" if backend in ("claude", "aixtech") else "openemr_llm_patch"
 
         def persist() -> None:
             report = {
@@ -224,6 +224,8 @@ def run_patch_task(backend: str, models: list) -> None:
         print(f"\n\n{n_ok}/{len(results)} models produced a fully working gate.")
         if backend == "claude":
             print(f"Total measured cost: ${total_cost:.4f}")
+        elif backend == "aixtech":
+            print(f"Total measured cost: ${total_cost:.4f} (dollar cost not reported by this gateway; token counts are in the per-model report)")
     finally:
         base.stop_db()
 
@@ -240,7 +242,7 @@ def run_bypass_task(backend: str, models: list) -> None:
             raise RuntimeError("PHP (patched, default) never became reachable")
 
         results = []
-        stem = f"openemr_bypass_probe_{backend}" if backend == "claude" else "openemr_bypass_probe"
+        stem = f"openemr_bypass_probe_{backend}" if backend in ("claude", "aixtech") else "openemr_bypass_probe"
 
         def persist() -> None:
             report = {
@@ -303,6 +305,8 @@ def run_bypass_task(backend: str, models: list) -> None:
         print(f"\n\n{n_bypass}/{len(results)} models found a genuine bypass.")
         if backend == "claude":
             print(f"Total measured cost: ${total_cost:.4f}")
+        elif backend == "aixtech":
+            print(f"Total measured cost: ${total_cost:.4f} (dollar cost not reported by this gateway; token counts are in the per-model report)")
     finally:
         base.stop_php()
         base.stop_db()
@@ -311,12 +315,12 @@ def run_bypass_task(backend: str, models: list) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", choices=["patch", "bypass"], required=True)
-    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    ap.add_argument("--backend", choices=["ollama", "claude", "aixtech"], default="ollama")
     args = ap.parse_args()
 
     (HERE / "evidence").mkdir(exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    models = CLAUDE_MODELS if args.backend == "claude" else MODELS
+    models = CLAUDE_MODELS if args.backend == "claude" else AIXTECH_MODELS if args.backend == "aixtech" else MODELS
 
     if args.task == "patch":
         run_patch_task(args.backend, models)

@@ -2,6 +2,26 @@
 
 ## Session log
 
+- **2026-10-09 (AIxTech gateway backend added)** — Wired a new
+  `--backend aixtech` option into the 5 `claude_backend.py` experiment
+  scripts (`catalog_bypass_probe.py`, `openemr_transfer_case/llm_experiment.py`,
+  `free5gc_full_deployment/run_multiturn_bypass_probe.py`,
+  `src/reachability/run_memorization_control.py` and its baseline),
+  backed by a new `AIxTechGatewayProvider` in `src/reachability/providers.py`
+  that talks to an Anthropic-API-compatible gateway via bearer-token auth
+  (`ANTHROPIC_AUTH_TOKEN`/`ANTHROPIC_BASE_URL`) instead of a raw
+  `ANTHROPIC_API_KEY`. Live-verified the gateway's model allowlist is
+  narrower than `claude -p`'s (`claude-opus-4-8` returns 403
+  `team_model_access_denied`; haiku/sonnet-5 work) - captured as
+  `AIXTECH_MODELS` rather than reusing `CLAUDE_MODELS`. Found and fixed a
+  real bug during live verification: an ambient `ANTHROPIC_API_KEY=""`/
+  `ANTHROPIC_BASE_URL` already present in a Claude Code session's
+  subprocess environment silently broke the new provider's auth and
+  shadowed its gateway URL - see `docs/METHODOLOGY_PITFALLS.md` #15 for
+  the root cause and fix. `sweep.py`'s separate, more complex backend
+  dispatch (full Docker/Go-build harness) was deliberately left
+  untouched - out of scope for this change.
+
 - **2026-10-07 (Codex CLI model sweep)** — Added a dedicated read-only,
   ephemeral Codex CLI provider with per-call duration and token-usage capture.
   Ran 12 requested model IDs through patch generation and bypass probing. Seven

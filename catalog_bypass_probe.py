@@ -44,7 +44,7 @@ import requests  # noqa: E402
 
 HERE = Path(__file__).parent.resolve()
 sys.path.insert(0, str(HERE))
-from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402
+from src.reachability.claude_backend import AIXTECH_MODELS, CLAUDE_MODELS, provider_for  # noqa: E402
 
 CATALOG_DIR = HERE / "reports" / "claude_code_catalog_run_2026-09-25" / "reports"
 OUT_DIR = HERE / "reports" / "reachability"
@@ -184,17 +184,17 @@ def probe_one(cve_id: str, model: str, app_path: Path, marker: str, source: str,
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    ap.add_argument("--backend", choices=["ollama", "claude", "aixtech"], default="ollama")
     ap.add_argument("--cves", default=None, help="comma-separated CVE IDs to limit the run to")
     args = ap.parse_args()
     backend = args.backend
-    models = CLAUDE_MODELS if backend == "claude" else MODELS
+    models = CLAUDE_MODELS if backend == "claude" else AIXTECH_MODELS if backend == "aixtech" else MODELS
     cves = args.cves.split(",") if args.cves else CVES
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     results: list = []
     total_cost = 0.0
-    stem = f"catalog_bypass_probe_{backend}" if backend == "claude" else "catalog_bypass_probe"
+    stem = f"catalog_bypass_probe_{backend}" if backend in ("claude", "aixtech") else "catalog_bypass_probe"
 
     def persist() -> None:
         report = {
@@ -253,6 +253,8 @@ def main() -> int:
     print(f"\n\n{n_bypass}/{len(results)} (cve, model) pairs found a genuine bypass.")
     if backend == "claude":
         print(f"Total measured cost: ${total_cost:.4f}")
+    elif backend == "aixtech":
+        print(f"Total measured cost: ${total_cost:.4f} (dollar cost not reported by this gateway; token counts are in the per-model report)")
     print(f"Report: {OUT_DIR / f'{stem}.json'}")
     return 0
 

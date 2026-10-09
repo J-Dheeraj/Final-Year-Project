@@ -21,8 +21,60 @@ import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 
 from .heuristics import find_missing_return_after_response, find_underflow_into_copy
+
+
+def _load_dotenv(path: Path) -> None:
+    """Minimal .env loader, same approach as cve_watcher.py/ghsa_extractor.py
+    (no external dependency, never overwrites an already-set shell var).
+    None of the 5 claude_backend.py experiment scripts loaded .env before
+    this - they relied on the shell already having ANTHROPIC_API_KEY etc.
+    exported, which AIxTechGatewayProvider's two new env vars would also
+    need unless loaded here once, centrally, where every paid provider
+    constructs from."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        val = val.strip().strip('"').strip("'")
+        if key and val and key not in os.environ:
+            os.environ[key] = val
+
+
+def _load_dotenv_keys_override(path: Path, keys: set[str]) -> None:
+    """Same parsing as _load_dotenv, but DOES overwrite the named keys.
+
+    Scoped to just ANTHROPIC_AUTH_TOKEN/ANTHROPIC_BASE_URL below. Verified
+    live: inside a Claude Code session's Bash tool, ANTHROPIC_BASE_URL is
+    already present in the subprocess environment (pointing at the real
+    api.anthropic.com), so the non-overwriting _load_dotenv() above leaves
+    this project's .env value for it silently shadowed - the whole point
+    of a custom gateway URL is defeated if an ambient default always wins.
+    Scoped narrowly to these two new, aixtech-specific keys only; every
+    other key (ANTHROPIC_API_KEY, NVD_API_KEY, ...) keeps the project's
+    existing non-destructive convention from _load_dotenv() above."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        val = val.strip().strip('"').strip("'")
+        if key in keys and val:
+            os.environ[key] = val
+
+
+_DOTENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+_load_dotenv(_DOTENV_PATH)
+_load_dotenv_keys_override(_DOTENV_PATH, {"ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL"})
 
 # Mirrors cve_pipeline.py's NO_PAID_BACKEND guard: unlike that module's
 # _call_claude_metered(), nothing here previously stopped get_provider()
@@ -92,6 +144,83 @@ class AnthropicProvider(Provider):
             system=system,
             messages=[{"role": "user", "content": user}],
         )
+        return "".join(block.text for block in resp.content if hasattr(block, "text"))
+
+
+class AIxTechGatewayProvider(Provider):
+    """Claude models through the AI Singapore ("AIxTech") LLM gateway -
+    an Anthropic-API-compatible proxy reachable at ANTHROPIC_BASE_URL and
+    authenticated with a bearer token (ANTHROPIC_AUTH_TOKEN), not a raw
+    ANTHROPIC_API_KEY. Same wire protocol as AnthropicProvider, so this
+    only differs in which two env vars it reads and how the anthropic
+    SDK is told to authenticate (auth_token -> Authorization: Bearer,
+    instead of api_key -> x-api-key).
+
+    Verified against the live gateway: claude-sonnet-5 and
+    claude-haiku-4-5-20251001 are reachable with this key; claude-opus-4-8
+    returned a 403 team_model_access_denied - this gateway's API keys are
+    scoped to a per-team model allowlist, so not every Claude model name
+    that works with ClaudeCLIProvider/AnthropicProvider will work here.
+    """
+
+    name = "aixtech"
+
+    def __init__(self, model: str | None = None):
+        if NO_PAID_BACKEND:
+            raise RuntimeError(
+                "NO_PAID_BACKEND is set - refusing to construct AIxTechGatewayProvider "
+                "(a paid backend). Unset NO_PAID_BACKEND to allow this."
+            )
+        try:
+            import anthropic  # type: ignore
+        except ImportError as e:
+            raise RuntimeError(
+                "anthropic package not installed. Run `pip install anthropic` "
+                "or use --provider mock."
+            ) from e
+        auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
+        base_url = os.environ.get("ANTHROPIC_BASE_URL")
+        if not auth_token or not base_url:
+            raise RuntimeError(
+                "ANTHROPIC_AUTH_TOKEN and ANTHROPIC_BASE_URL must both be set "
+                "to use the aixtech gateway provider."
+            )
+        # This gateway is bearer-token-only. But anthropic.Anthropic() infers
+        # api_key from ANTHROPIC_API_KEY whenever that env var exists AT ALL
+        # (os.environ.get returns "" rather than None if it's set-but-empty),
+        # and the SDK then sends an X-Api-Key header for any non-None value
+        # - even "". Found live: inside a Claude Code session, ANTHROPIC_API_KEY
+        # is already present in the subprocess environment as "", and the
+        # gateway rejected that empty key before ever checking the valid
+        # Bearer token. Constructing with a temporarily-cleared env avoids
+        # sending that bogus header without touching ANTHROPIC_API_KEY for
+        # any other code in this process (e.g. AnthropicProvider elsewhere).
+        _stray_api_key = os.environ.pop("ANTHROPIC_API_KEY", None)
+        try:
+            self._client = anthropic.Anthropic(auth_token=auth_token, base_url=base_url)
+        finally:
+            if _stray_api_key is not None:
+                os.environ["ANTHROPIC_API_KEY"] = _stray_api_key
+        self._model = model or os.environ.get("REACHCRS_MODEL", "claude-sonnet-5")
+        # Unlike claude -p (ClaudeCLIProvider), this gateway's Messages API
+        # response reports token counts but no dollar figure - last_cost_usd
+        # stays None rather than a guessed value, so callers that print
+        # "Total measured cost" don't report a number nobody measured.
+        self.last_cost_usd: float | None = None
+        self.billing_basis = "aixtech gateway (token counts only, no dollar cost reported)"
+        self.last_usage: dict = {}
+
+    def complete(self, system: str, user: str) -> str:
+        resp = self._client.messages.create(
+            model=self._model,
+            max_tokens=1024,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        self.last_usage = {
+            "input_tokens": getattr(resp.usage, "input_tokens", None),
+            "output_tokens": getattr(resp.usage, "output_tokens", None),
+        }
         return "".join(block.text for block in resp.content if hasattr(block, "text"))
 
 
@@ -406,6 +535,8 @@ def get_provider(name: str = "auto", model: str | None = None) -> Provider:
         return MockProvider()
     if name == "anthropic":
         return AnthropicProvider(model)
+    if name == "aixtech":
+        return AIxTechGatewayProvider(model)
     if name == "openai":
         return OpenAIProvider(model)
     if name == "ollama":
@@ -414,6 +545,11 @@ def get_provider(name: str = "auto", model: str | None = None) -> Provider:
         if os.environ.get("ANTHROPIC_API_KEY"):
             try:
                 return AnthropicProvider(model)
+            except RuntimeError:
+                pass
+        if os.environ.get("ANTHROPIC_AUTH_TOKEN") and os.environ.get("ANTHROPIC_BASE_URL"):
+            try:
+                return AIxTechGatewayProvider(model)
             except RuntimeError:
                 pass
         if os.environ.get("OPENAI_API_KEY"):

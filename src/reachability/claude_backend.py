@@ -21,13 +21,31 @@ import os
 
 os.environ["NO_PAID_BACKEND"] = "0"  # must precede the providers.py import below
 
-from src.reachability.providers import OllamaProvider, ClaudeCLIProvider  # noqa: E402
+from src.reachability.providers import (  # noqa: E402
+    AIxTechGatewayProvider,
+    ClaudeCLIProvider,
+    OllamaProvider,
+)
 
 CLAUDE_MODELS = [
     "claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-sonnet-5",
     "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
 ]
 
+# The AIxTech gateway (ANTHROPIC_BASE_URL/ANTHROPIC_AUTH_TOKEN) is a
+# separately-keyed proxy with its own per-team model allowlist - verified
+# live on 2026-10-09 that only these 4 resolve with this project's key
+# (claude-opus-4-8 and the other CLAUDE_MODELS entries return 403
+# team_model_access_denied here even though they work via ClaudeCLIProvider).
+AIXTECH_MODELS = [
+    "claude-haiku-4-5-20251001", "claude-haiku-4-5", "claude-haiku-5-5",
+    "claude-sonnet-5",
+]
+
 
 def provider_for(backend: str, model: str):
-    return ClaudeCLIProvider(model) if backend == "claude" else OllamaProvider(model)
+    if backend == "claude":
+        return ClaudeCLIProvider(model)
+    if backend == "aixtech":
+        return AIxTechGatewayProvider(model)
+    return OllamaProvider(model)

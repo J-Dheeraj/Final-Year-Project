@@ -24,7 +24,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402 - import first
+from src.reachability.claude_backend import AIXTECH_MODELS, CLAUDE_MODELS, provider_for  # noqa: E402 - import first
 
 import run_full_deployment_harness as base  # noqa: E402 - safe now, providers already cached
 import requests  # noqa: E402
@@ -152,10 +152,10 @@ def probe_multiturn(model: str, backend: str = "ollama") -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    ap.add_argument("--backend", choices=["ollama", "claude", "aixtech"], default="ollama")
     args = ap.parse_args()
     backend = args.backend
-    models = CLAUDE_MODELS if backend == "claude" else MODELS
+    models = CLAUDE_MODELS if backend == "claude" else AIXTECH_MODELS if backend == "aixtech" else MODELS
 
     (HERE / "evidence").mkdir(exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -170,7 +170,7 @@ def main() -> int:
 
     results = []
     total_cost = 0.0
-    stem = f"free5gc_multiturn_bypass_probe_{backend}" if backend == "claude" else "free5gc_multiturn_bypass_probe"
+    stem = f"free5gc_multiturn_bypass_probe_{backend}" if backend in ("claude", "aixtech") else "free5gc_multiturn_bypass_probe"
 
     def persist() -> None:
         report = {
@@ -207,6 +207,8 @@ def main() -> int:
     print(f"\n\n{n_bypass}/{len(results)} models found a genuine bypass within {MAX_ROUNDS} rounds.")
     if backend == "claude":
         print(f"Total measured cost: ${total_cost:.4f}")
+    elif backend == "aixtech":
+        print(f"Total measured cost: ${total_cost:.4f} (dollar cost not reported by this gateway; token counts are in the per-model report)")
     print(f"Report: {OUT_DIR / f'{stem}.json'}")
     return 0
 

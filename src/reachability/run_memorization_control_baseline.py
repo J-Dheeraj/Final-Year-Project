@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from src.reachability.claude_backend import CLAUDE_MODELS, provider_for  # noqa: E402 - import first
+from src.reachability.claude_backend import AIXTECH_MODELS, CLAUDE_MODELS, provider_for  # noqa: E402 - import first
 from src.reachability.patch import generate_patch  # noqa: E402
 from src.reachability.pipeline import PipelineConfig, run_pipeline  # noqa: E402
 from src.reachability.run_memorization_control import MODELS, _go_build  # noqa: E402
@@ -53,10 +53,10 @@ OUT_DIR = Path(__file__).resolve().parents[2] / "reports" / "reachability"
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", choices=["ollama", "claude"], default="ollama")
+    ap.add_argument("--backend", choices=["ollama", "claude", "aixtech"], default="ollama")
     args = ap.parse_args()
     backend = args.backend
-    models = CLAUDE_MODELS if backend == "claude" else MODELS
+    models = CLAUDE_MODELS if backend == "claude" else AIXTECH_MODELS if backend == "aixtech" else MODELS
 
     if shutil.which("git") is None or shutil.which("go") is None:
         print("Needs both `git` and `go` on PATH; aborting.")
@@ -77,7 +77,7 @@ def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     results = []
     total_cost = 0.0
-    stem = f"free5gc_memorization_control_baseline_{backend}" if backend == "claude" else "free5gc_memorization_control_baseline"
+    stem = f"free5gc_memorization_control_baseline_{backend}" if backend in ("claude", "aixtech") else "free5gc_memorization_control_baseline"
 
     def persist() -> None:
         report = {
@@ -152,6 +152,8 @@ def main() -> int:
     print(f"{n_ok}/{len(results)} models produced a compiling fix for the REAL CVE handler.")
     if backend == "claude":
         print(f"Total measured cost: ${total_cost:.4f}")
+    elif backend == "aixtech":
+        print(f"Total measured cost: ${total_cost:.4f} (dollar cost not reported by this gateway; token counts are in the per-model report)")
     print(f"Full report: {OUT_DIR / f'{stem}.json'}")
     return 0
 
