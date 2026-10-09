@@ -176,9 +176,22 @@ succeed on both arms with this backend, extending the existing
 "no advantage observed" finding to a gateway-routed Claude access path
 in addition to `claude -p`.
 
-This gateway does not report a dollar cost per call (see
-`docs/METHODOLOGY_PITFALLS.md` #15); token counts are captured in each
-model's report entry instead.
+| Model | Synthetic compiles | Real-CVE compiles | Synthetic tok (in/out) | Real-CVE tok (in/out) | Synthetic dur. | Real-CVE dur. |
+|---|---|---|---|---|---|---|
+| `claude-haiku-4-5-20251001` | yes | yes | 664 / 484 | 639 / 462 | 3.22s | 4.01s |
+| `claude-haiku-5-5` | yes | yes | 920 / 727 | 877 / 733 | 3.10s | 3.05s |
+| `claude-sonnet-4-6` | yes | yes | 665 / 479 | 640 / 457 | 5.47s | 5.06s |
+| `claude-sonnet-5` | yes | yes | 918 / 662 | 875 / 622 | 5.11s | 4.87s |
+| `claude-sonnet-5-5` | 403 | 403 | — | — | 0.20s | 0.12s |
+| `claude-opus-4-6` | 403 | 403 | — | — | 0.76s | 0.08s |
+| `claude-opus-4-7` | 403 | 403 | — | — | 0.09s | 0.12s |
+| `claude-opus-4-8` | 403 | 403 | — | — | 0.11s | 0.07s |
+| `claude-opus-5` | 403 | 403 | — | — | 0.10s | 0.06s |
+| `claude-opus-5-5` | 403 | 403 | — | — | 0.06s | 0.10s |
+
+Token counts and duration are real, measured per call. Dollar cost is
+**not reported by this gateway** (see `docs/METHODOLOGY_PITFALLS.md`
+#15) - no guessed per-token price is substituted for it.
 
 ## Scope, stated plainly
 

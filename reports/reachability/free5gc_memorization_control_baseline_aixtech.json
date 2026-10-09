@@ -4,77 +4,109 @@
   "note": "same compile-verification methodology and model set as run_memorization_control.py, applied to the REAL CVE-2026-40248 handler instead of the synthetic one - the matched comparison arm.",
   "target_function": "HandleApplicationDataInfluenceDataSubsToNotifyGet",
   "vulnerable_commit": "86686276a7e226183ee786e3dd6714ec56c78fda^",
-  "generated_at": "2026-10-09T10:57:01.749046+00:00",
+  "generated_at": "2026-10-09T11:16:20.711138+00:00",
   "models": [
     {
       "model": "claude-haiku-4-5-20251001",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 639,
+        "output_tokens": 462
+      },
+      "duration_s": 4.01143889996456
     },
     {
       "model": "claude-haiku-5-5",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 877,
+        "output_tokens": 733
+      },
+      "duration_s": 3.054788400011603
     },
     {
       "model": "claude-sonnet-4-6",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 640,
+        "output_tokens": 457
+      },
+      "duration_s": 5.057425600010902
     },
     {
       "model": "claude-sonnet-5",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 875,
+        "output_tokens": 622
+      },
+      "duration_s": 4.868559400027152
     },
     {
       "model": "claude-sonnet-5-5",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-sonnet-5-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.12470200000097975
     },
     {
       "model": "claude-opus-4-6",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-6' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.08041850000154227
     },
     {
       "model": "claude-opus-4-7",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-7' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.11574650002876297
     },
     {
       "model": "claude-opus-4-8",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-8' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.07001260004471987
     },
     {
       "model": "claude-opus-5",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.06435989995952696
     },
     {
       "model": "claude-opus-5-5",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-5-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.10428520001005381
     }
   ]
 }

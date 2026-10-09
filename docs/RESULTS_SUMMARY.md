@@ -65,7 +65,7 @@ open. [docs/OPENEMR_LLM_PATCH_RESULTS.md](OPENEMR_LLM_PATCH_RESULTS.md),
 |---|---|---|---|
 | Ollama | 48 (6 CVEs x 8 models) | 0 | 1 (XSS oracle regex bug) |
 | Claude (`claude -p`) | 36 (6 CVEs x 6 models) | 0 | 3 (same oracle bug, self-diagnosed by the models) |
-| AIxTech gateway | 60 (6 CVEs x 10 models, 36 pairs 403-denied) | 0 | 1 (same oracle bug again, self-diagnosed) |
+| AIxTech gateway | 60 (6 CVEs x 10 models, 36 pairs 403-denied) | 0 | 2 (same oracle bug again, both self-diagnosed) |
 
 [docs/CATALOG_BYPASS_PROBE_RESULTS.md](CATALOG_BYPASS_PROBE_RESULTS.md)
 
@@ -140,20 +140,27 @@ and 974 output tokens for bypass probing.
 
 The user's 10 requested model names (haiku 4.5/5.5, sonnet 4.6/5/5.5,
 opus 4.6/4.7/4.8/5/5.5) were run through all 4 experiment families via
-the new `--backend aixtech` option. Only 4 resolve on this gateway key
-(`claude-haiku-4-5-20251001`, `claude-haiku-5-5`, `claude-sonnet-4-6`,
-`claude-sonnet-5`); the other 6 (`claude-sonnet-5-5`, all 5
-`claude-opus-*`) are blocked by the key's own team-scoped model
-allowlist (403 `team_model_access_denied`), recorded as the model's
-error in every experiment rather than silently omitted. Of the 4
-reachable models, results were clean across the board (patch-gen gates
-passed, no genuine bypasses, no memorization advantage) with one
-exception: `claude-haiku-5-5` tripped the already-documented
-`_EXEC_HTML` oracle regex bug on the catalogue's XSS CVE - a third
-occurrence of a bug this project has already found twice and
-deliberately left unfixed, not a new finding. This gateway does not
-report a dollar cost per call; `docs/METHODOLOGY_PITFALLS.md` #15
-documents an auth bug found and fixed during this pass.
+the new `--backend aixtech` option, with every pair's result - success,
+genuine failure, or 403 denial - recorded individually rather than
+summarized away, per-model runtime (`last_duration_s`) and real input/
+output token counts (`last_usage`) captured for every call. Only 4
+resolve on this gateway key (`claude-haiku-4-5-20251001`,
+`claude-haiku-5-5`, `claude-sonnet-4-6`, `claude-sonnet-5`); the other 6
+(`claude-sonnet-5-5`, all 5 `claude-opus-*`) are blocked by the key's
+own team-scoped model allowlist (403 `team_model_access_denied` on
+every single call, each still timed), recorded as the model's error in
+every experiment rather than silently omitted. Of the 4 reachable
+models, results were clean across the board (patch-gen gates passed,
+no genuine bypasses, no memorization advantage) with one recurring
+exception: the already-documented `_EXEC_HTML` oracle regex bug fired
+twice on a re-run of the catalogue's XSS CVE (`claude-haiku-4-5-20251001`
+and `claude-haiku-5-5`) - the same bug this project has already found
+twice before and deliberately left unfixed, not a new finding. This
+gateway does not report a dollar cost per call - no guessed per-token
+price is substituted for model names with no verifiable published
+rate; `docs/METHODOLOGY_PITFALLS.md` #15 documents an auth bug found
+and fixed during this pass. Full per-model tables (all 10 rows, every
+experiment) are in each experiment's own doc.
 
 ## Total measured paid-backend cost (Claude re-run pass)
 

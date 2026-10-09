@@ -106,11 +106,13 @@ def main() -> int:
 
     for model in models:
         print(f"\n{'='*70}\n{model}\n{'='*70}")
-        entry = {"model": model, "compiles": False, "error": None, "diff": None, "cost_usd": None}
+        entry = {"model": model, "compiles": False, "error": None, "diff": None, "cost_usd": None, "usage": None, "duration_s": None}
         try:
             provider = provider_for(backend, model)
             llm_patch = generate_patch(finding, provider, exploit_outcome=None)
             entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+            entry["usage"] = getattr(provider, "last_usage", None)
+            entry["duration_s"] = getattr(provider, "last_duration_s", None)
             if entry["cost_usd"]:
                 total_cost += entry["cost_usd"]
             entry["diff"] = llm_patch.diff
@@ -142,6 +144,10 @@ def main() -> int:
         except Exception as e:
             print(f"[{model}] UNEXPECTED ERROR: {type(e).__name__}: {e}")
             entry["error"] = f"{type(e).__name__}: {e}"
+            prov = locals().get("provider")
+            if prov is not None:
+                entry["usage"] = getattr(prov, "last_usage", None)
+                entry["duration_s"] = getattr(prov, "last_duration_s", None)
 
         results.append(entry)
         persist()

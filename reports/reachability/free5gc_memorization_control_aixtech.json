@@ -4,77 +4,109 @@
   "target_function": "HandleCreateAuthenticationStatus",
   "injection": "synthetic - deleted the real, correctly-present `return` from the 'Malformed request syntax' guard; this exact vulnerable function text has never existed in any public free5gc/udr commit",
   "vulnerable_commit_used_for_compile_verification": "86686276a7e226183ee786e3dd6714ec56c78fda^",
-  "generated_at": "2026-10-09T10:54:39.826897+00:00",
+  "generated_at": "2026-10-09T11:15:19.522845+00:00",
   "models": [
     {
       "model": "claude-haiku-4-5-20251001",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 664,
+        "output_tokens": 484
+      },
+      "duration_s": 3.2246913999551907
     },
     {
       "model": "claude-haiku-5-5",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 727
+      },
+      "duration_s": 3.0972691999631934
     },
     {
       "model": "claude-sonnet-4-6",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 665,
+        "output_tokens": 479
+      },
+      "duration_s": 5.46584390004864
     },
     {
       "model": "claude-sonnet-5",
       "compiles": true,
       "error": null,
       "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\memorization_control\\api_datarepository_synthetic_vulnerable.go::HandleCreateAuthenticationStatus\n@@ -26,6 +26,7 @@\n \t\tlogger.DataRepoLog.Errorln(problemDetail)\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(rsp.Status)))\n \t\tc.JSON(http.StatusBadRequest, rsp)\n+\t\treturn\n \t}\n \n \tlogger.DataRepoLog.Tracef(\"Handle CreateAuthenticationStatus\")",
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {
+        "input_tokens": 918,
+        "output_tokens": 662
+      },
+      "duration_s": 5.1122111000004224
     },
     {
       "model": "claude-sonnet-5-5",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-sonnet-5-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.1951128999935463
     },
     {
       "model": "claude-opus-4-6",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-6' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.7565829000086524
     },
     {
       "model": "claude-opus-4-7",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-7' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.08669749996624887
     },
     {
       "model": "claude-opus-4-8",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-4-8' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.10735840001143515
     },
     {
       "model": "claude-opus-5",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.09529160003876314
     },
     {
       "model": "claude-opus-5-5",
       "compiles": false,
       "error": "PermissionDeniedError: Error code: 403 - {'error': {'message': \"The requested model 'claude-opus-5-5' is not available for this API key, or the model name is invalid. Check the models available to you and try again.\", 'type': 'team_model_access_denied', 'param': 'model', 'code': '403'}}",
       "diff": null,
-      "cost_usd": null
+      "cost_usd": null,
+      "usage": {},
+      "duration_s": 0.06279500003438443
     }
   ],
   "scope_note": "compile-verification only (same tier as run_free5gc_llm_patch.py's first result), not runtime-confirmed - this handler's data path was never wired into the Docker full-deployment harness"

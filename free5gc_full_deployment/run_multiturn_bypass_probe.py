@@ -106,8 +106,12 @@ def probe_multiturn(model: str, backend: str = "ollama") -> dict:
         try:
             completion = provider.complete(SYSTEM_PROMPT, user_prompt)
             round_entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+            round_entry["usage"] = getattr(provider, "last_usage", None)
+            round_entry["duration_s"] = getattr(provider, "last_duration_s", None)
         except Exception as e:
             round_entry["error"] = f"{type(e).__name__}: {e}"
+            round_entry["usage"] = getattr(provider, "last_usage", None)
+            round_entry["duration_s"] = getattr(provider, "last_duration_s", None)
             entry["rounds"].append(round_entry)
             break
 

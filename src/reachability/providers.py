@@ -209,14 +209,22 @@ class AIxTechGatewayProvider(Provider):
         self.last_cost_usd: float | None = None
         self.billing_basis = "aixtech gateway (token counts only, no dollar cost reported)"
         self.last_usage: dict = {}
+        self.last_duration_s: float | None = None
 
     def complete(self, system: str, user: str) -> str:
-        resp = self._client.messages.create(
-            model=self._model,
-            max_tokens=1024,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-        )
+        started = time.perf_counter()
+        try:
+            resp = self._client.messages.create(
+                model=self._model,
+                max_tokens=1024,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            )
+        finally:
+            # Capture timing even on a raised error (e.g. a 403 denial) -
+            # how long the gateway took to reject a call is itself a real,
+            # reportable data point, not just a successful call's duration.
+            self.last_duration_s = time.perf_counter() - started
         self.last_usage = {
             "input_tokens": getattr(resp.usage, "input_tokens", None),
             "output_tokens": getattr(resp.usage, "output_tokens", None),

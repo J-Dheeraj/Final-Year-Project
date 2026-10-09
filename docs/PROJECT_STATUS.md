@@ -2,6 +2,31 @@
 
 ## Session log
 
+- **2026-10-09 (AIxTech gateway: added runtime/token instrumentation,
+  re-ran all 4 experiment families with full per-model data)** — The
+  first full-sweep pass (below) only recorded `cost_usd` (always `None`
+  on this gateway); per explicit follow-up instruction, added
+  `last_duration_s` wall-clock timing to `AIxTechGatewayProvider`
+  (captured even on a raised exception, via `try/finally`, so a 403
+  denial's response time is itself a real data point) and wired
+  `last_usage`/`last_duration_s` capture into all 5 experiment scripts'
+  result-collection code (including their exception-handling branches,
+  guarded with `locals().get("provider")` where the provider might not
+  be bound yet). Re-ran all 4 experiment families end-to-end to
+  actually collect this data (it was never saved in the first pass's
+  JSON reports). Deliberately did not fabricate a dollar-cost estimate
+  from token counts: these are 2026-era Claude model names with no
+  verifiable published per-token pricing this session could confirm, so
+  inventing a rate would be reporting a number nobody measured -
+  consistent with this project's own discipline on this point. All 6
+  per-model tables (every experiment, every one of the 10 models
+  including the 6 that 403) now carry input/output tokens and real
+  duration; cost stays honestly reported as unavailable. Catalog
+  bypass-probe re-run also flipped from 1 to 2 false-positive
+  `_EXEC_HTML` hits (model non-determinism across separate runs) -
+  still both verified as the same known, deliberately-unfixed bug, 0
+  genuine bypasses either way.
+
 - **2026-10-09 (AIxTech gateway: all 10 named models x all 4
   experiment families x all CVEs)** — Ran the user's 10 requested
   Claude model names through every experiment this project tracks via

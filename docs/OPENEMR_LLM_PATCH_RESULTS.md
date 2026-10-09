@@ -178,15 +178,22 @@ run above, `claude-sonnet-5` succeeded here rather than failing with
 exit 1, suggesting that earlier failure was specific to the CLI path
 rather than the model itself.
 
-| Model | Lints | Default denied | Opt-in works |
-|---|---|---|---|
-| `claude-haiku-4-5-20251001` | yes | yes | yes |
-| `claude-haiku-5-5` | yes | yes | yes |
-| `claude-sonnet-4-6` | yes | yes | yes |
-| `claude-sonnet-5` | yes | yes | yes |
+| Model | Lints | Default denied | Opt-in works | Input tok | Output tok | Duration |
+|---|---|---|---|---|---|---|
+| `claude-haiku-4-5-20251001` | yes | yes | yes | 283 | 130 | 2.02s |
+| `claude-haiku-5-5` | yes | yes | yes | 410 | 560 | 2.79s |
+| `claude-sonnet-4-6` | yes | yes | yes | 284 | 139 | 2.70s |
+| `claude-sonnet-5` | yes | yes | yes | 408 | 193 | 2.51s |
+| `claude-sonnet-5-5` | — | — | — | — (403) | — (403) | 0.17s |
+| `claude-opus-4-6` | — | — | — | — (403) | — (403) | 0.11s |
+| `claude-opus-4-7` | — | — | — | — (403) | — (403) | 0.10s |
+| `claude-opus-4-8` | — | — | — | — (403) | — (403) | 0.08s |
+| `claude-opus-5` | — | — | — | — (403) | — (403) | 0.31s |
+| `claude-opus-5-5` | — | — | — | — (403) | — (403) | 0.13s |
 
-This gateway does not report a dollar cost per call; see
-`docs/METHODOLOGY_PITFALLS.md` #15.
+Token counts and duration are real, measured per call. Dollar cost is
+**not reported by this gateway**; see `docs/METHODOLOGY_PITFALLS.md`
+#15 - no guessed per-token price is substituted for it.
 
 ## Scope, stated plainly
 

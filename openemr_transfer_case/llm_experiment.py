@@ -181,11 +181,13 @@ def run_patch_task(backend: str, models: list) -> None:
 
         for model in models:
             print(f"\n{'='*70}\n{model}\n{'='*70}")
-            entry = {"model": model, "lints": False, "default_denied": None, "optin_works": None, "error": None, "cost_usd": None}
+            entry = {"model": model, "lints": False, "default_denied": None, "optin_works": None, "error": None, "cost_usd": None, "usage": None, "duration_s": None}
             try:
                 provider = provider_for(backend, model)
                 snippet = _strip_fences(provider.complete(PATCH_SYSTEM_PROMPT, PATCH_USER_PROMPT))
                 entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+                entry["usage"] = getattr(provider, "last_usage", None)
+                entry["duration_s"] = getattr(provider, "last_duration_s", None)
                 if entry["cost_usd"]:
                     total_cost += entry["cost_usd"]
                 entry["snippet"] = snippet
@@ -213,6 +215,10 @@ def run_patch_task(backend: str, models: list) -> None:
             except Exception as e:
                 print(f"[{model}] UNEXPECTED ERROR: {type(e).__name__}: {e}")
                 entry["error"] = f"{type(e).__name__}: {e}"
+                prov = locals().get("provider")
+                if prov is not None:
+                    entry["usage"] = getattr(prov, "last_usage", None)
+                    entry["duration_s"] = getattr(prov, "last_duration_s", None)
             finally:
                 ADMIN_PHP.write_text(vulnerable_source, encoding="utf-8")  # restore for the next model
 
@@ -263,11 +269,13 @@ def run_bypass_task(backend: str, models: list) -> None:
 
         for model in models:
             print(f"\n{'='*70}\n{model}\n{'='*70}")
-            entry = {"model": model, "proposal": None, "bypass_confirmed": False, "error": None, "cost_usd": None}
+            entry = {"model": model, "proposal": None, "bypass_confirmed": False, "error": None, "cost_usd": None, "usage": None, "duration_s": None}
             try:
                 provider = provider_for(backend, model)
                 completion = provider.complete(BYPASS_SYSTEM_PROMPT, BYPASS_USER_PROMPT)
                 entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+                entry["usage"] = getattr(provider, "last_usage", None)
+                entry["duration_s"] = getattr(provider, "last_duration_s", None)
                 if entry["cost_usd"]:
                     total_cost += entry["cost_usd"]
                 text = completion.strip()
@@ -296,6 +304,10 @@ def run_bypass_task(backend: str, models: list) -> None:
             except Exception as e:
                 print(f"[{model}] UNEXPECTED ERROR: {type(e).__name__}: {e}")
                 entry["error"] = f"{type(e).__name__}: {e}"
+                prov = locals().get("provider")
+                if prov is not None:
+                    entry["usage"] = getattr(prov, "last_usage", None)
+                    entry["duration_s"] = getattr(prov, "last_duration_s", None)
 
             results.append(entry)
             persist()

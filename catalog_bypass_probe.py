@@ -139,7 +139,7 @@ def get_marker(app_path: Path) -> str:
 
 def probe_one(cve_id: str, model: str, app_path: Path, marker: str, source: str, backend: str = "ollama") -> dict:
     entry = {"cve_id": cve_id, "model": model, "proposal": None, "bypass_confirmed": False,
-             "error": None, "cost_usd": None}
+             "error": None, "cost_usd": None, "usage": None, "duration_s": None}
     try:
         provider = provider_for(backend, model)
     except Exception as e:
@@ -149,9 +149,13 @@ def probe_one(cve_id: str, model: str, app_path: Path, marker: str, source: str,
     try:
         completion = provider.complete(SYSTEM_PROMPT, USER_PROMPT_TEMPLATE.format(source=source))
         entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+        entry["usage"] = getattr(provider, "last_usage", None)
+        entry["duration_s"] = getattr(provider, "last_duration_s", None)
     except Exception as e:
         entry["error"] = f"{type(e).__name__}: {e}"
         entry["cost_usd"] = getattr(provider, "last_cost_usd", None)
+        entry["usage"] = getattr(provider, "last_usage", None)
+        entry["duration_s"] = getattr(provider, "last_duration_s", None)
         return entry
 
     proposal = _extract_json(completion)
