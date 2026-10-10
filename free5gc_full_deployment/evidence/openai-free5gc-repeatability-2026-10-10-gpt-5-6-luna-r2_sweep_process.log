@@ -1,0 +1,23 @@
+2026-10-10T01:31:27.831407425Z[36m [INFO][UDR][Main] [0mUDR version:  
+	Not specify ldflags (which link version) during go build
+	go version: go1.26.9 linux/amd64
+2026-10-10T01:31:27.834564849Z[36m [INFO][UDR][CFG] [0mRead config from [./config/udrcfg.yaml]
+2026-10-10T01:31:27.834922696Z[36m [INFO][UDR][Util] [0mudrconfig Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-10T01:31:27.834944223Z[36m [INFO][UDR][Main] [0mLog enable is set to [true]
+2026-10-10T01:31:27.834946756Z[36m [INFO][UDR][Main] [0mLog level is set to [info]
+2026-10-10T01:31:27.834948228Z[36m [INFO][UDR][Main] [0mReport Caller is set to [false]
+2026-10-10T01:31:27.840700419Z[36m [INFO][UDR][Main] [0mOAuth2 setting receive from NRF: false
+2026-10-10T01:31:27.840720974Z[36m [INFO][UDR][Init] [0mregister to NRF successfully
+2026-10-10T01:31:27.840723723Z[36m [INFO][UDR][Init] [0mServer started
+2026-10-10T01:31:27.840726021Z[36m [INFO][UDR][Init] [0mUDR Config Info: Version[1.1.0] Description[UDR initial local configuration]
+2026-10-10T01:31:27.840784620Z[36m [INFO][UDR][SBI] [0mStarting server...
+2026-10-10T01:31:27.896268548Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify |  |
+2026-10-10T01:31:27.899208081Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | PUT     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/leak-test-sub-001 |  |
+2026-10-10T01:31:27.924846445Z[36m [INFO][UDR][GIN] [0m| 400 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify |  |
+2026-10-10T01:31:27.929076514Z[36m [INFO][UDR][GIN] [0m| 404 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/attacker-controlled-id/leak-test-sub-001 |  |
+2026-10-10T01:31:27.933139140Z[36m [INFO][UDR][GIN] [0m| 404 |    10.100.200.1 | PUT     | /nudr-dr/v2/application-data/influenceData/attacker-controlled-id/leak-test-sub-002 |  |
+2026-10-10T01:31:27.954876784Z[36m [INFO][UDR][GIN] [0m| 404 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/leak-test-sub-002 |  |
+2026-10-10T01:31:27.970243167Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | PUT     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/leak-test-sub-003 |  |
+2026-10-10T01:31:27.985767767Z[36m [INFO][UDR][GIN] [0m| 404 |    10.100.200.1 | DELETE  | /nudr-dr/v2/application-data/influenceData/attacker-controlled-id/leak-test-sub-003 |  |
+2026-10-10T01:31:28.001307709Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/leak-test-sub-003 |  |
+2026-10-10T01:31:28.016619748Z[36m [INFO][UDR][GIN] [0m| 200 |    10.100.200.1 | GET     | /nudr-dr/v2/application-data/influenceData/subs-to-notify/leak-test-sub-001 |  |

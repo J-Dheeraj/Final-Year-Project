@@ -215,3 +215,9 @@ The OpenAI API rerun used the same local validation harnesses and the 23 model I
 Reports: [`openemr_bypass_probe_openai.json`](../reports/reachability/openemr_bypass_probe_openai.json), [`openemr_llm_patch_openai.json`](../reports/reachability/openemr_llm_patch_openai.json), [`free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json`](../reports/reachability/free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json), and [`free5gc_sweep_patch_openai_openai-2026-10-10.json`](../reports/reachability/free5gc_sweep_patch_openai_openai-2026-10-10.json).
 
 The combined free5GC patch report now covers all 23 model IDs. Each model required a fresh Go clone, compilation, Docker image build, and four-handler runtime check. Five generated patches failed compilation and one deprecated model failed before generation; 18 produced runtime-confirmed fixes.
+
+
+Repeatability and final presentation artifacts: [`docs/FREE5GC_OPENAI_REPEATABILITY_RESULTS.md`](docs/FREE5GC_OPENAI_REPEATABILITY_RESULTS.md), [`docs/SUPERVISOR_BRIEFING.md`](docs/SUPERVISOR_BRIEFING.md), and [`docs/FINAL_DEMONSTRATION_CHECKLIST.md`](docs/FINAL_DEMONSTRATION_CHECKLIST.md).
+
+
+Clean reproduction record: [REPRODUCTION_RECORD_2026-10-10.md](REPRODUCTION_RECORD_2026-10-10.md).

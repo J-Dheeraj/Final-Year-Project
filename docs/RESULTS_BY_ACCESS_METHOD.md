@@ -171,3 +171,6 @@ and `d4ac713`.
 See `docs/FINAL_EVIDENCE_SUMMARY.md` for the one-page bounded conclusion
 drawn across all 6 categories above - headline numbers, what has and
 hasn't been shown, and what remains explicitly out of scope.
+
+
+Repeatability and final presentation artifacts: [`docs/FREE5GC_OPENAI_REPEATABILITY_RESULTS.md`](docs/FREE5GC_OPENAI_REPEATABILITY_RESULTS.md), [`docs/SUPERVISOR_BRIEFING.md`](docs/SUPERVISOR_BRIEFING.md), and [`docs/FINAL_DEMONSTRATION_CHECKLIST.md`](docs/FINAL_DEMONSTRATION_CHECKLIST.md).
