@@ -6,7 +6,9 @@ full method, verification steps, and raw data - this page exists so
 the headline numbers don't require reading ~20 documents to find. See
 `docs/RESULTS_BY_ACCESS_METHOD.md` for the same results re-cut by
 access mechanism (Claude API key / Claude Code / Claude CLI / Codex
-CLI / Ollama) instead of by experiment.
+CLI / Ollama / OpenAI API) instead of by experiment, and
+`docs/FINAL_EVIDENCE_SUMMARY.md` for the one-page bounded conclusion
+across all of it.
 
 ## 1. Sweep-script unification
 

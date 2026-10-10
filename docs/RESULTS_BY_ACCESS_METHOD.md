@@ -165,3 +165,9 @@ The OpenAI API results are:
 
 The implementation and reports were pushed in commits `4aa4964`, `af8d41e`,
 and `d4ac713`.
+
+---
+
+See `docs/FINAL_EVIDENCE_SUMMARY.md` for the one-page bounded conclusion
+drawn across all 6 categories above - headline numbers, what has and
+hasn't been shown, and what remains explicitly out of scope.
