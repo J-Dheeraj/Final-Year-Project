@@ -281,7 +281,7 @@ Table~\ref{tab:prog-env} summarises the languages, libraries, and hardware the s
 \midrule
 Programming languages & Python (pipeline orchestration, pydantic data models, reachability engine); Go (free5GC target reproduction and the real upstream module under test) \\
 Libraries / frameworks & pydantic-ai (agent orchestration), tree-sitter (AST parsing), Flask (main-catalogue reproduction targets), FastAPI (\texttt{ssrf\_lab/}), Go's standard-library \texttt{net/http} (dependency-free lab server) \\
-Hardware & Local workstation; Ollama-served models were run on locally available CPU/GPU resources, with no dedicated accelerator required for the classes of models evaluated \\
+Hardware & 13th Gen Intel Core i9-13980HX, 16~GB RAM, NVIDIA GeForce RTX 4060 Laptop GPU (Ollama-served models run on this GPU; no dedicated accelerator was required for the model classes evaluated); Windows 11 Home, build 10.0.26200 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1120,6 +1120,57 @@ CVE-2026-46492 & CWE-80 & CWE-80, CWE-87 \\
 \end{table}
 
 Agreement across all six entries indicates the structured-CWE signal is consistent across both databases, though this is not independent replication of the underlying analysis, since advisories are commonly shared or ingested between the two sources.
+
+\chapter{Verbatim Prompts (Representative Sample)}
+\label{app:verbatim-prompts}
+
+Appendix~\ref{app:repo-access}'s results-location table points to the
+source files holding every prompt used in this project rather than
+reproducing all of them here. This appendix reproduces one
+representative pair verbatim --- the reachability track's patch-
+generation system and user prompts (\texttt{src/reachability/patch.py})
+--- so a reader can see this project's actual prompting style without
+opening the repository.
+
+\begin{verbatim}
+SYSTEM PROMPT (Go target; a near-identical C/kernel variant is
+selected when the target file is not Go):
+
+You are a Go backend developer writing a minimal security fix for an
+HTTP handler. Output ONLY the complete corrected function body (same
+signature, same style), no markdown fences, no commentary. Keep the
+change as small as possible - do not refactor or rename anything not
+required by the fix.
+\end{verbatim}
+
+\begin{verbatim}
+USER PROMPT TEMPLATE:
+
+CWE: {cwe}
+Vulnerability: {explanation}
+
+Fix this function. Preserve its exact signature and behavior for
+valid inputs; only add the missing bounds/validation/sanitization
+needed to close the reported issue.
+
+```{lang}
+{body}
+```
+\end{verbatim}
+
+When a prior exploit attempt crashed the target, one further
+paragraph is appended to the user prompt, grounding the fix in that
+confirmed failure rather than only the triage stage's prose
+description:
+
+\begin{verbatim}
+A generated proof-of-vulnerability harness confirmed this exact bug
+crashes the original code:
+```
+{last 1000 characters of the crash log}
+```
+The fix must make this exact harness survive without crashing.
+\end{verbatim}
 
 \chapter{Repository and Artifact Access}
 \label{app:repo-access}
