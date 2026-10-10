@@ -26,7 +26,7 @@ Most catalogue CVEs are controlled reproductions rather than proof that the corr
 
 ## Recommended next work
 
-Freeze the evidence repository, run the documented clean reproduction, present the demonstration, and treat broader vulnerability classes or platforms as post-R&D work.
+Use the frozen evidence repository and clean-reproduction record for the thesis and demonstration. Revoke the invalid OpenAI key externally, and treat broader vulnerability classes or platforms as post-R&D work.
 
 
 ## Final targeted evidence note

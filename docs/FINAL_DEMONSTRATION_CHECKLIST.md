@@ -1,6 +1,6 @@
 # Final demonstration checklist (10-15 minutes)
 
-1. Identify the pinned repository commit and explain the research questions.
+1. Identify the pinned repository commit/tag (`fyp-rd-freeze-2026-10-10-thesis`) and explain the research questions.
 2. Show the vulnerable free5GC UDR behavior for unauthorized read, collection read, write, and delete.
 3. Show one OpenAI-generated patch and its preserved run ID.
 4. Show Go compilation and the Docker image used for validation.
