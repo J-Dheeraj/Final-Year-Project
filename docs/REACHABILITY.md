@@ -193,3 +193,6 @@ legitimately claim: **discovery-adjacent static analysis on real upstream
 source**, alongside the main pipeline's **exploit confirmation and patch
 validation for already-known CVEs**. See `docs/CRS_MAPPING.md` for how
 both pieces now map onto the AIxCC/OSS-CRS vocabulary.
+
+
+> **Metric interpretation:** `confirmed_fix_all_four_handlers` means the full validation pipeline passed. Four handlers are tested, but only one handler change is model-generated; three are deterministic reachability materializations. It is not a rate of independently model-generated four-handler patches.

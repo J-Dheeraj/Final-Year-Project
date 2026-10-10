@@ -99,3 +99,6 @@ benchmark) - see `docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md`.
   driver for this specific model-name list.
 - `reports/reachability/free5gc_llm_claude_sweep_extended.json`/`.md` -
   full machine-readable and summary reports.
+
+
+> **Provenance note:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Four handlers are tested, but one handler change is model-generated and three are deterministic reachability materializations; it is not an independently model-generated four-handler patch rate.

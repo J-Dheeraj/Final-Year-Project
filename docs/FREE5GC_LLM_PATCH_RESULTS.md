@@ -198,3 +198,6 @@ Only the memorization-risk limitation above remains unresolved - it
 would need a second experiment (a handler/fix pair less likely to be in
 the model's training data, or an explicit check) to address, not more
 work on this exact case.
+
+
+> **Provenance note:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Four handlers are tested, but one handler change is model-generated and three are deterministic reachability materializations; it is not an independently model-generated four-handler patch rate.

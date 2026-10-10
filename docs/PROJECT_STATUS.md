@@ -2206,3 +2206,6 @@ a direction that may have already been ruled out for a documented reason.
 - Don't claim `llm-live` provenance for any result until a real API key
   or `claude` CLI is actually configured and used in this environment.
 
+
+
+> **Provenance note:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Four handlers are tested, but one handler change is model-generated and three are deterministic reachability materializations; it is not an independently model-generated four-handler patch rate.

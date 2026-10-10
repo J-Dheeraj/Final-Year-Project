@@ -221,3 +221,6 @@ response, not a description of what should happen, and every step is in
 the first time in the project's history all of generation, dynamic
 confirmation, AND patch validation succeeded for the same CVE in the
 same run — cite this one first if asked for a concrete example.
+
+
+> **Metric interpretation:** `confirmed_fix_all_four_handlers` means the full validation pipeline passed. Four handlers are tested, but only one handler change is model-generated; three are deterministic reachability materializations. It is not a rate of independently model-generated four-handler patches.

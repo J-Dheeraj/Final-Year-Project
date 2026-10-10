@@ -121,3 +121,6 @@ report. `main` is untouched. Whether to update the frozen FYP report
 with this stronger characterization is a separate decision for the
 report owner, given the report was deliberately frozen after multiple
 rounds of review.
+
+
+> **Metric interpretation:** `confirmed_fix_all_four_handlers` means the full validation pipeline passed. Four handlers are tested, but only one handler change is model-generated; three are deterministic reachability materializations. It is not a rate of independently model-generated four-handler patches.

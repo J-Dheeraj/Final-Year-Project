@@ -600,7 +600,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<h1>&lt;img src=x onerror=alert(1)&gt;</h1>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<h1>&lt;img src=x onerror=alert(1)&gt;</h1>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -637,7 +647,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<p>x onclick=1</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>x onclick=1</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -674,7 +694,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<h1>&lt;script&gt;alert(1)&lt;/script&gt;</h1>\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<h1>&lt;script&gt;alert(1)&lt;/script&gt;</h1>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -1096,5 +1126,11 @@
       "usage": {},
       "duration_s": 0.1116770000080578
     }
-  ]
+  ],
+  "xss_validation": {
+    "method": "pinned Chrome headless replay with dialog/error instrumentation",
+    "report": "reports/reachability/catalog_xss_browser_replay.json",
+    "genuine_bypasses": 0,
+    "interpretation": "browser_genuine_bypass is the public XSS result; raw_oracle_positive is retained for audit."
+  }
 }

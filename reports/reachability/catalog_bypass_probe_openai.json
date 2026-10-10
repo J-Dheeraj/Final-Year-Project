@@ -2374,7 +2374,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2412,7 +2422,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2463,7 +2483,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<h1>&lt;img src=&#x27;x&#x27; onerror=&#x27;alert(1)&#x27;&gt;</h1>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2505,7 +2535,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2543,7 +2583,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>javascript:alert(&#x27;xss&#x27;)</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2584,7 +2634,17 @@
       },
       "raw_oracle_bypass_confirmed": false,
       "genuine_bypass_confirmed": false,
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2625,7 +2685,17 @@
       },
       "raw_oracle_bypass_confirmed": false,
       "genuine_bypass_confirmed": false,
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2666,7 +2736,17 @@
       },
       "raw_oracle_bypass_confirmed": false,
       "genuine_bypass_confirmed": false,
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2708,7 +2788,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>javascript:alert(1)</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2750,7 +2840,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;img onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2791,7 +2891,17 @@
       },
       "raw_oracle_bypass_confirmed": false,
       "genuine_bypass_confirmed": false,
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2832,7 +2942,17 @@
       },
       "raw_oracle_bypass_confirmed": false,
       "genuine_bypass_confirmed": false,
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2874,7 +2994,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<h1>&amp;lt;img src=x onerror=alert(1)&amp;gt;</h1>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2911,7 +3041,17 @@
       },
       "raw_oracle_bypass_confirmed": false,
       "genuine_bypass_confirmed": false,
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2952,7 +3092,17 @@
       },
       "raw_oracle_bypass_confirmed": false,
       "genuine_bypass_confirmed": false,
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<h1>%3Cscript%3Ealert(1)%3C/script%3E</h1>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -2994,7 +3144,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>javascript:</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -3049,7 +3209,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -3104,7 +3274,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>Ordinary text onclick=disabled</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -3146,7 +3326,17 @@
       "raw_oracle_bypass_confirmed": true,
       "genuine_bypass_confirmed": false,
       "reclassification_reason": "False positive: patched renderer escaped the proposed markup; the target self-check regex matched literal onerror= or javascript: text in escaped content.",
-      "billing_basis": "OpenAI API published pricing estimate"
+      "billing_basis": "OpenAI API published pricing estimate",
+      "raw_oracle_positive": true,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>javascript:</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -4633,5 +4823,11 @@
     "output_tokens": 91997,
     "estimated_cost_usd": 0.2878545,
     "cost_note": "Estimated from published model rates where a matching rate was known; null for unpriced model aliases."
+  },
+  "xss_validation": {
+    "method": "pinned Chrome headless replay with dialog/error instrumentation",
+    "report": "reports/reachability/catalog_xss_browser_replay.json",
+    "genuine_bypasses": 0,
+    "interpretation": "browser_genuine_bypass is the public XSS result; raw_oracle_positive is retained for audit."
   }
 }

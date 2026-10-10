@@ -23,10 +23,7 @@ already-known, already-documented `_EXEC_HTML` test-oracle regex bug
 (it matches escaped `onerror=`/`onclick=`/`javascript:` text that
 never executes), and more than once self-diagnosed by the model's own
 `reasoning` field before a human or script checked the raw response.
-This bug is deliberately left unfixed (it is the oracle, not the
-system under test) and has now recurred across Ollama, `claude -p`,
-the AIxTech gateway, and the OpenAI API - the most-replicated single
-finding in the whole project.
+The legacy marker oracle is deliberately preserved for audit, but it is no longer the public XSS result. All 33 historical raw-positive proposals across Ollama, `claude -p`, the AIxTech gateway, and the OpenAI API were replayed in headless Chrome; the independent `browser_genuine_bypass` result is zero.
 
 **Patch-generation quality varies substantially by model and backend,
 but is not backend-dependent in any simple way** - the same model
@@ -44,11 +41,11 @@ harness itself once the methodology pitfalls below were fixed.
 
 | Access method | Models attempted | Best patch-gen result | Genuine bypasses found |
 |---|---|---|---|
-| Ollama (local, free) | ~8 distinct models across sweeps | 6/8 runtime-confirmed (free5GC snapshot) | 0 (1 false positive, XSS oracle) |
-| Claude CLI (`claude -p`) | 6 named models, reused across 5 experiments, plus an 11-model bypass sweep | 5/6 clean gate (OpenEMR) | 0 (3 false positives, same oracle) |
-| Claude API key (AIxTech gateway) | 10 requested, 4 resolve on this key | 4/4 reachable clean gate, 12/12 stable across a 3-run repeatability check | 0 (2 false positives, same oracle) |
+| Ollama (local, free) | ~8 distinct models across sweeps | 6/8 runtime-confirmed (free5GC snapshot) | 0 browser-confirmed bypasses (historical raw positives replayed) |
+| Claude CLI (`claude -p`) | 6 named models, reused across 5 experiments, plus an 11-model bypass sweep | 5/6 clean gate (OpenEMR) | 0 browser-confirmed bypasses (historical raw positives replayed) |
+| Claude API key (AIxTech gateway) | 10 requested, 4 resolve on this key | 4/4 reachable clean gate, 12/12 stable across a 3-run repeatability check | 0 browser-confirmed bypasses (historical raw positives replayed) |
 | Codex CLI | 18 model IDs attempted | 7/18 runtime-confirmed (free5GC) | 0 |
-| OpenAI API | 23 model IDs | 18/23 runtime-confirmed (free5GC), 16/23 (OpenEMR) | 0 (12 false positives, same oracle) |
+| OpenAI API | 23 model IDs | 18/23 full four-handler validation pipeline passes (free5GC; one model-generated handler + three deterministic materializations), 16/23 (OpenEMR) | 0 browser-confirmed bypasses (12 historical raw positives replayed) |
 | Claude Code (agentic, main pipeline) | 0 - frozen, never successfully executed | n/a | n/a |
 
 Every row's figures are drawn from that access method's own doc
@@ -89,3 +86,6 @@ for "what has this project measured through access path Y." Use this
 page for "what can this project actually claim, and what is explicitly
 still open" - the two sentences a defense or a supervisor briefing
 needs first.
+
+
+XSS bypass columns use `browser_genuine_bypass` from the independent replay, not the legacy marker oracle.

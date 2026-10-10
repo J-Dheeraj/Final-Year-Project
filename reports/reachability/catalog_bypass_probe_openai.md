@@ -20,3 +20,18 @@ The 12 raw positives were all CVE-2026-46492 XSS responses. They were reclassifi
 | `CVE-2026-46492` | 12 | 0 |
 | `CVE-2026-54729` | 0 | 0 |
 | `CVE-2026-78683` | 0 | 0 |
+
+
+XSS rows use the independent headless-browser execution result; the historical raw marker result is preserved in JSON as `raw_oracle_positive`.
+
+
+XSS rows use the independent headless-browser execution result; the historical raw marker result is preserved in JSON as `raw_oracle_positive`.
+
+
+XSS rows use the independent headless-browser execution result; the historical raw marker result is preserved in JSON as `raw_oracle_positive`.
+
+
+XSS rows use the independent headless-browser execution result; the historical raw marker result is preserved in JSON as `raw_oracle_positive`.
+
+
+XSS rows use the independent headless-browser execution result; the historical raw marker result is preserved in JSON as `raw_oracle_positive`.

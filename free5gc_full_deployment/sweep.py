@@ -100,7 +100,9 @@ def provider_factory_for(backend: str):
 
 def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
                   artifact_root: Path | None = None,
-                  experiment_id: str | None = None) -> dict:
+                  experiment_id: str | None = None,
+                  temperature: float | None = None,
+                  seed: int | None = None) -> dict:
     entry = {"model": model, "run": run_idx, "compile": None, "runtime": None,
              "build_ok": None, "generation_outcome": "llm_live_failed"}
     if artifact_root is not None:
@@ -122,7 +124,7 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
             compile_result = prep.materialize_and_verify(model, provider_factory=lambda m: provider)
             cost = getattr(provider, "last_cost_usd", None)
         elif backend == "openai":
-            provider = OpenAIProvider(model)
+            provider = OpenAIProvider(model, temperature=temperature, seed=seed)
             compile_result = prep.materialize_and_verify(model, provider_factory=lambda m: provider)
             cost = getattr(provider, "last_cost_usd", None)
         else:
@@ -140,6 +142,11 @@ def run_patch_one(model: str, backend: str, run_idx: int, vuln_result: dict,
             "thread_id": compile_result.get("thread_id"),
             "billing_basis": compile_result.get("billing_basis"),
             "raw_usage_events": compile_result.get("raw_usage_events"),
+            "request_parameters": {
+                "temperature": temperature,
+                "seed": seed,
+                "sampling_fallback_reason": getattr(provider, "sampling_fallback_reason", None),
+            } if backend == "openai" else None,
         }
         if compile_result.get("patch_method"):
             entry["generation_outcome"] = "llm_live_success"
@@ -191,6 +198,10 @@ def main() -> None:
                      help="repeat each model N times to measure confirmation-rate variance (default 1)")
     ap.add_argument("--run-id", default=None,
                     help="unique label for this experiment; isolates reports and artifacts")
+    ap.add_argument("--temperature", type=float, default=None,
+                    help="OpenAI sampling temperature for controlled repeats")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="OpenAI seed for controlled repeats where supported")
     args = ap.parse_args()
 
     models = args.models.split(",") if args.models else DEFAULT_MODELS[(args.task, args.backend)]
@@ -277,7 +288,9 @@ def main() -> None:
                 artifact_root = artifact_base / safe_tag(model) / f"run-{run_idx}"
                 entry = run_patch_one(model, args.backend, run_idx, vuln_result,
                                       artifact_root=artifact_root,
-                                      experiment_id=args.run_id or report_stem)
+                                      experiment_id=args.run_id or report_stem,
+                                      temperature=args.temperature,
+                                      seed=args.seed)
                 cost = entry["compile"].get("cost_usd") if entry.get("compile") else None
             else:
                 entry = probe_one_model(model, provider_factory=provider_factory_for(args.backend))

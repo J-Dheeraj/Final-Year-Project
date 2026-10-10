@@ -99,3 +99,6 @@ Same limitations as every other result in this series:
 - `free5gc_full_deployment/run_claude_model_sweep.py` - the sweep driver.
 - `reports/reachability/free5gc_llm_claude_sweep.json`/`.md` - full
   machine-readable and summary reports.
+
+
+> **Provenance note:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Four handlers are tested, but one handler change is model-generated and three are deterministic reachability materializations; it is not an independently model-generated four-handler patch rate.

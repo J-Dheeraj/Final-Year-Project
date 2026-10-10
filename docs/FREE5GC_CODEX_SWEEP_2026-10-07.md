@@ -91,3 +91,6 @@ Final raw reports:
 
 - `reports/reachability/free5gc_sweep_patch_codex_october-2026-codex-final.json`
 - `reports/reachability/free5gc_sweep_bypass_codex_october-2026-codex-final-bypass.json`
+
+
+> **Provenance note:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Four handlers are tested, but one handler change is model-generated and three are deterministic reachability materializations; it is not an independently model-generated four-handler patch rate.

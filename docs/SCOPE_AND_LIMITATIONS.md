@@ -295,3 +295,6 @@ does not own or have permission to test.
 | "The real free5GC fix closes the bug at runtime, all four handlers" | **Dynamic, real HTTP exchange, 2026-09-28** | `free5gc_full_deployment/evidence/verdict.json` |
 | "An LLM-*generated* free5GC patch closes the bug at runtime" | **Dynamic, real HTTP exchange, 6/8 local models in the recorded sweep; the remaining two were one partial fix and one pre-generation OOM. Hosted Claude results are reported separately.** | `reports/reachability/free5gc_llm_model_sweep.json`, `docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`, `docs/FREE5GC_LLM_CLAUDE_SWEEP_RESULTS.md` |
 | "This system fuzzes to find unknown bugs" | Not attempted, not claimed | — |
+
+
+> **Metric interpretation:** `confirmed_fix_all_four_handlers` means the full validation pipeline passed. Four handlers are tested, but only one handler change is model-generated; three are deterministic reachability materializations. It is not a rate of independently model-generated four-handler patches.

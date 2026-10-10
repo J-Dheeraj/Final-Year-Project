@@ -366,7 +366,8 @@ class OpenAIProvider(Provider):
 
     name = "openai"
 
-    def __init__(self, model: str | None = None):
+    def __init__(self, model: str | None = None, *, temperature: float | None = None,
+                 seed: int | None = None):
         if NO_PAID_BACKEND:
             raise RuntimeError(
                 "NO_PAID_BACKEND is set - refusing to construct OpenAIProvider "
@@ -389,16 +390,35 @@ class OpenAIProvider(Provider):
         self.last_duration_s: float | None = None
         self.last_cost_usd: float | None = None
         self.billing_basis = "OpenAI API published pricing estimate"
+        self.temperature = temperature
+        self.seed = seed
 
     def complete(self, system: str, user: str) -> str:
         started = time.perf_counter()
-        resp = self._client.chat.completions.create(
-            model=self._model,
-            messages=[
+        request = {
+            "model": self._model,
+            "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-        )
+        }
+        if self.temperature is not None:
+            request["temperature"] = self.temperature
+        if self.seed is not None:
+            request["seed"] = self.seed
+        try:
+            resp = self._client.chat.completions.create(**request)
+        except Exception as exc:
+            # Some newer reasoning models reject sampling controls. Retry
+            # without controls, and retain the fact in the usage metadata.
+            if self.temperature is None and self.seed is None:
+                raise
+            request.pop("temperature", None)
+            request.pop("seed", None)
+            self.sampling_fallback_reason = f"{type(exc).__name__}: {exc}"
+            resp = self._client.chat.completions.create(**request)
+        else:
+            self.sampling_fallback_reason = None
         self.last_duration_s = time.perf_counter() - started
         usage = getattr(resp, "usage", None)
         self.last_usage = {

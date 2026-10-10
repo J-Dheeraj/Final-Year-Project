@@ -85,6 +85,22 @@ def verdict_from(vuln_result: dict, patched_result: dict) -> dict:
         "confirmed_fix_all_four_handlers"
         if all(v.values()) else "partial_or_inconclusive"
     )
+    # The historical verdict name is retained for compatibility, but the
+    # harness only asks the model for one handler. The other three changes are
+    # deterministic reachability materialisation performed by the pipeline.
+    v.update({
+        "handlers_total": 4,
+        "handlers_model_generated": 1,
+        "handlers_deterministically_materialized": 3,
+        "compile_passed": True,
+        "runtime_confirmed_all_four_handlers": v["overall_verdict"] == "confirmed_fix_all_four_handlers",
+        "benign_path_passed": v["benign_path_preserved_patched"],
+        "pipeline_validation_verdict": v["overall_verdict"],
+        "model_contribution_note": (
+            "One handler patch is model-generated; three handler changes are "
+            "deterministic reachability materialization."
+        ),
+    })
     return v
 
 

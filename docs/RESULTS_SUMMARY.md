@@ -210,7 +210,7 @@ The OpenAI API rerun used the same local validation harnesses and the 23 model I
 | OpenEMR bypass | 23/23 | 0/23 bypasses; 20 parseable proposals | 207.30 s | 6,796 / 14,358 | US$0.0239 |
 | OpenEMR patch | 23/23 | 16/23 fully working gates | 91.89 s | 5,606 / 6,419 | US$0.0206 |
 | free5GC bypass | 23/23 | 0/23 bypasses; 19 parseable proposals | 166.74 s | 8,589 / 12,739 | US$0.0296 |
-| free5GC patch | 23/23 | 18/23 runtime-confirmed all four handlers; 5 compile failures; 1 deprecated model | 125.77 s | 11,284 / 9,141 | US$0.0603 |
+| free5GC patch | 23/23 | 18/23 full four-handler validation pipeline; 5 compile failures; 1 deprecated model | 125.77 s | 11,284 / 9,141 | US$0.0603 |
 
 Reports: [`openemr_bypass_probe_openai.json`](../reports/reachability/openemr_bypass_probe_openai.json), [`openemr_llm_patch_openai.json`](../reports/reachability/openemr_llm_patch_openai.json), [`free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json`](../reports/reachability/free5gc_sweep_bypass_openai_openai-2026-10-10-bypass.json), and [`free5gc_sweep_patch_openai_openai-2026-10-10.json`](../reports/reachability/free5gc_sweep_patch_openai_openai-2026-10-10.json).
 

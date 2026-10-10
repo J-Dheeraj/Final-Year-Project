@@ -596,7 +596,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<p></p>\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p></p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -624,7 +634,17 @@
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;&lt;img&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
       },
-      "signal": "FALSE POSITIVE in target_app's own _EXEC_HTML oracle regex (\\son\\w+\\s*= matches the literal substring ' onerror=' even inside HTML-escaped, inert text - confirmed by inspection: the response body shows '&lt;img ... onerror=alert(1)&gt;', properly escaped, not live executable HTML). Not a genuine XSS bypass; reclassified after manual verification before reporting."
+      "signal": "FALSE POSITIVE in target_app's own _EXEC_HTML oracle regex (\\son\\w+\\s*= matches the literal substring ' onerror=' even inside HTML-escaped, inert text - confirmed by inspection: the response body shows '&lt;img ... onerror=alert(1)&gt;', properly escaped, not live executable HTML). Not a genuine XSS bypass; reclassified after manual verification before reporting.",
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;&lt;img&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -659,7 +679,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<p></p>\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p></p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -690,7 +720,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -721,7 +761,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;</p>\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-46492",
@@ -752,7 +802,17 @@
       "response": {
         "status_code": 200,
         "body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>"
-      }
+      },
+      "raw_oracle_positive": false,
+      "browser_genuine_bypass": false,
+      "browser_signal": {
+        "browser_available": true,
+        "dialog_executed": false,
+        "script_error_observed": false,
+        "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
+        "browser_exit_code": 0
+      },
+      "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>"
     },
     {
       "cve_id": "CVE-2026-23949",
@@ -1125,5 +1185,11 @@
         "body": "{\"error\":\"blocked by SSRF guard: internal host\",\"url\":\"http://192.168.1.100/secret\"}\n"
       }
     }
-  ]
+  ],
+  "xss_validation": {
+    "method": "pinned Chrome headless replay with dialog/error instrumentation",
+    "report": "reports/reachability/catalog_xss_browser_replay.json",
+    "genuine_bypasses": 0,
+    "interpretation": "browser_genuine_bypass is the public XSS result; raw_oracle_positive is retained for audit."
+  }
 }

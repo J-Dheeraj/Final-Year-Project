@@ -160,7 +160,7 @@ The OpenAI API results are:
   23 models; 0/23 bypasses against the real patched deployment.
 - `reports/reachability/free5gc_sweep_patch_openai_combined_2026-10-10.json`:
   all 23 models completed across the initial, continuation, and final single-model
-  runs; 18/23 runtime confirmed across all four handlers, five compile failures,
+  runs; 18/23 full four-handler validation pipeline passes (one model-generated handler plus three deterministic materializations), five compile failures,
   and one deprecated model. The source reports remain preserved separately.
 
 The implementation and reports were pushed in commits `4aa4964`, `af8d41e`,
@@ -174,3 +174,6 @@ hasn't been shown, and what remains explicitly out of scope.
 
 
 Repeatability and final presentation artifacts: [`docs/FREE5GC_OPENAI_REPEATABILITY_RESULTS.md`](docs/FREE5GC_OPENAI_REPEATABILITY_RESULTS.md), [`docs/SUPERVISOR_BRIEFING.md`](docs/SUPERVISOR_BRIEFING.md), and [`docs/FINAL_DEMONSTRATION_CHECKLIST.md`](docs/FINAL_DEMONSTRATION_CHECKLIST.md).
+
+
+XSS public results use the independent headless-browser replay in `reports/reachability/catalog_xss_browser_replay.json`; the legacy marker result remains available as `raw_oracle_positive`.

@@ -136,3 +136,6 @@ patch on a different run, the way `qwen2.5-coder:1.5b` did on this one.
   one materialized, compile-verified source file per model that compiled.
 - `reports/reachability/free5gc_llm_model_sweep.json` /`.md` - the
   consolidated machine-readable and summary reports.
+
+
+> **Provenance note:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Four handlers are tested, but one handler change is model-generated and three are deterministic reachability materializations; it is not an independently model-generated four-handler patch rate.

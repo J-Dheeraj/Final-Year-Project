@@ -34,3 +34,6 @@ wall-clock duration, prompt-evaluation input tokens, generated output tokens,
 total tokens, model-load duration, prompt-evaluation duration, and generation
 duration. This historical snapshot predates that instrumentation, so its raw
 report does not contain these fields.
+
+
+> **Provenance note:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Four handlers are tested, but one handler change is model-generated and three are deterministic reachability materializations; it is not an independently model-generated four-handler patch rate.

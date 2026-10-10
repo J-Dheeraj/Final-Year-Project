@@ -49,3 +49,6 @@ The October repeated patch-generation study must preserve, per model and run:
 - benign-path result;
 - patch diff, generated source, logs, duration, and cost where available.
 
+
+
+> **Metric interpretation:** `confirmed_fix_all_four_handlers` means the full validation pipeline passed. Four handlers are tested, but only one handler change is model-generated; three are deterministic reachability materializations. It is not a rate of independently model-generated four-handler patches.
