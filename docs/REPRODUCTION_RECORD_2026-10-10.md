@@ -1,6 +1,7 @@
 # Reproduction record (2026-10-10)
 
-- Repository commit before this evidence update: `b020faa`
+- Evidence update commit: `94689d9`
+- Final freeze tag will be `fyp-rd-freeze-2026-10-10-final`
 - Previous integrity freeze tag: `fyp-rd-freeze-2026-10-10-integrity-2`
 - OpenAI project: proj_QypENhihtJ0cYJq3OUqPxk5Y
 - Docker server version: `29.4.3`
