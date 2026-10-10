@@ -46,7 +46,7 @@ harness itself once the methodology pitfalls below were fixed.
 |---|---|---|---|
 | Ollama (local, free) | ~8 distinct models across sweeps | 6/8 runtime-confirmed (free5GC snapshot) | 0 (1 false positive, XSS oracle) |
 | Claude CLI (`claude -p`) | 6 named models, reused across 5 experiments, plus an 11-model bypass sweep | 5/6 clean gate (OpenEMR) | 0 (3 false positives, same oracle) |
-| Claude API key (AIxTech gateway) | 10 requested, 4 resolve on this key | 4/4 reachable clean gate | 0 (2 false positives, same oracle) |
+| Claude API key (AIxTech gateway) | 10 requested, 4 resolve on this key | 4/4 reachable clean gate, 12/12 stable across a 3-run repeatability check | 0 (2 false positives, same oracle) |
 | Codex CLI | 18 model IDs attempted | 7/18 runtime-confirmed (free5GC) | 0 |
 | OpenAI API | 23 model IDs | 18/23 runtime-confirmed (free5GC), 16/23 (OpenEMR) | 0 (12 false positives, same oracle) |
 | Claude Code (agentic, main pipeline) | 0 - frozen, never successfully executed | n/a | n/a |

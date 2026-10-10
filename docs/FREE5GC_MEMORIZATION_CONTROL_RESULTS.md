@@ -183,6 +183,48 @@ in addition to `claude -p`.
 | `claude-sonnet-4-6` | yes | yes | 665 / 479 | 640 / 457 | 5.47s | 5.06s |
 | `claude-sonnet-5` | yes | yes | 918 / 662 | 875 / 622 | 5.11s | 4.87s |
 | `claude-sonnet-5-5` | 403 | 403 | — | — | 0.20s | 0.12s |
+## Repeatability check (AIxTech gateway, real-CVE baseline arm, 3 runs/model)
+
+The results above are each a single attempt per model - they show what
+happened once, not whether it's stable. `src/reachability/
+run_aixtech_repeatability_check.py` re-runs the real-CVE baseline arm's
+exact methodology (same repo, same commit, same target handler, same
+`generate_patch`/`_go_build` helpers, imported not duplicated) 3x per
+model, for the 4 models that actually resolve on this gateway key - a
+fresh `AIxTechGatewayProvider` instance constructed per run, so nothing
+in this project's own code could be caching the result between runs.
+
+**12/12 runs compiled.** But the result is more specific than "stable":
+every model's 3 runs produced a **byte-identical patch diff and
+identical input/output token counts**, with a sharp latency cliff after
+the first call (run 1: 2.9-5.2s; runs 2-3: 0.1-0.3s) for all 4 models.
+
+| Model | Runs compiled | Diff identical across runs | Run 1 duration | Runs 2-3 duration |
+|---|---|---|---|---|
+| `claude-haiku-4-5-20251001` | 3/3 | yes | 4.91s | 3.89s, 0.17s |
+| `claude-haiku-5-5` | 3/3 | yes | 2.86s | 0.14s, 0.16s |
+| `claude-sonnet-4-6` | 3/3 | yes | 5.18s | 0.12s, 0.14s |
+| `claude-sonnet-5` | 3/3 | yes | 4.82s | 0.17s, 0.15s |
+
+**Reading this honestly**: this is not the same kind of "repeatability"
+evidence as, say, `docs/FREE5GC_MULTI_RUN_VARIANCE_RESULTS.md`'s Ollama
+runs, which showed genuine run-to-run variation. The byte-identical
+output plus the latency cliff strongly suggests either the AIxTech
+gateway itself caches identical `(model, system, user)` requests
+server-side, or the gateway serves this model family at an effectively
+deterministic sampling setting - not that these 4 models are inherently
+deterministic in general (Claude's API gives no determinism guarantee
+at any temperature). Either way, the result this check can honestly
+claim is narrower than "3 independent generations agreed": it is
+**"this exact prompt, replayed 3 times through this exact gateway,
+reliably compiles"** - a real, useful repeatability signal for this
+project's own reproducibility question, just not evidence about
+model-level output variance the way a client-side multi-run study
+would be. No further investigation into the gateway's own caching
+behavior was done - that is infrastructure the gateway operator
+controls, not this project's code.
+
+Raw report: `reports/reachability/free5gc_aixtech_repeatability.json`.
 | `claude-opus-4-6` | 403 | 403 | — | — | 0.76s | 0.08s |
 | `claude-opus-4-7` | 403 | 403 | — | — | 0.09s | 0.12s |
 | `claude-opus-4-8` | 403 | 403 | — | — | 0.11s | 0.07s |

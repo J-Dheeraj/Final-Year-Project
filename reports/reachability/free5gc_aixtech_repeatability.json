@@ -1,0 +1,155 @@
+{
+  "experiment": "aixtech_repeatability_check",
+  "backend": "aixtech",
+  "note": "Each of the 4 gateway-reachable models run 3x against the same real CVE-2026-40248 handler, same methodology as run_memorization_control_baseline.py - checks whether a single-run result is stable, not a one-shot fluke.",
+  "target_function": "HandleApplicationDataInfluenceDataSubsToNotifyGet",
+  "vulnerable_commit": "86686276a7e226183ee786e3dd6714ec56c78fda^",
+  "runs_per_model": 3,
+  "generated_at": "2026-10-10T01:20:59.242347+00:00",
+  "results": [
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "run": 1,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 639,
+        "output_tokens": 462
+      },
+      "duration_s": 4.911012299999129
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "run": 2,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 639,
+        "output_tokens": 462
+      },
+      "duration_s": 3.8853078999673016
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "run": 3,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 639,
+        "output_tokens": 462
+      },
+      "duration_s": 0.1659300999599509
+    },
+    {
+      "model": "claude-haiku-5-5",
+      "run": 1,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 877,
+        "output_tokens": 656
+      },
+      "duration_s": 2.8609822999569587
+    },
+    {
+      "model": "claude-haiku-5-5",
+      "run": 2,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 877,
+        "output_tokens": 656
+      },
+      "duration_s": 0.14056090003577992
+    },
+    {
+      "model": "claude-haiku-5-5",
+      "run": 3,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 877,
+        "output_tokens": 656
+      },
+      "duration_s": 0.15767620003316551
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "run": 1,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 640,
+        "output_tokens": 457
+      },
+      "duration_s": 5.181219300022349
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "run": 2,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 640,
+        "output_tokens": 457
+      },
+      "duration_s": 0.12210340000456199
+    },
+    {
+      "model": "claude-sonnet-4-6",
+      "run": 3,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 640,
+        "output_tokens": 457
+      },
+      "duration_s": 0.14354379998985678
+    },
+    {
+      "model": "claude-sonnet-5",
+      "run": 1,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 875,
+        "output_tokens": 622
+      },
+      "duration_s": 4.81974139995873
+    },
+    {
+      "model": "claude-sonnet-5",
+      "run": 2,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 875,
+        "output_tokens": 622
+      },
+      "duration_s": 0.1664018000010401
+    },
+    {
+      "model": "claude-sonnet-5",
+      "run": 3,
+      "compiles": true,
+      "error": null,
+      "diff": "--- a/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n+++ b/C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\src\\reachability\\examples\\free5gc_case_study\\api_datarepository_vulnerable.go::HandleApplicationDataInfluenceDataSubsToNotifyGet\n@@ -16,6 +16,7 @@\n \t\t\t}\n \t\t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\t\treturn\n \t\t}\n \t}\n \n@@ -26,6 +27,7 @@\n \t\t}\n \t\tc.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(int(problemDetails.Status)))\n \t\tc.JSON(http.StatusBadRequest, problemDetails)\n+\t\treturn\n \t}\n \n \ts.Processor().ApplicationDataInfluenceDataSubsToNotifyGetProcedure(c, dnn, snssai, internalGroupId, supi)",
+      "usage": {
+        "input_tokens": 875,
+        "output_tokens": 622
+      },
+      "duration_s": 0.15398979996098205
+    }
+  ]
+}
