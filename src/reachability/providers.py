@@ -411,7 +411,10 @@ class OpenAIProvider(Provider):
         except Exception as exc:
             # Some newer reasoning models reject sampling controls. Retry
             # without controls, and retain the fact in the usage metadata.
-            if self.temperature is None and self.seed is None:
+            message = str(exc).lower()
+            unsupported_sampling = any(word in message for word in
+                                       ("temperature", "seed", "unsupported", "not allowed"))
+            if (self.temperature is None and self.seed is None) or not unsupported_sampling:
                 raise
             request.pop("temperature", None)
             request.pop("seed", None)
