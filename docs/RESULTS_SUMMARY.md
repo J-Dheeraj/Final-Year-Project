@@ -221,3 +221,8 @@ Repeatability and final presentation artifacts: [`docs/FREE5GC_OPENAI_REPEATABIL
 
 
 Clean reproduction record: [REPRODUCTION_RECORD_2026-10-10.md](REPRODUCTION_RECORD_2026-10-10.md).
+
+
+## Targeted repeatability update
+
+The Claude/AIxTech prompt-cache study completed 24 calls across both access paths. The controlled OpenAI repeatability attempt made 12 calls but received HTTP 401 for every call; those entries are environment-limited and are not included in model success rates.

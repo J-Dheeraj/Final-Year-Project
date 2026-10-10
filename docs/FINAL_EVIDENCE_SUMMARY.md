@@ -89,3 +89,6 @@ needs first.
 
 
 XSS bypass columns use `browser_genuine_bypass` from the independent replay, not the legacy marker oracle.
+
+
+The final targeted repeatability update recorded the OpenAI API key failure as an authentication/environment limitation rather than a model result. Claude and AIxTech prompt/cache sensitivity completed with unique-marker variants; see `docs/FREE5GC_PROMPT_CACHE_SENSITIVITY_RESULTS.md`.

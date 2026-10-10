@@ -1,0 +1,208 @@
+{
+  "schema": "backend-prompt-cache-sensitivity-v1",
+  "generated_at": "2026-10-10T06:37:50.845836+00:00",
+  "interpretation": "Identical outputs across unique prompt markers indicate stability under this gateway/request protocol, not intrinsic model determinism.",
+  "rows": [
+    {
+      "backend": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-haiku-4-5-20251001",
+      "output_sha256": "09e546eadf423d544d63314d00c1a77e83ef37d51ac6756fe98ec05de6af14dd",
+      "output_chars": 1047,
+      "error": null,
+      "duration_s": 15.51145670004189,
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 839,
+        "cache_read_input_tokens": 10249,
+        "cache_creation_input_tokens": 17520
+      },
+      "cost_usd": 0.027129900000000002,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-haiku-4-5-20251001",
+      "output_sha256": "0fd6d10649993a19c3cf03411e750d5791a1b09d3fea8a53d2440d6b79df6b3f",
+      "output_chars": 1026,
+      "error": null,
+      "duration_s": 16.81473450001795,
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 978,
+        "cache_read_input_tokens": 10249,
+        "cache_creation_input_tokens": 17520
+      },
+      "cost_usd": 0.0278249,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-haiku-4-5-20251001",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-haiku-4-5-20251001",
+      "output_sha256": "36038017dd87eb92e02bc263581871f80e757342c5f492b88672238b202a3614",
+      "output_chars": 582,
+      "error": null,
+      "duration_s": 18.629906099988148,
+      "usage": {
+        "input_tokens": 24,
+        "output_tokens": 859,
+        "cache_read_input_tokens": 48794,
+        "cache_creation_input_tokens": 35899
+      },
+      "cost_usd": 0.05407215,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-sonnet-4-6",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-sonnet-4-6",
+      "output_sha256": "de65c6e1136d95310634e83427be33c61f38e522693f502eda077d92b2377e52",
+      "output_chars": 2266,
+      "error": null,
+      "duration_s": 35.024702599970624,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 1373,
+        "cache_read_input_tokens": 37909,
+        "cache_creation_input_tokens": 18050
+      },
+      "cost_usd": 0.09966720000000001,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-sonnet-4-6",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-sonnet-4-6",
+      "output_sha256": "e1afc718e1fa07e214881e4b9a03f596981db5ac5ea6545d39379e0a280d89bc",
+      "output_chars": 2341,
+      "error": null,
+      "duration_s": 29.21930749999592,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 1082,
+        "cache_read_input_tokens": 37909,
+        "cache_creation_input_tokens": 17767
+      },
+      "cost_usd": 0.09424095000000002,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-sonnet-4-6",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-sonnet-4-6",
+      "output_sha256": "10e19ae18b53645fb98a569b2d586879c2ad40167bf8eefbbb5c55bf7e9a20eb",
+      "output_chars": 1871,
+      "error": null,
+      "duration_s": 24.47855110000819,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 864,
+        "cache_read_input_tokens": 37909,
+        "cache_creation_input_tokens": 18070
+      },
+      "cost_usd": 0.09210720000000001,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-sonnet-5",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-sonnet-5",
+      "output_sha256": "d3189768028bc8aa44b032b4fe37687ec2e77f18620b5eec48bc5e1c52d74230",
+      "output_chars": 1719,
+      "error": null,
+      "duration_s": 21.497244099969976,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 1391,
+        "cache_read_input_tokens": 52473,
+        "cache_creation_input_tokens": 25136
+      },
+      "cost_usd": 0.08725259999999999,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-sonnet-5",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-sonnet-5",
+      "output_sha256": "1d6bfc4204addd598679b259a86ec13c686e44ec21b66154f44b1006b7e8d18d",
+      "output_chars": 2005,
+      "error": null,
+      "duration_s": 22.383353899989743,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 1352,
+        "cache_read_input_tokens": 52473,
+        "cache_creation_input_tokens": 24761
+      },
+      "cost_usd": 0.0859251,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-sonnet-5",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-sonnet-5",
+      "output_sha256": "5f511ea41d4e6acf392b1dad802c0e528ee2b7071ccb386cad099131a67aff0f",
+      "output_chars": 1977,
+      "error": null,
+      "duration_s": 34.16967780003324,
+      "usage": {
+        "input_tokens": 6,
+        "output_tokens": 2242,
+        "cache_read_input_tokens": 91684,
+        "cache_creation_input_tokens": 25617
+      },
+      "cost_usd": 0.1048113,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-opus-4-6",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-opus-4-6",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_chars": 0,
+      "error": "RuntimeError: claude -p failed (exit 1): \u26a0 claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes precedence over your claude.ai login \u00b7 Unset it to load your organization's connectors\n",
+      "duration_s": 3.431069199985359,
+      "usage": {},
+      "cost_usd": null,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-opus-4-6",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-opus-4-6",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_chars": 0,
+      "error": "RuntimeError: claude -p failed (exit 1): \u26a0 claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes precedence over your claude.ai login \u00b7 Unset it to load your organization's connectors\n",
+      "duration_s": 3.1690837999922223,
+      "usage": {},
+      "cost_usd": null,
+      "billing_basis": "claude-cli metered"
+    },
+    {
+      "backend": "claude",
+      "model": "claude-opus-4-6",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-opus-4-6",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_chars": 0,
+      "error": "RuntimeError: claude -p failed (exit 1): \u26a0 claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes precedence over your claude.ai login \u00b7 Unset it to load your organization's connectors\n",
+      "duration_s": 3.245584299962502,
+      "usage": {},
+      "cost_usd": null,
+      "billing_basis": "claude-cli metered"
+    }
+  ]
+}

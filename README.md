@@ -1252,3 +1252,6 @@ Clean reproduction record: [docs/REPRODUCTION_RECORD_2026-10-10.md](docs/REPRODU
 > **free5GC metric interpretation:** `confirmed_fix_all_four_handlers` is a full pipeline validation outcome. Each run tests four handlers, but the model generates one handler patch and three are deterministic reachability materializations. See [the evidence interpretation](docs/FREE5GC_EVIDENCE_INTERPRETATION.md) and the derived ledger.
 
 > **XSS validation:** historical raw marker positives are preserved, while public bypass claims use the independent headless-browser replay in [XSS_BROWSER_VALIDATION.md](docs/XSS_BROWSER_VALIDATION.md).
+
+
+> **Final targeted evidence update:** the controlled OpenAI repeatability attempt recorded 12 authentication-limited calls (HTTP 401) and is retained separately from model-quality results. The completed Claude/AIxTech prompt-cache sensitivity study is documented in [FREE5GC_PROMPT_CACHE_SENSITIVITY_RESULTS.md](docs/FREE5GC_PROMPT_CACHE_SENSITIVITY_RESULTS.md).

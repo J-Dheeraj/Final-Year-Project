@@ -12,3 +12,8 @@
 10. Close with limitations, cost/token accounting, and post-R&D work.
 
 Keep raw JSON reports and logs open in a second window so every headline number can be traced to evidence.
+
+
+## Final targeted evidence note
+
+The Claude/AIxTech prompt-cache sensitivity study used unique no-op markers and found no byte-identical convergence across successful variants. The latest OpenAI controlled-repeat attempt was authentication-limited (HTTP 401) and is shown as an environment limitation, not a model failure.

@@ -177,3 +177,6 @@ Repeatability and final presentation artifacts: [`docs/FREE5GC_OPENAI_REPEATABIL
 
 
 XSS public results use the independent headless-browser replay in `reports/reachability/catalog_xss_browser_replay.json`; the legacy marker result remains available as `raw_oracle_positive`.
+
+
+The latest prompt/cache sensitivity reports are documented in `docs/FREE5GC_PROMPT_CACHE_SENSITIVITY_RESULTS.md`. The controlled OpenAI repeatability report contains 12 authentication-limited attempts and does not replace the earlier successful OpenAI model results.

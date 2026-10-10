@@ -1,0 +1,199 @@
+{
+  "schema": "backend-prompt-cache-sensitivity-v1",
+  "generated_at": "2026-10-10T06:28:35.455670+00:00",
+  "interpretation": "Identical outputs across unique prompt markers indicate stability under this gateway/request protocol, not intrinsic model determinism.",
+  "rows": [
+    {
+      "backend": "aixtech",
+      "model": "claude-haiku-4-5-20251001",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-haiku-4-5-20251001",
+      "output_sha256": "b3d883a2854c5dff3b10e3e469ea213de4636754c557a5d4d894a8594205c37e",
+      "output_chars": 1210,
+      "error": null,
+      "duration_s": 5.326858899963554,
+      "usage": {
+        "input_tokens": 71,
+        "output_tokens": 282
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-haiku-4-5-20251001",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-haiku-4-5-20251001",
+      "output_sha256": "ec0252712796cb65a25ca962b20ad9d168253ededd4bce9c2f42da0db8f5da52",
+      "output_chars": 1298,
+      "error": null,
+      "duration_s": 4.465093899983913,
+      "usage": {
+        "input_tokens": 71,
+        "output_tokens": 326
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-haiku-4-5-20251001",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-haiku-4-5-20251001",
+      "output_sha256": "5731baddeddb5264f2cfad47ef35ab79afa556eae0de1634dc605aa19e06e473",
+      "output_chars": 969,
+      "error": null,
+      "duration_s": 3.392819100001361,
+      "usage": {
+        "input_tokens": 71,
+        "output_tokens": 225
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-haiku-5-5",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-haiku-5-5",
+      "output_sha256": "8580d7516684e8a4c293de2d1e7501324851ca8ea94a4a0b15b69911784d28fc",
+      "output_chars": 2102,
+      "error": null,
+      "duration_s": 6.4646747999941,
+      "usage": {
+        "input_tokens": 95,
+        "output_tokens": 1024
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-haiku-5-5",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-haiku-5-5",
+      "output_sha256": "1468134f73b0183640264bfc3230dfc5aaa42c70319b2a4e50ab8b8ae72999e3",
+      "output_chars": 1816,
+      "error": null,
+      "duration_s": 6.236813499999698,
+      "usage": {
+        "input_tokens": 95,
+        "output_tokens": 1024
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-haiku-5-5",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-haiku-5-5",
+      "output_sha256": "8f569a7d01c7ec90e08d6e304633a0d918a4166b453437f4a5779510a4aa8445",
+      "output_chars": 2196,
+      "error": null,
+      "duration_s": 6.437406599987298,
+      "usage": {
+        "input_tokens": 95,
+        "output_tokens": 1024
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-sonnet-4-6",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-sonnet-4-6",
+      "output_sha256": "f6c91bfd389027f154a309522dd3e642c217f46ce7139d5bfdd3c295f53dfcd1",
+      "output_chars": 3301,
+      "error": null,
+      "duration_s": 21.794998199969996,
+      "usage": {
+        "input_tokens": 68,
+        "output_tokens": 1002
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-sonnet-4-6",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-sonnet-4-6",
+      "output_sha256": "856a622090b1663db48703929d56ca08b8bb48c068bed2122ea6d9a67061f1f4",
+      "output_chars": 2982,
+      "error": null,
+      "duration_s": 19.595546899945475,
+      "usage": {
+        "input_tokens": 68,
+        "output_tokens": 1024
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-sonnet-4-6",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-sonnet-4-6",
+      "output_sha256": "3c7f702acd64889e5c38985c56501f279be6b2da8ee63682c015b937f66b84e2",
+      "output_chars": 2972,
+      "error": null,
+      "duration_s": 15.55361790000461,
+      "usage": {
+        "input_tokens": 68,
+        "output_tokens": 1024
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-sonnet-5",
+      "run": 1,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_1_claude-sonnet-5",
+      "output_sha256": "98f768e7102a8c035035403327902dc007abf616cfc475bfbf33dd0c45e1eceb",
+      "output_chars": 2286,
+      "error": null,
+      "duration_s": 13.729219499975443,
+      "usage": {
+        "input_tokens": 92,
+        "output_tokens": 991
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-sonnet-5",
+      "run": 2,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_2_claude-sonnet-5",
+      "output_sha256": "20b3e34694836949798301088dedebe52f1f2fb73952cdba0273cd1c84b5d57e",
+      "output_chars": 1944,
+      "error": null,
+      "duration_s": 10.909426199970767,
+      "usage": {
+        "input_tokens": 92,
+        "output_tokens": 789
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    },
+    {
+      "backend": "aixtech",
+      "model": "claude-sonnet-5",
+      "run": 3,
+      "prompt_variant": "CACHE_SENSITIVITY_RUN_3_claude-sonnet-5",
+      "output_sha256": "34072b17ff16e706d2bd8e04fd6399b49919511ed55657c5dfca1d207bb84f66",
+      "output_chars": 1982,
+      "error": null,
+      "duration_s": 12.721644399978686,
+      "usage": {
+        "input_tokens": 92,
+        "output_tokens": 851
+      },
+      "cost_usd": null,
+      "billing_basis": "aixtech gateway (token counts only, no dollar cost reported)"
+    }
+  ]
+}

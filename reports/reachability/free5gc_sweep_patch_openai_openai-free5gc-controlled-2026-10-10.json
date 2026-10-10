@@ -1,0 +1,410 @@
+{
+  "task": "patch",
+  "backend": "openai",
+  "experiment_id": "openai-free5gc-controlled-2026-10-10",
+  "runs_per_model": 3,
+  "generated_at": "2026-10-10T06:26:02.309300+00:00",
+  "models": [
+    {
+      "model": "gpt-5",
+      "run": 1,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5\\run-1"
+    },
+    {
+      "model": "gpt-5",
+      "run": 2,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5\\run-2"
+    },
+    {
+      "model": "gpt-5",
+      "run": 3,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5\\run-3"
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "run": 1,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-4-1-mini\\run-1"
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "run": 2,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-4-1-mini\\run-2"
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "run": 3,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-4-1-mini\\run-3"
+    },
+    {
+      "model": "gpt-5.2",
+      "run": 1,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5-2\\run-1"
+    },
+    {
+      "model": "gpt-5.2",
+      "run": 2,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5-2\\run-2"
+    },
+    {
+      "model": "gpt-5.2",
+      "run": 3,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5-2\\run-3"
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "run": 1,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5-6-luna\\run-1"
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "run": 2,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5-6-luna\\run-2"
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "run": 3,
+      "compile": {
+        "patch_method": null,
+        "applied": 0,
+        "compiles": false,
+        "error": "generate_patch failed: AuthenticationError: Error code: 401 - {'error': {'message': 'Incorrect API key provided: \"sk-proj**********************************************************************************************************************************************************wgA\". You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "diff": null,
+        "cost_usd": null,
+        "duration_s": null,
+        "usage": {},
+        "thread_id": null,
+        "billing_basis": "OpenAI API published pricing estimate",
+        "raw_usage_events": null,
+        "request_parameters": {
+          "temperature": 0.0,
+          "seed": 42,
+          "sampling_fallback_reason": null
+        }
+      },
+      "runtime": null,
+      "build_ok": null,
+      "generation_outcome": "llm_live_failed",
+      "artifact_dir": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\reachability\\openai-free5gc-controlled-2026-10-10\\gpt-5-6-luna\\run-3"
+    }
+  ],
+  "vulnerable_baseline_run": {
+    "label": "free5gc_sweep_patch_openai_openai-free5gc-controlled-2026-10-10_vulnerable_baseline",
+    "seed": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "collection_get_empty_query": {
+      "status_code": 400,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "174"
+      },
+      "body": "{\"status\":400,\"detail\":\"At least one of DNNs, S-NSSAIs, Internal Group IDs or SUPIs shall be provided\"}[{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}]"
+    },
+    "collection_get_leaked_data": true,
+    "single_get_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "87"
+      },
+      "body": "404 page not found{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_get_leaked_data": true,
+    "single_put_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "96"
+      },
+      "body": "404 page not found{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "confirm_unauthorized_write": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "78"
+      },
+      "body": "{\"dnns\":[\"attacker-injected\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_put_unauthorized_write": true,
+    "delete_seed": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "single_delete_wrong_influence_id": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "18"
+      },
+      "body": "404 page not found"
+    },
+    "post_delete_check": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "64"
+      },
+      "body": "{\"title\":\"User not found\",\"status\":404,\"cause\":\"USER_NOT_FOUND\"}"
+    },
+    "single_delete_confirmed_exploit": true,
+    "benign_get_correct_influence_id": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sat, 10 Oct 2026 06:25:50 GMT",
+        "Content-Length": "69"
+      },
+      "body": "{\"dnns\":[\"internet\"],\"notificationUri\":\"http://127.0.0.1:9/callback\"}"
+    },
+    "benign_path_preserved": true
+  }
+}

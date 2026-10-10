@@ -251,6 +251,8 @@ class ClaudeCLIProvider(Provider):
         self._model = model
         self.last_cost_usd: float | None = None
         self.billing_basis = "claude-cli metered"
+        self.last_usage: dict = {}
+        self.last_duration_s: float | None = None
 
     def complete(self, system: str, user: str) -> str:
         prompt = f"{system}\n\n{user}"
@@ -259,13 +261,22 @@ class ClaudeCLIProvider(Provider):
                "--no-session-persistence"]
         if self._model:
             cmd += ["--model", self._model]
+        started = time.perf_counter()
         result = subprocess.run(cmd, capture_output=True, text=True,
                                  encoding="utf-8", errors="replace", timeout=240)
+        self.last_duration_s = time.perf_counter() - started
         if result.returncode != 0 or not result.stdout.strip():
             raise RuntimeError(
                 f"claude -p failed (exit {result.returncode}): {result.stderr[:500]}")
         data = json.loads(result.stdout)
         self.last_cost_usd = data.get("total_cost_usd")
+        usage = data.get("usage") or {}
+        self.last_usage = {
+            "input_tokens": usage.get("input_tokens"),
+            "output_tokens": usage.get("output_tokens"),
+            "cache_read_input_tokens": usage.get("cache_read_input_tokens"),
+            "cache_creation_input_tokens": usage.get("cache_creation_input_tokens"),
+        }
         if data.get("is_error"):
             raise RuntimeError(
                 f"claude -p API error (status {data.get('api_error_status')}): "

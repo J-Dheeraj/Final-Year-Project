@@ -27,3 +27,8 @@ Most catalogue CVEs are controlled reproductions rather than proof that the corr
 ## Recommended next work
 
 Freeze the evidence repository, run the documented clean reproduction, present the demonstration, and treat broader vulnerability classes or platforms as post-R&D work.
+
+
+## Final targeted evidence note
+
+The Claude/AIxTech prompt-cache sensitivity study used unique no-op markers and found no byte-identical convergence across successful variants. The latest OpenAI controlled-repeat attempt was authentication-limited (HTTP 401) and is shown as an environment limitation, not a model failure.
