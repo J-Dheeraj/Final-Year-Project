@@ -2,6 +2,62 @@
 
 ## Session log
 
+- **2026-10-11 (post-finalization audit and re-tag)** — Re-checked the
+  thesis for internal consistency after the 2026-10-10 finalization
+  pass below. Found and fixed one stale label: the Key Findings list
+  still called the free5GC case "a second... real-upstream case," left
+  over from before OpenEMR was inserted as case 2 (when free5GC was
+  still case 2); corrected to "a third." Recompiled 3x with `lualatex`,
+  verified via `pypdf` text extraction, committed (`b2c1e21`). Also
+  found that `docs/FINAL_DEMONSTRATION_CHECKLIST.md` still pointed at
+  the `fyp-rd-freeze-2026-10-10-thesis` tag, which predates the entire
+  2026-10-10 finalization pass (OpenEMR, worksheet, checklist audit,
+  plots/metrics, hardware specs, 9 citations) - created and pushed a
+  new tag, `fyp-rd-freeze-2026-10-11-thesis-final`, at the current HEAD
+  and updated the checklist to point at it, with a note explaining why
+  the older tag is stale.
+
+- **2026-10-10 (thesis finalization: OpenEMR case, methodology
+  worksheet, checklist audit, plots/metrics, hardware specs, Lit
+  Review citations)** — A large pass closing every gap found by three
+  independent audits run this session against
+  `free5gc_full_deployment/FYP_Report_main_upgraded.tex`:
+  - Added OpenEMR (GHSA-q366-cv5v-83w8) as a third real-upstream
+    validation case (it had a completed `confirmed_fix` verdict but was
+    absent from the report); fixed two pinned commit hashes in
+    Appendix F that `git-filter-repo`'s history rewrite had invalidated
+    (`0232f15`).
+  - Filled `docs/METHODOLOGY_WORKSHEET.md` (course template) as a
+    standalone document and audited the thesis's own Chapter 3 against
+    it (`36aaefc`).
+  - Audited Chapter 4 against a Results/Discussion/CS checklist
+    (`docs/RESULTS_DISCUSSION_CHECKLIST_AUDIT.md`): 17/20 passed; fixed
+    the 2 real gaps by adding 2 result plots
+    (`free5gc_full_deployment/figures/generate_result_plots.py`) and
+    precision/recall/F1 plus a confusion matrix for the Stage-2
+    classification ablation (`bb65bd6`).
+  - Replaced vague hardware/OS claims in Appendix A with the real
+    detected specs, and added a new appendix reproducing the project's
+    actual system/user prompts verbatim from `src/reachability/patch.py`
+    (`0fb5287`).
+  - Reviewed an externally-generated alternative report
+    ("Undermind"-branded) and, rather than restructuring around it,
+    independently verified and selectively cited 9 literature sources
+    it or a broader `.bib` sweep surfaced, each tied to a specific claim
+    already in the thesis (VulnRepairEval, PVBench, PoC-Gym, Fang/Kang's
+    one-day and zero-day exploitation results, Qi et al.'s decade-old
+    plausible-vs-correct patch analysis, a systematic peer-reviewed SoK
+    of AIxCC alongside the existing DARPA-announcement citation,
+    CVE-GENIE's reproduction-rate/cost baseline, and a Linux-kernel
+    incomplete-fixes study paralleling this project's own free5GC
+    partial-patch finding) (`b6d6775`, `74354fd`, `6391345`, `747ba69`).
+    Declined citations that were adversarial-threat-model mismatches,
+    redundant with an already-covered point, or too preliminary
+    (no reported results yet) to cite as evidence.
+  - Every edit in this pass was compiled 3x with `lualatex` and verified
+    by direct `pypdf` text extraction before being committed; build
+    artifacts were cleaned after each compile.
+
 - **2026-10-09 (AIxTech gateway: added runtime/token instrumentation,
   re-ran all 4 experiment families with full per-model data)** — The
   first full-sweep pass (below) only recorded `cost_usd` (always `None`
