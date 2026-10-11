@@ -2,6 +2,58 @@
 
 ## Session log
 
+- **2026-10-11 (source-evaluation frameworks, final content fixes, and
+  ProvTrail verification)** — A further pass, applying two academic
+  source-evaluation frameworks to the thesis bibliography and closing
+  two real structural gaps found by auditing against an older NTU
+  report-writing guide:
+  - Added 3 more literature citations beyond the earlier 6 (`747ba69`):
+    Fang/Kang's team-of-agents zero-day follow-up, CVE-GENIE's
+    reproduction-rate/cost baseline, and a Linux-kernel incomplete-fixes
+    study paralleling this project's own free5GC partial-patch finding.
+  - Applied the CRAAP framework (Currency, Relevance, Authority,
+    Accuracy, Purpose) to all 20 bibliography entries
+    (`docs/SOURCE_EVALUATION_CRAAP.md`, `70eefea`), then re-verified
+    the 3 pre-existing sources making specific checkable claims
+    (ATLANTIS, OpenAnt, FuzzingBrain) directly against their primary
+    text, upgrading their Accuracy ratings and catching that
+    FuzzingBrain's validation-criteria and SARIF-assessment-mode claims
+    both hold verbatim (`873c5a7`).
+  - Classified all 20 entries by grey-literature channel and
+    Primary/Secondary/Tertiary content type
+    (`docs/GREY_LITERATURE_CLASSIFICATION.md`, `7b18836`): 18/20 are
+    grey literature, and the 2 formally published entries are both
+    Secondary-literature syntheses rather than primary system papers.
+  - Added an explicit sentence to Chapter 1 stating that the
+    `weiss-khayet` source (the project's own stated inspiration) is a
+    personal blog post used only for lineage, never as evidence for a
+    claim this project depends on (`f6cf856`).
+  - Audited the thesis against the School of Computer Engineering's
+    2002 report-writing guide, content/structure only
+    (`docs/SCSE_REPORT_GUIDE_AUDIT_2002.md`, `ebabd41`): found the main
+    body substantially over the guide's 10,000-word ceiling (flagged,
+    not acted on, since the guide's currency for a 2026 CCDS project is
+    unconfirmed) and two real, low-risk gaps - no Acknowledgements
+    section and no project-schedule/framing-pivot note - both fixed
+    (`c2cfb9b`): Chapter 1 now documents the project's real pivot away
+    from its original "fuzzing" framing.
+  - Independently verified a separate session's ("Astra") ProvTrail
+    bridge integration (`d63b861`, tag `fyp-rd-freeze-2026-10-11-
+    provtrail`) rather than trusting its own summary: read the raw
+    evidence JSON directly and confirmed the "6 advisories transferred"
+    claim is honestly scoped as SARIF-plumbing test coverage
+    (`dynamically_confirmed: null` on all 6), not overclaimed as new
+    runtime confirmations; confirmed no file conflicts with this
+    session's own work; confirmed the thesis's existing ProvTrail
+    description needed no changes.
+  - Every `.tex` edit in this pass was compiled 3x with `lualatex` and
+    verified by direct `pypdf` text extraction before being committed.
+  - Re-tagged at current HEAD (`fyp-rd-freeze-2026-10-11-final-v2`,
+    superseding `fyp-rd-freeze-2026-10-11-thesis-final`, which the
+    Acknowledgements/Schedule and weiss-khayet commits made stale
+    again) and updated `docs/FINAL_DEMONSTRATION_CHECKLIST.md` to
+    point at it.
+
 - **2026-10-11 (post-finalization audit and re-tag)** — Re-checked the
   thesis for internal consistency after the 2026-10-10 finalization
   pass below. Found and fixed one stale label: the Key Findings list
