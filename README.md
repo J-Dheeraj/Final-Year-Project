@@ -758,6 +758,10 @@ without a real target. `package_labs.PACKAGE_LABS` starts empty by design; add a
 Outputs: one `reports/<CVE-ID>.{txt,json}` per advisory (the normal pipeline
 artifact) plus one combined `reports/provtrail_link_<timestamp>.{md,json}`.
 
+The reproducible integration record, pinned external checkout, generated
+combined report, and corpus-rate-limit limitation are documented in
+[`docs/PROVTRAIL_INTEGRATION_RECORD.md`](docs/PROVTRAIL_INTEGRATION_RECORD.md).
+
 **JS/TS dynamic confirmation (`provtrail_js_lab/`).** The one real gap this
 linkage had — real Python/Go labs, but zero JS/TS dynamic-execution
 capability anywhere in the pipeline — has a first, bounded proof: Stage

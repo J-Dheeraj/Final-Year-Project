@@ -224,3 +224,12 @@ same run — cite this one first if asked for a concrete example.
 
 
 > **Metric interpretation:** `confirmed_fix_all_four_handlers` means the full validation pipeline passed. Four handlers are tested, but only one handler change is model-generated; three are deterministic reachability materializations. It is not a rate of independently model-generated four-handler patches.
+## ProvTrail supporting integration
+
+ProvTrail is presented as a complementary JavaScript/TypeScript provenance
+detector. Its SARIF/AI-text output supplies advisory IDs and source locations
+to `provtrail_bridge.py`; the existing pipeline then performs advisory,
+exploit, and patch analysis. The integration does not change the primary
+free5GC results. Static similarity is not treated as exploit confirmation,
+and findings without a mapped lab remain static/advisory evidence only. See
+[`PROVTRAIL_INTEGRATION_RECORD.md`](PROVTRAIL_INTEGRATION_RECORD.md).

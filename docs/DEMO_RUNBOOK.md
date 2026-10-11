@@ -50,3 +50,22 @@ disabled in this harness and remains an explicit limitation.
 
 
 > **Metric interpretation:** `confirmed_fix_all_four_handlers` means the full validation pipeline passed. Four handlers are tested, but only one handler change is model-generated; three are deterministic reachability materializations. It is not a rate of independently model-generated four-handler patches.
+## Optional ProvTrail supporting segment
+
+Run the bounded JavaScript demonstration after the primary free5GC sequence:
+
+```powershell
+python provtrail_js_lab/run_demo.py
+```
+
+For the adapter handoff, use the preserved SARIF fixture:
+
+```powershell
+python provtrail_bridge.py --scan tests/fixtures/provtrail/latest-scan.sarif `
+  --source provtrail --no-probe --format json
+```
+
+Explain that ProvTrail detects and locates candidate JavaScript/TypeScript
+provenance, while this pipeline owns dynamic confirmation and patch
+validation. Do not present the six advisory transfer rows as six runtime
+confirmed vulnerabilities.

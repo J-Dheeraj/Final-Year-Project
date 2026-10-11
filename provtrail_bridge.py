@@ -320,7 +320,7 @@ def _safe(name: str) -> str:
 
 
 def run_pipeline_for(advisory_id: str, *, probe: bool, lab_url: str | None,
-                     fmt: str, no_cache: bool):
+                     fmt: str, no_cache: bool, run_id: str = ""):
     """Run cve_pipeline for one advisory. Returns (report_or_None, artifact_path_or_None)."""
     ext = "json" if fmt == "json" else "txt"
     out_path = REPORTS_DIR / f"{_safe(advisory_id)}.{ext}"
@@ -333,6 +333,7 @@ def run_pipeline_for(advisory_id: str, *, probe: bool, lab_url: str | None,
         cache_ttl=86_400,
         format=fmt,
         out=str(out_path),
+        run_id=run_id,
         verbose=False,
     )
     try:

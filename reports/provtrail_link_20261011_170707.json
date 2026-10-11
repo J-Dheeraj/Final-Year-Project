@@ -1,0 +1,236 @@
+{
+  "generated_at": "2026-10-11T09:07:07.556660+00:00",
+  "source": "provtrail",
+  "scan_path": "tests/fixtures/provtrail/latest-scan.sarif",
+  "advisory_count": 6,
+  "results": [
+    {
+      "advisory_id": "CVE-2018-15685",
+      "all_ids": [
+        "CVE-2018-15685",
+        "CVE-2021-44906",
+        "CVE-2024-30261",
+        "CVE-2024-48910",
+        "CVE-2026-34573",
+        "GHSA-9qxr-qj54-h672",
+        "GHSA-hv9c-qwqg-qj3v",
+        "GHSA-mfj6-6p54-m98c",
+        "GHSA-p3vf-v8qc-cwcr",
+        "GHSA-xvch-5gv4-984h"
+      ],
+      "packages": [
+        "dompurify:unknown",
+        "electron:unknown",
+        "minimist:unknown",
+        "parse-server:unknown",
+        "undici:unknown"
+      ],
+      "source": "provtrail",
+      "priority": "manual_review",
+      "confidence": "medium",
+      "locations": [
+        {
+          "path": "src/utils.js",
+          "start_line": 17,
+          "end_line": 23
+        }
+      ],
+      "probed": false,
+      "artifact": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\CVE-2018-15685.json",
+      "pipeline": {
+        "overall_risk": "HIGH",
+        "probe_ran": false,
+        "probe_verdict": "static+patch only (no matching lab)",
+        "dynamically_confirmed": null,
+        "patch_attempted": false,
+        "patch_validated": null,
+        "stages_failed": [],
+        "errors": [],
+        "elapsed_s": 44.33,
+        "lab_url": null
+      }
+    },
+    {
+      "advisory_id": "CVE-2021-23369",
+      "all_ids": [
+        "CVE-2021-23369",
+        "CVE-2022-31129",
+        "CVE-2023-24807",
+        "CVE-2025-32442",
+        "CVE-2026-40175",
+        "GHSA-f2jv-r9rf-7988",
+        "GHSA-fvcv-3m26-pcqx",
+        "GHSA-mg2h-6x62-wpwc",
+        "GHSA-r6ch-mqf9-qc9w",
+        "GHSA-wc69-rhjr-hc9g"
+      ],
+      "packages": [
+        "axios:unknown",
+        "fastify:unknown",
+        "handlebars:unknown",
+        "moment:unknown",
+        "undici:unknown"
+      ],
+      "source": "provtrail",
+      "priority": "manual_review",
+      "confidence": "high",
+      "locations": [
+        {
+          "path": "src/utils.js",
+          "start_line": 13,
+          "end_line": 15
+        }
+      ],
+      "probed": false,
+      "artifact": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\CVE-2021-23369.json",
+      "pipeline": {
+        "overall_risk": "MEDIUM",
+        "probe_ran": false,
+        "probe_verdict": "static+patch only (no matching lab)",
+        "dynamically_confirmed": null,
+        "patch_attempted": false,
+        "patch_validated": null,
+        "stages_failed": [],
+        "errors": [],
+        "elapsed_s": 21.96,
+        "lab_url": null
+      }
+    },
+    {
+      "advisory_id": "CVE-2022-41919",
+      "all_ids": [
+        "CVE-2022-41919",
+        "GHSA-3fjj-p79j-c9hh"
+      ],
+      "packages": [
+        "fastify:unknown"
+      ],
+      "source": "provtrail",
+      "priority": "automatic_vulnerability",
+      "confidence": "medium",
+      "locations": [
+        {
+          "path": "src/transport.js",
+          "start_line": 1,
+          "end_line": 10
+        }
+      ],
+      "probed": false,
+      "artifact": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\CVE-2022-41919.json",
+      "pipeline": {
+        "overall_risk": "MEDIUM",
+        "probe_ran": false,
+        "probe_verdict": "static+patch only (no matching lab)",
+        "dynamically_confirmed": null,
+        "patch_attempted": false,
+        "patch_validated": null,
+        "stages_failed": [],
+        "errors": [],
+        "elapsed_s": 22.74,
+        "lab_url": null
+      }
+    },
+    {
+      "advisory_id": "CVE-2023-24807",
+      "all_ids": [
+        "CVE-2023-24807",
+        "GHSA-r6ch-mqf9-qc9w"
+      ],
+      "packages": [
+        "undici:unknown"
+      ],
+      "source": "provtrail",
+      "priority": "manual_review",
+      "confidence": "medium",
+      "locations": [
+        {
+          "path": "src/transport.js",
+          "start_line": 14,
+          "end_line": 16
+        }
+      ],
+      "probed": false,
+      "artifact": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\CVE-2023-24807.json",
+      "pipeline": {
+        "overall_risk": "HIGH",
+        "probe_ran": false,
+        "probe_verdict": "static+patch only (no matching lab)",
+        "dynamically_confirmed": null,
+        "patch_attempted": false,
+        "patch_validated": null,
+        "stages_failed": [],
+        "errors": [],
+        "elapsed_s": 33.29,
+        "lab_url": null
+      }
+    },
+    {
+      "advisory_id": "CVE-2024-48910",
+      "all_ids": [
+        "CVE-2024-48910",
+        "GHSA-p3vf-v8qc-cwcr"
+      ],
+      "packages": [
+        "dompurify:unknown"
+      ],
+      "source": "provtrail",
+      "priority": "automatic_vulnerability",
+      "confidence": "high",
+      "locations": [
+        {
+          "path": "src/utils.js",
+          "start_line": 1,
+          "end_line": 11
+        }
+      ],
+      "probed": false,
+      "artifact": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\CVE-2024-48910.json",
+      "pipeline": {
+        "overall_risk": "CRITICAL",
+        "probe_ran": false,
+        "probe_verdict": "static+patch only (no matching lab)",
+        "dynamically_confirmed": null,
+        "patch_attempted": false,
+        "patch_validated": null,
+        "stages_failed": [],
+        "errors": [],
+        "elapsed_s": 23.49,
+        "lab_url": null
+      }
+    },
+    {
+      "advisory_id": "CVE-2026-29057",
+      "all_ids": [
+        "CVE-2026-29057",
+        "GHSA-ggv3-7p47-pfv8"
+      ],
+      "packages": [
+        "next:unknown"
+      ],
+      "source": "provtrail",
+      "priority": "automatic_vulnerability",
+      "confidence": "high",
+      "locations": [
+        {
+          "path": "src/transport.js",
+          "start_line": 12,
+          "end_line": 12
+        }
+      ],
+      "probed": false,
+      "artifact": "C:\\Users\\dheer\\Downloads\\AI-exploit-CVE\\reports\\CVE-2026-29057.json",
+      "pipeline": {
+        "overall_risk": "MEDIUM",
+        "probe_ran": false,
+        "probe_verdict": "static+patch only (no matching lab)",
+        "dynamically_confirmed": null,
+        "patch_attempted": false,
+        "patch_validated": null,
+        "stages_failed": [],
+        "errors": [],
+        "elapsed_s": 21.45,
+        "lab_url": null
+      }
+    }
+  ]
+}

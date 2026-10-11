@@ -157,3 +157,31 @@ def test_source_feeds_skips_default_scan_discovery(monkeypatch):
     assert source == "feeds"
     assert scan_str is None
     assert called["feeds"] is True
+
+
+def test_pipeline_namespace_forwards_run_id(monkeypatch):
+    """The bridge remains compatible with the pipeline's run-scoped artifacts."""
+    import tempfile
+    tmp_path = Path(tempfile.mkdtemp(prefix="provtrail_run_id_test_"))
+    seen = {}
+
+    class FakePipeline:
+        async def run_pipeline(self, args):
+            seen["run_id"] = args.run_id
+            return type("Report", (), {})()
+
+        def render_text(self, report):
+            return "report"
+
+        def render_json(self, report):
+            return "{}"
+
+    monkeypatch.setattr(bridge, "_load_pipeline", lambda: FakePipeline())
+    monkeypatch.setattr(bridge, "REPORTS_DIR", tmp_path)
+    report, artifact = bridge.run_pipeline_for(
+        "CVE-TEST", probe=False, lab_url=None, fmt="text", no_cache=True,
+        run_id="provtrail-test-run",
+    )
+    assert report is not None
+    assert artifact and artifact.exists()
+    assert seen["run_id"] == "provtrail-test-run"
