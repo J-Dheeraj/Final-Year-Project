@@ -9,7 +9,7 @@
 7. Show a compile-failing GPT-5.2 patch and explain why it is rejected.
 8. Show the OpenAI bypass reports: zero genuine bypasses after the stricter XSS validator.
 9. Show the repeatability table and the final evidence summary.
-10. Close with limitations, cost/token accounting, and post-R&D work.
+10. Close with limitations, cost/token accounting, and post-R&D work (including the OAuth2-enforcement follow-up, "Final evidence freeze and interpretation": OAuth2 blocks a fully unauthenticated caller but provides no additional protection against this CVE once a caller holds any validly-scoped token, so the real fix remains necessary even in an OAuth2-enforced deployment).
 
 Keep raw JSON reports and logs open in a second window so every headline number can be traced to evidence.
 
