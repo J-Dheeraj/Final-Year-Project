@@ -102,10 +102,12 @@ full, dated history of that work.
 The full written account of both results, alongside the main six-CVE
 catalogue and the hosted-model comparisons below, is
 [`free5gc_full_deployment/FYP_Report_main_upgraded.tex`](free5gc_full_deployment/FYP_Report_main_upgraded.tex)
-(compiled: `FYP_Report_main_upgraded.pdf`, same directory) - the
-report's authoritative working copy is maintained outside this
-repository and this is a point-in-time copy committed alongside the
-evidence it cites, not a live-synced mirror.
+(compiled: `FYP_Report_main_upgraded.pdf`, same directory) - this file
+*is* the report's authoritative working copy (24+ commits edit it
+directly; see `git log -- free5gc_full_deployment/FYP_Report_main_upgraded.tex`),
+and `git tag -l 'fyp-rd-freeze-*'` lists the dated freeze tags, newest
+first by date, each one pinning an exact, independently-reproducible
+snapshot of both the report and the evidence it cites.
 
 ---
 
