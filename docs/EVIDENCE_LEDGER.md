@@ -38,6 +38,19 @@ runtime-confirmed**, with one genuine negative result and one unevaluated
 environment-limited model. Earlier documents that say 7/8 must be read as
 historical wording and are being reconciled before the research freeze.
 
+**What this 6/8 figure is not**: all four handlers are tested per model, but
+only one handler's patch (`HandleApplicationDataInfluenceDataSubsToNotifyGet`,
+the one the deterministic rule-based patcher under-fixes) is actually
+model-generated; the other three are deterministic reachability
+materializations applied identically regardless of model. 6/8 is therefore a
+rate of one model-generated handler patch surviving compile and runtime
+checks across 8 models, not a rate of 8 independent four-handler
+patch-generation results. The same distinction is stated explicitly for the
+later, larger OpenAI 18/23 sweep in
+`free5gc_full_deployment/FYP_Report_main_upgraded.tex`'s "Final evidence
+freeze and interpretation" section; this note extends the same caveat to
+this earlier, smaller sweep for consistency.
+
 ## Required final-study fields
 
 The October repeated patch-generation study must preserve, per model and run:

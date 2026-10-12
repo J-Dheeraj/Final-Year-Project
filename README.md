@@ -1,10 +1,15 @@
-# AI CVE Exploit Automation
+# Agentic AI for Vulnerability Confirmation and Patch Validation in Open-Source Software
 
-An end-to-end pipeline that watches NVD and GitHub Advisory feeds for new CVEs,
-classifies the vulnerability, runs live exploit probes, generates bypass analysis,
-and writes runnable PoC exploit scripts — all without requiring an Anthropic API key.
+An evidence-gated system for LLM-assisted exploit confirmation and patch
+validation, combined with reachability-filtered analysis of real open-source
+vulnerabilities and runtime validation against real upstream deployments
+(free5GC, OpenEMR). It also includes the original CVE-watcher pipeline this
+project extends: an end-to-end feed that watches NVD and GitHub Advisory
+feeds for new CVEs, classifies the vulnerability, runs live exploit probes,
+generates bypass analysis, and writes runnable PoC exploit scripts — all
+without requiring an Anthropic API key.
 
-This is the base for an NTU final-year project on using LLMs to secure OSS.
+This is an NTU final-year project on using LLMs to secure OSS.
 The project's original pitch ("fuzzing LLMs") has been deliberately dropped
 in favor of what this repo actually does and can defend: **LLM-assisted
 exploit confirmation and patch validation for known CVEs**, plus **real
@@ -26,12 +31,22 @@ CVE catalog and defines every metric precisely; [`docs/DEFENSE_PREP.md`](docs/DE
 is viva Q&A built from an actual walkthrough of this codebase; [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)
 is the living done/open checklist.
 
-### Current state (2026-10-04)
+### Current state (last updated 2026-10-12; results below are from 2026-10-04, still accurate)
 
 The FYP has progressed well beyond the template-based baseline this
 README originally described. Two results now anchor the project,
 both runtime-confirmed against real upstream software, not just
-compile-verified or reproduced:
+compile-verified or reproduced. Since this section was first written,
+the thesis itself (`free5gc_full_deployment/FYP_Report_main_upgraded.tex`)
+has been substantially finalized: a third real-upstream case (OpenEMR,
+below) was folded in, the Literature Review was independently verified and
+extended with 9 further citations, a methodology worksheet and a
+results/discussion checklist were both filled out and audited against the
+report, and the report's own source-evaluation documents
+(`docs/SOURCE_EVALUATION_CRAAP.md`, `docs/GREY_LITERATURE_CLASSIFICATION.md`,
+`docs/SCSE_REPORT_GUIDE_AUDIT_2002.md`) were added. See
+[`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)'s session log for the
+full, dated history of that work.
 
 - **free5GC UDR (CVE-2026-40248), all four CRUD handlers.** What
   started as a single-handler, compile-time-only reachability result
