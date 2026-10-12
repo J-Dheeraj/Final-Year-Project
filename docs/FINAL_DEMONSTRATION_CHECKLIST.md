@@ -1,6 +1,6 @@
 # Final demonstration checklist (10-15 minutes)
 
-1. Identify the pinned repository commit/tag (`fyp-rd-freeze-2026-10-12-final-v3`) and explain the research questions. (Five earlier tags, from 2026-10-10 through 2026-10-12, are now stale and superseded in sequence by content fixes documented in `docs/PROJECT_STATUS.md`'s session log; the most recent supersession adds the free5GC OAuth2-enforcement finding (Section~"Final evidence freeze and interpretation") and repairs corrupted table rows found by an independent review. Always use the newest tag for any demo or submission, and check `git tag -l 'fyp-rd-freeze-*'` if in doubt which is newest.)
+1. Identify the pinned repository commit/tag (`fyp-rd-freeze-2026-10-13-final`) and explain the research questions. (Six earlier tags, from 2026-10-10 through 2026-10-12, are now stale and superseded in sequence by content fixes documented in `docs/PROJECT_STATUS.md`'s session log; the most recent supersession corrects a genuine 7/8->6/8 local-model miscount, a broken cross-reference, and stale evidence-coverage claims found by an independent review. Always use the newest tag for any demo or submission, and check `git tag -l 'fyp-rd-freeze-*'` if in doubt which is newest.)
 2. Show the vulnerable free5GC UDR behavior for unauthorized read, collection read, write, and delete.
 3. Show one OpenAI-generated patch and its preserved run ID.
 4. Show Go compilation and the Docker image used for validation.
