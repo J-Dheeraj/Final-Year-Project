@@ -402,16 +402,17 @@ The false-acceptance finding above was addressed directly, not merely documented
 \centering
 \caption{The six surviving patched artifacts under the stronger, content-verified reassessment: expected vs.\ actual response on both the malicious and legitimate request.}
 \label{tab:six-survivors}
-\begin{tabular}{@{}lp{2.6cm}p{2.9cm}ccl@{}}
+\small
+\begin{tabular}{@{}p{2.3cm}p{2.4cm}p{2.7cm}ccl@{}}
 \toprule
-\textbf{CVE (class)} & \textbf{Expected malicious outcome} & \textbf{Expected legitimate outcome} & \textbf{Malicious status} & \textbf{Legit status} & \textbf{Verdict} \\
+\textbf{CVE (class)} & \textbf{Expected malicious outcome} & \textbf{Expected legitimate outcome} & \textbf{Malicious} & \textbf{Legit} & \textbf{Verdict} \\
 \midrule
-CVE-2026-42208 (SQLi) & No injection marker in response & \texttt{\{"status":"authenticated",...\}} & 401 & 200 & \texttt{confirmed\_fix} \\
-CVE-2026-27602 (OS CmdI) & No command-output marker & \texttt{\{"output":"domain created...",...\}} & 400 & 200 & \texttt{confirmed\_fix} \\
-CVE-2026-23949 (Path Trav.) & No traversed-file content & \texttt{\{"data":"example extracted file"\}} & 400 & 200 & \texttt{confirmed\_fix} \\
-CVE-2026-78683 (Deserial.) & No RCE marker & \texttt{\{"status":"loaded",...\}} & 400 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-42208 (SQLi) & No injection marker & Authenticated JSON response & 401 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-27602 (OS CmdI) & No command-output marker & ``Domain created'' JSON response & 400 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-23949 (Path Trav.) & No traversed-file content & Example-file JSON response & 400 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-78683 (Deserial.) & No RCE marker & ``Loaded'' JSON response & 400 & 200 & \texttt{confirmed\_fix} \\
 CVE-2026-54729 (SSRF) & No internal metadata leaked & External fetch succeeds normally & 403 & 200 & \texttt{confirmed\_fix} \\
-CVE-2026-46492 (XSS) & No unescaped script markup & Exact escaped \texttt{<h1>}/\texttt{<p>} content & 200 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-46492 (XSS) & No unescaped script markup & Exact escaped heading/paragraph & 200 & 200 & \texttt{confirmed\_fix} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -517,7 +518,8 @@ The eight-model comparison above evaluates only locally hosted, open-weight mode
 \centering
 \caption{Confirmation and patch outcomes by hosted Claude model (6 CVEs each, 36 runs total).}
 \label{tab:claude-multi-model}
-\begin{tabular}{@{}lccccc@{}}
+\small
+\begin{tabular}{@{}lcp{2.1cm}ccc@{}}
 \toprule
 \textbf{Model} & \textbf{Confirmed} & \textbf{Screening pass (\texttt{confirmed\_fix})} & \textbf{Not blocked} & \textbf{Crash} & \textbf{Cost (USD)} \\
 \midrule
@@ -620,18 +622,21 @@ genuine misclassification rather than an abstention.
 \centering
 \caption{Prose-only condition: exact-CWE confusion matrix (n=6, one instance per true class).}
 \label{tab:confusion}
+\footnotesize
 \begin{tabular}{@{}l cccccccc@{}}
 \toprule
-\textbf{True CWE} & \texttt{CWE-22} & \texttt{CWE-78} & \texttt{CWE-79} & \texttt{CWE-80} & \texttt{CWE-89} & \texttt{CWE-502} & \texttt{CWE-918} & \textit{No pred.} \\
+\textbf{True CWE} & \texttt{22} & \texttt{78} & \texttt{79} & \texttt{80} & \texttt{89} & \texttt{502} & \texttt{918} & \textit{No pred.} \\
 \midrule
-\texttt{CWE-22} (Path Traversal) & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
-\texttt{CWE-78} (OS Command Inj.) & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
-\texttt{CWE-80} (XSS) & 0 & 0 & \textbf{1} & 0 & 0 & 0 & 0 & 0 \\
-\texttt{CWE-89} (SQL Injection) & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \textbf{1} \\
-\texttt{CWE-502} (Deserialization) & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
-\texttt{CWE-918} (SSRF) & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+\texttt{CWE-22} & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+\texttt{CWE-78} & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+\texttt{CWE-80} & 0 & 0 & \textbf{1} & 0 & 0 & 0 & 0 & 0 \\
+\texttt{CWE-89} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \textbf{1} \\
+\texttt{CWE-502} & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+\texttt{CWE-918} & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
 \bottomrule
 \end{tabular}
+\\[2pt]
+\footnotesize Row/column labels are CWE numbers only; see Table~\ref{tab:ablation-prf} and the surrounding discussion for the mapping to vulnerability class names (Path Traversal, OS Command Injection, XSS, SQL Injection, Deserialization, SSRF). The true row CWE-80 (XSS, CVE-2026-46492) is predicted as the family-level default CWE-79 because the prose-only classifier's hand-encoded mapping assigns any detected cross-site-scripting pattern to CWE-79 by default, losing the analyst's more specific CWE-80 subtype judgment: a mapping-precision limitation, not a misclassification of the vulnerability class itself.
 \end{table}
 
 \section{Discussion}
