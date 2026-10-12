@@ -134,7 +134,12 @@ Under `openemr_transfer_case/evidence/`:
 Implementation complete, evidence captured, verdict `confirmed_fix`.
 **Update, 2026-10-06**: commit `6cf91f5` (this work) is already present
 on `main` (confirmed via `git branch --contains 6cf91f5`) - the "not
-merged" note above is stale. Not added to the FYP report. Per explicit
+merged" note above is stale.
+**Update, 2026-10-10**: the "not added to the FYP report" note above is
+now also stale - OpenEMR was added as a third real-upstream validation
+case (`free5gc_full_deployment/FYP_Report_main_upgraded.tex`,
+Section "Real-Upstream Validation: OpenEMR (GHSA-q366-cv5v-83w8)";
+commit `0232f15`). Per explicit
 instruction, this case was later extended with the same LLM
 patch-generation and bypass-probe experiments already run against
 free5GC - see `docs/OPENEMR_LLM_PATCH_RESULTS.md` and

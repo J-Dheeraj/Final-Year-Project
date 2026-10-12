@@ -397,6 +397,26 @@ The false-acceptance finding above was addressed directly, not merely documented
 
 \textbf{A stronger, content-verified reassessment.} This limitation was addressed directly, not left as a stated gap: for each of the six main-catalogue vulnerability classes, a real expected malicious result and a real expected legitimate result (specific HTTP status and exact response content, read from the actual generated target/proof-of-concept source rather than assumed) were defined and re-tested against surviving patched artifacts from the 36-run comparison. Locating those artifacts surfaced a further, previously undocumented harness gap: Stage 3.5/3.8's artifact writer saves generated files to a shared, non-model-specific path regardless of a run's own output destination, so every model that touched the same CVE in the comparison overwrote the same file: only 6 of the original 36 patched targets survive on disk, one per CVE (whichever model happened to run last for it), not all 36. Re-testing those 6 survivors under the stronger, content-verified criterion, every one passed: each malicious request received a clean, class-appropriate rejection distinct from the vulnerable version's response, and each legitimate request received its exact expected content, not merely a crash-free one. This reassessment also explained an apparent contradiction found while building it: \texttt{claude-opus-4-8}'s surviving CVE-2026-46492 patch was originally recorded as \texttt{not\_blocked}, yet directly tested here as genuinely correct against the proof-of-concept's default payload; the original multi-payload bypass check's alternate payload was found, on inspection, to trigger the generated target's own vulnerability-signalling self-check (a keyword-pattern regex over already-escaped, inert output) without the underlying markup ever being capable of executing in a real browser: a fidelity limitation of the generated target's own signal, not a real bypass of the patch. Full methodology, per-CVE expected values, and this finding: \texttt{reports/\allowbreak patch\_reassessment\_2026-09-26/\allowbreak RESULTS.md}. This reassessment does not extend to the other 30 of 36 original attempts, whose patched source no longer exists and cannot be reassessed without new generation cost, and the 6 survivors are not a representative sample of the full comparison.
 
+\begin{table}[H]
+\centering
+\caption{The six surviving patched artifacts under the stronger, content-verified reassessment: expected vs.\ actual response on both the malicious and legitimate request.}
+\label{tab:six-survivors}
+\begin{tabular}{@{}lp{2.6cm}p{2.9cm}ccl@{}}
+\toprule
+\textbf{CVE (class)} & \textbf{Expected malicious outcome} & \textbf{Expected legitimate outcome} & \textbf{Malicious status} & \textbf{Legit status} & \textbf{Verdict} \\
+\midrule
+CVE-2026-42208 (SQLi) & No injection marker in response & \texttt{\{"status":"authenticated",...\}} & 401 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-27602 (OS CmdI) & No command-output marker & \texttt{\{"output":"domain created...",...\}} & 400 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-23949 (Path Trav.) & No traversed-file content & \texttt{\{"data":"example extracted file"\}} & 400 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-78683 (Deserial.) & No RCE marker & \texttt{\{"status":"loaded",...\}} & 400 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-54729 (SSRF) & No internal metadata leaked & External fetch succeeds normally & 403 & 200 & \texttt{confirmed\_fix} \\
+CVE-2026-46492 (XSS) & No unescaped script markup & Exact escaped \texttt{<h1>}/\texttt{<p>} content & 200 & 200 & \texttt{confirmed\_fix} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All 6 surviving patches pass this stronger, content-verified test: every malicious request receives a clean, class-appropriate rejection distinct from the vulnerable version's response (never the same HTTP~200-with-marker response the vulnerable version returns), and every legitimate request receives its exact expected content, not merely a crash-free response. This is the full detail behind the single-sentence summary above, reproduced here because the artifacts themselves are not retained in the repository outside their original, now-overwritten scratch paths (Appendix~\ref{app:repo-access}); the source of record for these six rows is \texttt{reports/patch\_reassessment\_2026-09-26/RESULTS.md}, not a path to the (no longer surviving) individual artifacts.
+
 A second, genuine implementation gap was found while first exercising the corrected validator against live, varied data rather than only the two originally planned synthetic test cases: the code path taken when a patched target's health check fails \emph{entirely} (the target process never becomes reachable at all, the clearest possible crash signature) returned before reaching the new verdict-computation block, leaving \texttt{patch\_verdict} blank instead of classified. This was fixed by explicitly setting \texttt{patch\_verdict = inconclusive\_crash} in that specific early-return branch, and verified by re-running the affected case and confirming the corrected output. This is reported here as a further instance of the same pattern already established in Sections~\ref{sec:confirmation-rate-progression} and~\ref{sec:patch-validation-lag}: a validation harness's own correctness is not established merely by writing it, only by exercising it against real, varied failure modes and checking the result by hand at least once.
 
 The corrected validator was then applied to a sixth full-catalogue verification round, run under the same isolated-lessons-store protocol as rounds 1--5 (Appendix~\ref{app:reproducibility}) and intended, in its original design, to compare the Ollama backend against a hosted Claude Code CLI session as a second live-model backend. That specific comparison did not succeed: the \texttt{claude} CLI's authentication session had silently expired between the CLI's own version check (which does not require authentication and reported success) and its actual generation calls (which failed with an authentication error on every attempt), and the pipeline's existing backend-selection logic treated this as an ordinary unavailable-backend condition and silently substituted the local Ollama backend for every call, with no warning surfaced anywhere in the run's own logs. This was caught only by manually auditing the \texttt{generation\_backend} field recorded on each report against the run's own stated protocol, after the run had already completed and been reported once as a Claude Code comparison. The pipeline's silent-fallback behaviour was subsequently hardened so that a caller requesting a specific model explicitly is no longer silently substituted without a visible warning; the round's real, honest-but-mislabelled data was kept and reported as a sixth Ollama round rather than discarded, once relabelled correctly. Under the corrected validator, this round's four confirmed exploits each received a patch attempt, and every one of those four patches failed to close the vulnerability under the new criterion: three as a clean \texttt{not\_blocked} and one as \texttt{inconclusive\_crash}: the same qualitative pattern as round 5, now distinguished explicitly rather than collapsed into a single flag, and zero \texttt{confirmed\_fix} results in this specific round.
@@ -498,7 +518,7 @@ The eight-model comparison above evaluates only locally hosted, open-weight mode
 \label{tab:claude-multi-model}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Model} & \textbf{Confirmed} & \textbf{Fix} & \textbf{Not blocked} & \textbf{Crash} & \textbf{Cost (USD)} \\
+\textbf{Model} & \textbf{Confirmed} & \textbf{Screening pass (\texttt{confirmed\_fix})} & \textbf{Not blocked} & \textbf{Crash} & \textbf{Cost (USD)} \\
 \midrule
 Haiku 4.5 & 6/6 & 5 & 1 & 0 & \$1.81 \\
 Sonnet 4.6 & 6/6 & 4 & 2 & 0 & \$4.50 \\
@@ -507,9 +527,12 @@ Opus 4.6 & 6/6 & 4 & 1 & 1 & \$8.04 \\
 Opus 4.7 & 6/6 & 5 & 1 & 0 & \$5.52 \\
 Opus 4.8 & 6/6 & 5 & 1 & 0 & \$9.04 \\
 \midrule
-\textbf{Total (36 runs)} & & & & & \textbf{\$33.18} \\
+\textbf{Total (36 runs)} & & & & & \textbf{\$33.18}\textsuperscript{*} \\
 \bottomrule
 \end{tabular}
+\\[2pt]
+\footnotesize\textsuperscript{*}Computed from each model's unrounded per-call cost, not from summing the rounded cells shown above (which sum to \$33.17); the one-cent difference is a rounding artifact, not a data error.\\[4pt]
+\textbf{Note on the Screening pass column}: as throughout this chapter, \texttt{confirmed\_fix} here means the two-check criterion passed (original exploit blocked, benign probe completed without a detected crash), not that the patch was independently verified correct. Only 6 of the 36 underlying patched artifacts from this comparison survive for stronger, content-verified re-testing (Section~\ref{sec:corrected-validator} explains why); the counts in this column should be read as heuristic screening results at this scale, not as 27 independently confirmed correct patches.
 \end{table}
 
 \begin{figure}[H]
