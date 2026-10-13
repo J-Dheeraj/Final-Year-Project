@@ -90,17 +90,25 @@ Stage 3.6, not Stage 3.
 
 ## Limitation 3: Patch validation proves regression-safety, not correctness in general
 
-Stage 3.8 (`src/pipeline/patch.py`) validates a generated patch by
-requiring two conditions simultaneously: (1) the *original, unmodified*
-exploit script now fails against the patched target, and (2) the
-target's `/health` endpoint still returns 200. Both are necessary because
-either alone is gameable — a patch that deletes the vulnerable endpoint
-entirely would satisfy (1) without being a real fix, and is caught by (2)
-failing. This is a real, evidence-gated check, but it is bounded: it
-proves the specific known payload no longer succeeds and the app still
-starts, not that no other payload could succeed, and not that the patch
-is a *good* fix by any broader software-engineering standard. It is
-regression-testing against one known exploit, not formal verification.
+Stage 3.8 (`src/pipeline/patch.py`) originally validated a generated
+patch by requiring two conditions simultaneously: (1) the *original,
+unmodified* exploit script now fails against the patched target, and (2)
+the target's `/health` endpoint still returns 200. `/health` alone does
+not close the obvious gaming route: it is a separate, independent Flask
+route (confirmed in `execute_exploit_artifacts`), so a patch that deletes
+the vulnerable endpoint entirely satisfies (1) and leaves `/health`
+untouched, passing both original checks without being a real fix. The
+corrected validator closes this with a *same-route* benign probe instead:
+`patch_exploit_blocked` (the exploit fails without a detected crash) and
+`patch_function_preserved` (a benign, non-malicious request to the *same*
+route the exploit targeted still completes without a detected crash) —
+a deleted route fails the benign probe directly, since nothing remains at
+that route to respond. This is a real, evidence-gated check, but it is
+bounded: it proves the specific known payload no longer succeeds and a
+benign request to the same route doesn't crash, not that no other payload
+could succeed, and not that the patch is a *good* fix by any broader
+software-engineering standard. It is regression-testing against one known
+exploit, not formal verification.
 
 ## Limitation 4: "Compiles" is not "fixed" — the free5GC reachability work
 

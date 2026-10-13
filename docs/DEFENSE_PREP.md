@@ -31,15 +31,26 @@ class the pipeline handles.
 
 ## "How do you know a generated patch actually works?"
 
-Two checks, both required: (1) the *original, unmodified* exploit script
-is re-run against the patched target and must now fail, and (2) the
-target's `/health` endpoint must still return 200. Either check alone is
-gameable — a patch that deletes the vulnerable endpoint entirely would
-pass check 1 without being a real fix, and is caught by check 2 failing.
-Both together prove regression-safety against one known exploit, not
-general correctness — say "plausible patch," not "correct patch"; this
-project doesn't currently measure semantic correctness against the real
-upstream fix.
+The original two-check criterion was (1) the *original, unmodified*
+exploit script is re-run against the patched target and must now fail,
+and (2) the target's `/health` endpoint must still return 200. This pair
+is gameable in a way `/health` alone cannot catch: `/health` is a
+separate, independent route (confirmed in `execute_exploit_artifacts`),
+so a patch that deletes the vulnerable endpoint entirely would pass check
+1 and leave `/health` untouched — passing both original checks without
+being a real fix. The corrected validator (`src/pipeline/patch.py`,
+Section 4.1.2 of the report) closes exactly this gap with a *same-route*
+benign probe: `patch_exploit_blocked` (did the exploit fail without a
+detected crash) and `patch_function_preserved` (does a benign, non-
+malicious request to the *same* route the exploit targeted still
+complete without a detected crash) — a deleted route fails the benign
+probe directly, since nothing is left at that route to respond. The
+four-outcome `patch_verdict` (`confirmed_fix` / `regression_broke_route`
+/ `inconclusive_crash` / `not_blocked`) is read as heuristic patch-
+screening, not confirmed correctness — say "plausible patch," not
+"correct patch"; this project doesn't currently measure semantic
+correctness against the real upstream fix, except where stated
+explicitly (the real-upstream and content-verified reassessment cases).
 
 ## "Why are your two free5GC efforts (the lab and the reachability case study) not the same thing?"
 
