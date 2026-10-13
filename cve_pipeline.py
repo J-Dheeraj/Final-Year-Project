@@ -2292,6 +2292,26 @@ run_ssrf_probe = run_vuln_probe
 from src.labs.exploit_templates import _POC_TEMPLATE  # noqa: F401
 
 
+_SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def _safe_id_component(raw_id: str, *, label: str) -> str:
+    """Validate an identifier (a CVE/GHSA ID, or a --run-id) before it is
+    joined into a filesystem path. `Path / raw_id` does not validate
+    anything on its own - a traversal segment like "../../etc" joins
+    right through it - and cve_id in particular can originate from an
+    external NVD/GHSA feed entry or an imported ProvTrail scan finding,
+    neither of which is trusted input. Raises ValueError rather than
+    silently sanitising, so a malformed ID fails loudly instead of
+    writing somewhere unexpected."""
+    if not raw_id or ".." in raw_id or not _SAFE_ID_RE.match(raw_id):
+        raise ValueError(
+            f"unsafe {label} {raw_id!r}: expected a plain identifier "
+            f"(letters, digits, '.', '_', '-' only, no path separators "
+            f"or '..')")
+    return raw_id
+
+
 def _render_artifact(template: str, *, cve_id: str, vuln_class: str,
                      root_cause: str, fix_summary: str) -> str:
     """Fill template placeholders."""
@@ -2330,7 +2350,7 @@ def generate_exploit_artifacts(
     cvss        = advisory.get("cvss_score")   or "N/A"
     cwe         = analysis.get("cwe")          or "N/A"
 
-    out_dir = reports_dir / cve_id
+    out_dir = reports_dir / _safe_id_component(cve_id, label="cve_id")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     poc_path    = out_dir / "poc.iter1.v0.py"
@@ -2928,7 +2948,7 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
         # See PipelineDeps.run_id's own comment: scopes this run's own
         # generated files so a concurrent/sequential run for the same CVE
         # under the same --cache-dir can never overwrite them.
-        reports_dir = reports_dir / deps.run_id
+        reports_dir = reports_dir / _safe_id_component(deps.run_id, label="run_id")
     artifacts = ExploitArtifacts(generated=False, skip_reason="not run")
     try:
         artifacts = generate_exploit_artifacts(
@@ -2993,7 +3013,7 @@ async def _run_pipeline_direct(deps: PipelineDeps) -> PipelineReport:
     # reports/patch_reassessment_2026-09-26/) never again has to guess
     # which model produced a surviving artifact from a file's mtime alone.
     try:
-        manifest_dir = reports_dir / deps.cve_id
+        manifest_dir = reports_dir / _safe_id_component(deps.cve_id, label="cve_id")
         vulnerable_src = Path(artifacts.target_app_path).read_text(encoding="utf-8") if artifacts.target_app_path and Path(artifacts.target_app_path).exists() else ""
         patched_src = Path(artifacts.patched_target_path).read_text(encoding="utf-8") if artifacts.patched_target_path and Path(artifacts.patched_target_path).exists() else ""
         diff_text = "".join(difflib.unified_diff(

@@ -414,6 +414,15 @@ def run_pipeline(cve_id: str, fmt: str, no_probe: bool,
         log.error(f"  cve_pipeline import failed: {_PIPELINE_IMPORT_ERR}")
         return False
 
+    try:
+        # cve_id can originate from an external NVD/GHSA feed entry or an
+        # imported ProvTrail scan finding - neither is trusted input, and
+        # the f-string join below does not validate anything on its own.
+        _pipeline._safe_id_component(cve_id, label="cve_id")
+    except ValueError as exc:
+        log.error(f"  refusing unsafe cve_id: {exc}")
+        return False
+
     ext      = "json" if fmt == "json" else "txt"
     out_path = REPORTS_DIR / f"{cve_id}.{ext}"
 
