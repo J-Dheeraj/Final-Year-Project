@@ -111,7 +111,7 @@ def test_multipayload_all_variants_untested_rejects_validated(tmp_path, monkeypa
 
     assert call_count["n"] == 1 + len(artifacts.payload_variants)
     assert result.patch_validated is False
-    assert "never actually tested" in result.patch_validation_log
+    assert "not every declared payload was actually tested" in result.patch_validation_log
 
 
 def test_multipayload_bypass_overrides_validated_false(tmp_path, monkeypatch):
@@ -139,10 +139,12 @@ def test_multipayload_bypass_overrides_validated_false(tmp_path, monkeypatch):
     assert "BYPASSED" in result.patch_validation_log
 
 
-def test_multipayload_partial_evidence_still_counts(tmp_path, monkeypatch):
-    """If at least one variant actually ran (even if another skipped),
-    the multi-payload check contributed real evidence and must not be
-    rejected outright."""
+def test_multipayload_one_untested_variant_still_rejects(tmp_path, monkeypatch):
+    """Tightened 2026-10-13: the validator's own contract is that ALL
+    declared alternate payloads must be tested and found still-blocked.
+    Even one untested variant (among others that did run clean) must
+    reject the patch - an independent review found the previous
+    "at least one tested" carve-out inconsistent with that contract."""
     target = _write_target(tmp_path)
     artifacts = _artifacts(str(target), payload_variants=["skip-me", "test-me"])
     _patch_llm_generate(monkeypatch)
@@ -164,8 +166,30 @@ def test_multipayload_partial_evidence_still_counts(tmp_path, monkeypatch):
 
     result = patchmod.generate_and_validate_patch(artifacts, "SQLi")
 
+    assert result.patch_validated is False
+    assert "incomplete" in result.patch_validation_log
+    assert "skip-me" in result.patch_validation_log
+
+
+def test_multipayload_all_variants_tested_and_blocked_validates(tmp_path, monkeypatch):
+    """The positive case: every declared variant actually ran and none
+    bypassed the patch - this must still validate."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target), payload_variants=["v1", "v2"])
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        shadow.dynamically_confirmed = False
+        shadow.execution_log = "=== target_app.py ===\nclean rejection\n"
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "SQLi")
+
     assert result.patch_validated is True
-    assert result.patch_verdict in ("confirmed_fix", "regression_broke_route")
+    assert result.patch_verdict in ("heuristic_fix_screened", "regression_broke_route")
 
 
 def test_benign_probe_crash_sets_function_preserved_false(tmp_path, monkeypatch):
@@ -196,6 +220,81 @@ def test_benign_probe_crash_sets_function_preserved_false(tmp_path, monkeypatch)
     assert result.patch_exploit_blocked is True
     assert result.patch_function_preserved is False
     assert result.patch_verdict == "regression_broke_route"
+
+
+def test_deleted_route_passes_crash_check_but_fails_strict_check(tmp_path, monkeypatch):
+    """The exact gap this redesign closes, found by an independent
+    review and verified empirically against real Flask/werkzeug this
+    session: a patch that deletes the vulnerable route produces a clean
+    404 access-log line, no traceback - patch_function_preserved alone
+    reads that as "preserved" (unchanged, historical meaning), but
+    patch_function_preserved_strict must catch it via the status code."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target))
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        if extra_arg is None:
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = "=== target_app.py ===\nclean rejection\n"
+        else:
+            # Real werkzeug access-log shape for a deleted route, as
+            # captured empirically this session.
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = (
+                "=== target_app.py ===\n"
+                '127.0.0.1 - - [13/Oct/2026 10:34:25] "GET /health HTTP/1.1" 200 -\n'
+                '127.0.0.1 - - [13/Oct/2026 10:34:25] "POST /ping HTTP/1.1" 404 -\n'
+            )
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "CMDi")
+
+    assert result.patch_function_preserved is True  # unchanged historical meaning
+    assert result.patch_benign_probe_status_code == 404
+    assert result.patch_function_preserved_strict is False  # the new, stricter signal catches it
+    assert result.patch_verdict == "heuristic_fix_screened"  # label, not changed logic
+
+
+def test_working_route_passes_both_crash_and_strict_check(tmp_path, monkeypatch):
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target))
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        shadow.dynamically_confirmed = False
+        if extra_arg is None:
+            shadow.execution_log = "=== target_app.py ===\nclean rejection\n"
+        else:
+            shadow.execution_log = (
+                "=== target_app.py ===\n"
+                '127.0.0.1 - - [13/Oct/2026 10:34:25] "GET /health HTTP/1.1" 200 -\n'
+                '127.0.0.1 - - [13/Oct/2026 10:34:25] "POST /ping HTTP/1.1" 200 -\n'
+            )
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "CMDi")
+
+    assert result.patch_benign_probe_status_code == 200
+    assert result.patch_function_preserved_strict is True
+
+
+def test_last_http_status_parses_last_match():
+    log = (
+        '"GET /health HTTP/1.1" 200 -\n'
+        '"POST /ping HTTP/1.1" 403 -\n'
+    )
+    assert patchmod._last_http_status(log) == 403
+
+
+def test_last_http_status_none_when_no_match():
+    assert patchmod._last_http_status("no http lines here") is None
 
 
 def test_exploit_crash_is_inconclusive_round5_regression(tmp_path, monkeypatch):

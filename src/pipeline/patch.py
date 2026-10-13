@@ -37,6 +37,10 @@ _CRASH_SIGNATURE_RE = re.compile(
     r"Traceback \(most recent call last\)|Exception on .* \[", re.IGNORECASE
 )
 _BENIGN_PROBE_PAYLOAD = "benign-legitimate-request-2026-not-an-attack-payload"
+# Matches a werkzeug access-log line, e.g. `"POST /ping HTTP/1.1" 404 -`.
+# execution_log includes the target's own stdout (see cve_pipeline.py's
+# execute_exploit_artifacts), which is where this line actually lives.
+_HTTP_STATUS_RE = re.compile(r'"\s*[A-Z]+\s+\S+\s+HTTP/[\d.]+"\s+(\d{3})')
 
 
 def _response_shows_crash(execution_log: str) -> bool:
@@ -45,6 +49,15 @@ def _response_shows_crash(execution_log: str) -> bool:
     a heuristic over stdout/stderr text, not a structured signal - the best
     available without changing every generated target's own error handling."""
     return bool(_CRASH_SIGNATURE_RE.search(execution_log or ""))
+
+
+def _last_http_status(execution_log: str) -> int | None:
+    """Status code of the LAST HTTP request in a target's own werkzeug
+    access log - the benign/alternate-payload request, since the health
+    check logs first. Crash-absence alone cannot tell a working route
+    apart from one that was deleted and now cleanly 404s; this does."""
+    matches = _HTTP_STATUS_RE.findall(execution_log or "")
+    return int(matches[-1]) if matches else None
 
 
 def _llm_generate_patch(vuln_class: str, root_cause: str, fix_summary: str,
@@ -193,7 +206,7 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
     # patch to stand. The first payload that still succeeds overrides
     # patch_validated back to False, with which payload proved it in the log.
     if artifacts.patch_validated and artifacts.payload_variants:
-        any_variant_tested = False
+        untested_variants = []
         for variant in artifacts.payload_variants:
             probe = ExploitArtifacts(
                 generated=True,
@@ -211,8 +224,8 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
                 # was never run against.
                 log.warning("[Stage 3.8] Multi-payload re-probe %r did not run: %s",
                             variant, probe.execution_skip_reason)
+                untested_variants.append(variant)
                 continue
-            any_variant_tested = True
             bypassed = bool(probe.dynamically_confirmed)
             log.info("[Stage 3.8] Multi-payload re-probe %r: %s",
                       variant, "BYPASSED patch" if bypassed else "still blocked")
@@ -225,24 +238,29 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
                 )
                 break
         else:
-            # Loop completed without finding a bypass. If it also never
-            # managed to actually TEST any variant, the multi-payload check
-            # contributed zero real evidence - the single-payload result
-            # above must not be allowed to stand as if it had been
-            # multi-payload-verified. Reject rather than silently trust it.
-            if not any_variant_tested:
+            # Loop completed without finding a bypass. The validator's own
+            # stated contract is that ALL declared alternate payloads must
+            # be tested and found still-blocked for the patch to stand - an
+            # untested payload could just as easily have been the one that
+            # bypasses it, so partial evidence is not enough. Reject rather
+            # than silently accept on incomplete evidence (tightened
+            # 2026-10-13: previously accepted when at least one variant was
+            # tested, flagged as inconsistent with this very comment by an
+            # independent review).
+            if untested_variants:
                 artifacts.patch_validated = False
                 artifacts.patch_validation_log = (
-                    f"Multi-payload re-probe could not be completed: all "
+                    f"Multi-payload re-probe incomplete: "
+                    f"{len(untested_variants)} of "
                     f"{len(artifacts.payload_variants)} alternate payload(s) "
-                    f"for {vuln_class} failed to produce a usable signal "
-                    f"(target failed to start, never became healthy, or "
-                    f"timed out). Not validating a patch on multi-payload "
-                    f"evidence it was never actually tested against."
+                    f"for {vuln_class} failed to produce a usable signal: "
+                    f"{untested_variants!r}. Not validating a patch when "
+                    f"not every declared payload was actually tested."
                 )
-                log.warning("[Stage 3.8] Multi-payload re-probe fully "
-                            "inconclusive - rejecting patch_validated "
-                            "rather than trusting the untested result")
+                log.warning("[Stage 3.8] Multi-payload re-probe incomplete "
+                            "(%d/%d untested) - rejecting patch_validated "
+                            "rather than trusting partial evidence",
+                            len(untested_variants), len(artifacts.payload_variants))
 
     # --- Corrected validator: exploit-blocked, function-preserved, verdict ---
     # Uses the FINAL state of patch_validated above (after the multi-payload
@@ -267,15 +285,31 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
         benign_crashed = _response_shows_crash(benign_probe.execution_log)
         artifacts.patch_function_preserved = benign_ran and not benign_crashed
         artifacts.patch_benign_probe_log = benign_probe.execution_log
+        # Additive, stricter signal (see ExploitArtifacts' own comment):
+        # also require the benign request's own HTTP status to not be a
+        # client/server error, not just crash-absence. A deleted route
+        # cleanly 404s - no traceback, so patch_function_preserved alone
+        # reads that as "preserved" - but the status code catches it.
+        status = _last_http_status(benign_probe.execution_log)
+        artifacts.patch_benign_probe_status_code = status
+        artifacts.patch_function_preserved_strict = (
+            artifacts.patch_function_preserved
+            and status is not None and status < 400
+        )
     else:
         artifacts.patch_function_preserved = None  # not applicable - exploit wasn't cleanly blocked
+        artifacts.patch_function_preserved_strict = None
 
     if exploit_crashed:
         artifacts.patch_verdict = "inconclusive_crash"
     elif not artifacts.patch_validated:
         artifacts.patch_verdict = "not_blocked"
     elif artifacts.patch_function_preserved:
-        artifacts.patch_verdict = "confirmed_fix"
+        # Was "confirmed_fix" until 2026-10-13 (see ExploitArtifacts'
+        # comment): this is the crash-absence heuristic, not a
+        # vulnerability-class-specific expected-response check, so
+        # "confirmed" overstated what this verdict actually establishes.
+        artifacts.patch_verdict = "heuristic_fix_screened"
     else:
         artifacts.patch_verdict = "regression_broke_route"
 

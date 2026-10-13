@@ -283,8 +283,31 @@ class ExploitArtifacts(BaseModel):
     patch_exploit_blocked:    bool | None = None  # exploit failed WITHOUT crashing the route
     patch_function_preserved: bool | None = None  # a benign request to the same route still works
     patch_benign_probe_log:   str         = ""
-    # One of: "confirmed_fix", "regression_broke_route", "inconclusive_crash",
-    # "not_blocked", or "" if patch generation/validation never ran.
+    # Additive, stricter signal alongside patch_function_preserved above
+    # (2026-10-13): crash-absence alone cannot tell a working route apart
+    # from one that was deleted and now cleanly returns 404/401/403/etc -
+    # an independent review found this exact gap. Parsed from the benign
+    # probe's own werkzeug access-log line, not from the reused PoC
+    # script's class-specific success marker (which a generic benign
+    # payload never triggers by design). Purely additive: does not change
+    # patch_function_preserved, patch_validated, or patch_verdict, so
+    # every already-reported result under those fields' original meaning
+    # is unaffected.
+    patch_benign_probe_status_code:  int  | None = None
+    patch_function_preserved_strict: bool | None = None
+    # One of: "heuristic_fix_screened", "regression_broke_route",
+    # "inconclusive_crash", "not_blocked", or "" if patch generation/
+    # validation never ran. Was "confirmed_fix" until 2026-10-13: renamed
+    # because this verdict is the crash-absence heuristic above, not a
+    # vulnerability-class-specific expected-response check - "confirmed"
+    # overstated what was actually established. This renames the LABEL
+    # only, not the underlying check, so it does not change what any
+    # already-reported run's patch_validation_log or patch_* booleans
+    # mean; historical reports already on disk still legitimately say
+    # "confirmed_fix" under the meaning that string had when they were
+    # written. "confirmed_fix" remains reserved for separately content-
+    # verified cases (the real-upstream and reassessment paths), which
+    # use their own independent verdict fields, not this one.
     patch_verdict: str = ""
 
 
@@ -2660,10 +2683,20 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
     log.info("[Stage 3.6] Executing generated artifacts for %s on :%d …",
               artifacts.vuln_class, port)
 
-    target_proc = subprocess.Popen(
-        [target_interpreter, str(target_path)], cwd=str(target_path.parent),
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-    )
+    try:
+        target_proc = subprocess.Popen(
+            [target_interpreter, str(target_path)], cwd=str(target_path.parent),
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        )
+    except OSError as exc:
+        # This function's own contract is "never raises" (see docstring),
+        # but Popen itself sat outside any try/except - a missing `node`
+        # runtime for a generated .js target, a permissions failure, or
+        # any other process-creation failure would escape uncaught,
+        # found by an independent review. Degrade the same way every
+        # other failure path here does.
+        artifacts.execution_skip_reason = f"failed to start target process: {exc}"
+        return artifacts
     artifacts.execution_log = ""
     try:
         healthy = False
