@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Byte-compile the main pipeline
+        run: python -m py_compile cve_pipeline.py cve_watcher.py src/pipeline/patch.py src/labs/exploit_templates.py browser_xss_replay.py
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
