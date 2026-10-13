@@ -8,6 +8,11 @@
 # service, not imported by the main pipeline).
 #
 # Install: pip install -r requirements.txt
+#
+# For a fully hash-locked install (every transitive dependency pinned
+# and sha256-verified, generated via `pip-compile --generate-hashes`),
+# use requirements.lock.txt instead:
+#   pip install --require-hashes -r requirements.lock.txt
 
 # Core — always required
 requests==2.34.2
@@ -25,8 +30,19 @@ tree-sitter-go==0.25.0
 # gracefully (falls back to the `claude` CLI, then to text-only
 # heuristic extraction) when these are not installed or no
 # ANTHROPIC_API_KEY is set; see CLAUDE.md's "AI Backend" section.
-pydantic-ai==1.87.0
-anthropic==0.97.0
+# pydantic-ai-slim[anthropic] (not the full pydantic-ai meta-package):
+# cve_pipeline.py only ever imports Agent/RunContext and the Anthropic
+# model backend, but plain `pydantic-ai` bundles every provider's SDK
+# (OpenAI, Cohere, Groq, Mistral, xAI, AWS Bedrock, Temporal workflows,
+# ...) whether used or not - 157 transitive packages pulled in for code
+# that imports three names. The slim+anthropic extra installs only what
+# this project actually uses. Also fixes 17 known CVEs pip-audit found
+# in pydantic-ai==1.87.0 (PYSEC-2026-2977/2978/3692 and others,
+# CVE-2026-107287 through -107295), none exploitable through this
+# project's narrow, text-in/text-out usage of the API, but fixed anyway
+# rather than left pinned to a known-vulnerable version.
+pydantic-ai-slim[anthropic]==1.107.7
+anthropic==0.125.0
 
 # Testing
 pytest==9.1.1
