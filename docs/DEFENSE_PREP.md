@@ -33,23 +33,29 @@ class the pipeline handles.
 
 The original two-check criterion was (1) the *original, unmodified*
 exploit script is re-run against the patched target and must now fail,
-and (2) the target's `/health` endpoint must still return 200. This pair
-is gameable in a way `/health` alone cannot catch: `/health` is a
-separate, independent route (confirmed in `execute_exploit_artifacts`),
-so a patch that deletes the vulnerable endpoint entirely would pass check
-1 and leave `/health` untouched — passing both original checks without
+and (2) the target's `/health` endpoint must still return 200. `/health`
+is a separate, independent route (confirmed in `execute_exploit_artifacts`),
+so a patch that deletes the vulnerable endpoint entirely passes check 1
+and leaves `/health` untouched — passing both original checks without
 being a real fix. The corrected validator (`src/pipeline/patch.py`,
-Section 4.1.2 of the report) closes exactly this gap with a *same-route*
-benign probe: `patch_exploit_blocked` (did the exploit fail without a
+Section 4.1.2 of the report) adds a *same-route* benign probe instead of
+`/health`: `patch_exploit_blocked` (did the exploit fail without a
 detected crash) and `patch_function_preserved` (does a benign, non-
 malicious request to the *same* route the exploit targeted still
-complete without a detected crash) — a deleted route fails the benign
-probe directly, since nothing is left at that route to respond. The
-four-outcome `patch_verdict` (`confirmed_fix` / `regression_broke_route`
-/ `inconclusive_crash` / `not_blocked`) is read as heuristic patch-
-screening, not confirmed correctness — say "plausible patch," not
-"correct patch"; this project doesn't currently measure semantic
-correctness against the real upstream fix, except where stated
+complete without a detected crash). **This does not close the route-
+deletion gap either, and I verified that empirically, not just by
+reading the code**: a minimal Flask target with the vulnerable route
+removed, probed the same way, logs a plain Werkzeug 404 access line with
+no traceback - `patch_function_preserved`'s crash-only check reads that
+as "preserved" exactly like a genuinely working route would. Deleting
+the route is still gameable under the corrected validator as it stands
+today; closing it needs an expected-response check (status code and/or
+content), not just crash-absence, and is tracked as an open fix rather
+than a closed one. The four-outcome `patch_verdict` (`confirmed_fix` /
+`regression_broke_route` / `inconclusive_crash` / `not_blocked`) is read
+as heuristic patch-screening, not confirmed correctness - say "plausible
+patch," not "correct patch"; this project doesn't currently measure
+semantic correctness against the real upstream fix, except where stated
 explicitly (the real-upstream and content-verified reassessment cases).
 
 ## "Why are your two free5GC efforts (the lab and the reachability case study) not the same thing?"
