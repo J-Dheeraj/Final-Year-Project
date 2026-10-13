@@ -1,0 +1,8 @@
+# CI-only tooling, separate from the application's own requirements.txt /
+# requirements.lock.txt. pip-audit scans the application's installed
+# dependencies for known vulnerabilities - it is not itself one of
+# those dependencies, so it does not belong in requirements.txt. Hash-
+# locked the same way, so the tool doing the supply-chain check is
+# itself supply-chain-verified, not installed from an unpinned,
+# unhashed `pip install pip-audit`.
+pip-audit==2.10.1
