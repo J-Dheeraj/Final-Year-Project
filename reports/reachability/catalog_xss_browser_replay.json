@@ -9,11 +9,14 @@
       "response_body": "<!doctype html><html><body>\n<p></p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -24,11 +27,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;&lt;img&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -39,11 +45,14 @@
       "response_body": "<!doctype html><html><body>\n<p></p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -54,11 +63,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -69,11 +81,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -84,11 +99,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -99,11 +117,14 @@
       "response_body": "<!doctype html><html><body>\n<h1>&lt;img src=x onerror=alert(1)&gt;</h1>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -114,11 +135,14 @@
       "response_body": "<!doctype html><html><body>\n<p>x onclick=1</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -129,11 +153,14 @@
       "response_body": "<!doctype html><html><body>\n<h1>&lt;script&gt;alert(1)&lt;/script&gt;</h1>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -144,11 +171,14 @@
       "response_body": "<!doctype html><html><body>\n<p> onload=alert(1)</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -159,11 +189,14 @@
       "response_body": "<!doctype html><html><body>\n<h1>&lt;script&gt;alert(1)&lt;/script&gt;</h1>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -174,11 +207,14 @@
       "response_body": "<!doctype html><html><body>\n<p>img onerror=alert(1)</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -189,11 +225,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -204,11 +243,14 @@
       "response_body": "<!doctype html><html><body>\n<p>javascript:alert(document.domain)</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -219,11 +261,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -234,11 +279,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -249,11 +297,14 @@
       "response_body": "<!doctype html><html><body>\n<h1>&lt;img src=&#x27;x&#x27; onerror=&#x27;alert(1)&#x27;&gt;</h1>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -264,11 +315,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -279,11 +333,14 @@
       "response_body": "<!doctype html><html><body>\n<p>javascript:alert(&#x27;xss&#x27;)</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -294,11 +351,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -309,11 +369,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -324,11 +387,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -339,11 +405,14 @@
       "response_body": "<!doctype html><html><body>\n<p>javascript:alert(1)</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -354,11 +423,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;img onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -369,11 +441,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -384,11 +459,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -399,11 +477,14 @@
       "response_body": "<!doctype html><html><body>\n<h1>&amp;lt;img src=x onerror=alert(1)&amp;gt;</h1>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -414,11 +495,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -429,11 +513,14 @@
       "response_body": "<!doctype html><html><body>\n<h1>%3Cscript%3Ealert(1)%3C/script%3E</h1>\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -444,11 +531,14 @@
       "response_body": "<!doctype html><html><body>\n<p>javascript:</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -459,11 +549,14 @@
       "response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -474,11 +567,14 @@
       "response_body": "<!doctype html><html><body>\n<p>Ordinary text onclick=disabled</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     },
     {
@@ -489,13 +585,17 @@
       "response_body": "<!doctype html><html><body>\n<p>javascript:</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>",
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
+      "browser_run_inconclusive": false,
       "browser_genuine_bypass": false
     }
   ],
-  "genuine_bypasses": 0
+  "genuine_bypasses": 0,
+  "inconclusive_runs": 0
 }

@@ -601,10 +601,12 @@
       "browser_genuine_bypass": false,
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
       "browser_response_body": "<!doctype html><html><body>\n<p></p>\n</body></html>"
     },
@@ -639,10 +641,12 @@
       "browser_genuine_bypass": false,
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
       "browser_response_body": "<!doctype html><html><body>\n<p>&lt;img src=x onerror=alert(1)&gt;&lt;img&gt;</p>\n<!-- injected script executed in origin: PWNED_x9f3k2vq_xss -->\n</body></html>"
     },
@@ -684,10 +688,12 @@
       "browser_genuine_bypass": false,
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
       "browser_response_body": "<!doctype html><html><body>\n<p></p>\n</body></html>"
     },
@@ -725,10 +731,12 @@
       "browser_genuine_bypass": false,
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
       "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>"
     },
@@ -766,10 +774,12 @@
       "browser_genuine_bypass": false,
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
       "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;</p>\n</body></html>"
     },
@@ -807,10 +817,12 @@
       "browser_genuine_bypass": false,
       "browser_signal": {
         "browser_available": true,
+        "browser_run_ok": true,
         "dialog_executed": false,
         "script_error_observed": false,
         "title": "BROWSER_XSS_DIALOG=0;BROWSER_XSS_ERROR=0",
-        "browser_exit_code": 0
+        "browser_exit_code": 0,
+        "browser_stderr": ""
       },
       "browser_response_body": "<!doctype html><html><body>\n<p>&lt;script&gt;alert(&#x27;XSS&#x27;)&lt;/script&gt;</p>\n</body></html>"
     },
