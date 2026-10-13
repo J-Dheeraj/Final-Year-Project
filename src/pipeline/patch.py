@@ -193,6 +193,7 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
     # patch to stand. The first payload that still succeeds overrides
     # patch_validated back to False, with which payload proved it in the log.
     if artifacts.patch_validated and artifacts.payload_variants:
+        any_variant_tested = False
         for variant in artifacts.payload_variants:
             probe = ExploitArtifacts(
                 generated=True,
@@ -211,6 +212,7 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
                 log.warning("[Stage 3.8] Multi-payload re-probe %r did not run: %s",
                             variant, probe.execution_skip_reason)
                 continue
+            any_variant_tested = True
             bypassed = bool(probe.dynamically_confirmed)
             log.info("[Stage 3.8] Multi-payload re-probe %r: %s",
                       variant, "BYPASSED patch" if bypassed else "still blocked")
@@ -222,6 +224,25 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
                     f"{vuln_class} class: {variant!r}\n\n{probe.execution_log}"
                 )
                 break
+        else:
+            # Loop completed without finding a bypass. If it also never
+            # managed to actually TEST any variant, the multi-payload check
+            # contributed zero real evidence - the single-payload result
+            # above must not be allowed to stand as if it had been
+            # multi-payload-verified. Reject rather than silently trust it.
+            if not any_variant_tested:
+                artifacts.patch_validated = False
+                artifacts.patch_validation_log = (
+                    f"Multi-payload re-probe could not be completed: all "
+                    f"{len(artifacts.payload_variants)} alternate payload(s) "
+                    f"for {vuln_class} failed to produce a usable signal "
+                    f"(target failed to start, never became healthy, or "
+                    f"timed out). Not validating a patch on multi-payload "
+                    f"evidence it was never actually tested against."
+                )
+                log.warning("[Stage 3.8] Multi-payload re-probe fully "
+                            "inconclusive - rejecting patch_validated "
+                            "rather than trusting the untested result")
 
     # --- Corrected validator: exploit-blocked, function-preserved, verdict ---
     # Uses the FINAL state of patch_validated above (after the multi-payload
