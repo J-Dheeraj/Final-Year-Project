@@ -31,8 +31,9 @@ from typing import Any
 import requests
 
 # ── force UTF-8 on Windows ──────────────────────────────────────────────────
-if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+def _fix_stdout() -> None:
+    if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 # ── timestamp helper ─────────────────────────────────────────────────────────
 
@@ -406,6 +407,7 @@ def render_json(results: list[ProbeResult], callback_port: int) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    _fix_stdout()
     parser = argparse.ArgumentParser(description="SSRF probe for the defensive lab")
     parser.add_argument("--server-host", default="127.0.0.1")
     parser.add_argument("--server-port", default="8000", type=int)

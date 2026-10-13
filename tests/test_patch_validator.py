@@ -1,0 +1,262 @@
+"""Offline tests for Stage 3.8's patch validator (src/pipeline/patch.py).
+
+Mocks cve_pipeline.execute_exploit_artifacts and
+src.pipeline.patch._llm_generate_patch so every test runs with no real
+subprocess, network, or LLM call - focused on the validator's own
+control flow: the timeout/skip-reason handling, the multi-payload
+re-probe loop (including the two bugs fixed this session: a failed-to-
+start probe being conflated with a genuine block, and the verdict
+standing even when zero variants were actually tested), and the
+crash-signature benign-probe check.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT))
+
+import cve_pipeline as pipeline  # noqa: E402
+from src.pipeline import patch as patchmod  # noqa: E402
+
+
+class _FakeGenCall:
+    """Stands in for cve_pipeline's LiveModelResult."""
+    duration_s = 1.0
+    input_tokens = 10
+    output_tokens = 5
+    cost_usd = 0.0
+
+
+def _artifacts(target_app_path: str, **overrides) -> "pipeline.ExploitArtifacts":
+    base = dict(
+        generated=True,
+        dynamically_confirmed=True,
+        poc_path="poc.py",
+        target_app_path=target_app_path,
+        vuln_class="CMDi",
+    )
+    base.update(overrides)
+    return pipeline.ExploitArtifacts(**base)
+
+
+def _write_target(tmp_path: Path) -> Path:
+    p = tmp_path / "target_app.py"
+    p.write_text("# vulnerable target\n", encoding="utf-8")
+    return p
+
+
+def _patch_llm_generate(monkeypatch, patched_source="# patched\n", summary="fix"):
+    monkeypatch.setattr(
+        patchmod, "_llm_generate_patch",
+        lambda *a, **k: (patched_source, summary, _FakeGenCall()))
+
+
+def test_skip_reason_timeout_is_inconclusive_not_validated(tmp_path, monkeypatch):
+    """A probe shadow result with execution_skip_reason set (e.g. the
+    exploit probe timing out) must NOT be silently treated as a
+    confirmed block - this is the Stage 3.8 bug fixed alongside
+    cve_pipeline.py's execute_exploit_artifacts (commit e4d4570)."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target))
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        shadow.execution_skip_reason = "poc.py timed out after 20s (possible hang)"
+        shadow.exit_code = None
+        shadow.dynamically_confirmed = False
+        shadow.execution_log = "=== target_app.py ===\n...\n"
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "CMDi")
+
+    assert result.patch_validated is False
+    assert result.patch_verdict == "inconclusive_crash"
+    assert result.patch_exploit_blocked is False
+    assert result.patch_function_preserved is None
+
+
+def test_multipayload_all_variants_untested_rejects_validated(tmp_path, monkeypatch):
+    """If the single-payload check passes but every alternate-payload
+    re-probe fails to produce a real signal, the patch must not be
+    validated on multi-payload evidence it was never actually tested
+    against (the second fix in commit 98c3922)."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(
+        str(target),
+        payload_variants=["'; DROP TABLE users --", "' OR '1'='1"],
+    )
+    _patch_llm_generate(monkeypatch)
+    call_count = {"n": 0}
+
+    def fake_execute(shadow, extra_arg=None):
+        call_count["n"] += 1
+        shadow.executed = True
+        if extra_arg is None:
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = "=== target_app.py ===\nclean rejection\n"
+        else:
+            shadow.execution_skip_reason = "target_app.py never became healthy"
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = ""
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "SQLi")
+
+    assert call_count["n"] == 1 + len(artifacts.payload_variants)
+    assert result.patch_validated is False
+    assert "never actually tested" in result.patch_validation_log
+
+
+def test_multipayload_bypass_overrides_validated_false(tmp_path, monkeypatch):
+    """An alternate payload that still succeeds must flip patch_validated
+    back to False, even though the original payload was blocked."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target), payload_variants=["'; DROP TABLE users --"])
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        if extra_arg is None:
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = "=== target_app.py ===\nclean rejection\n"
+        else:
+            shadow.dynamically_confirmed = True
+            shadow.execution_log = "=== target_app.py ===\nbypassed\n"
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "SQLi")
+
+    assert result.patch_validated is False
+    assert "BYPASSED" in result.patch_validation_log
+
+
+def test_multipayload_partial_evidence_still_counts(tmp_path, monkeypatch):
+    """If at least one variant actually ran (even if another skipped),
+    the multi-payload check contributed real evidence and must not be
+    rejected outright."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target), payload_variants=["skip-me", "test-me"])
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        if extra_arg is None:
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = "=== target_app.py ===\nclean rejection\n"
+        elif extra_arg == "skip-me":
+            shadow.execution_skip_reason = "target_app.py never became healthy"
+            shadow.dynamically_confirmed = False
+        else:
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = "=== target_app.py ===\nalso blocked\n"
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "SQLi")
+
+    assert result.patch_validated is True
+    assert result.patch_verdict in ("confirmed_fix", "regression_broke_route")
+
+
+def test_benign_probe_crash_sets_function_preserved_false(tmp_path, monkeypatch):
+    """The exact Round 5 shape, replayed on the benign probe: a crash on
+    a legitimate request must flag patch_function_preserved False."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target))
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        if extra_arg is None:
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = "=== target_app.py ===\nclean rejection\n"
+        else:
+            shadow.dynamically_confirmed = False
+            shadow.execution_log = (
+                "=== target_app.py ===\n"
+                "Traceback (most recent call last):\n"
+                "NameError: name 'io' is not defined\n"
+            )
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "Deserialization")
+
+    assert result.patch_exploit_blocked is True
+    assert result.patch_function_preserved is False
+    assert result.patch_verdict == "regression_broke_route"
+
+
+def test_exploit_crash_is_inconclusive_round5_regression(tmp_path, monkeypatch):
+    """The exact Round 5 false-acceptance shape: the exploit request
+    itself crashed the route rather than being cleanly rejected - the
+    finding that motivated the corrected validator in the first place."""
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target))
+    _patch_llm_generate(monkeypatch)
+
+    def fake_execute(shadow, extra_arg=None):
+        shadow.executed = True
+        shadow.dynamically_confirmed = False
+        shadow.execution_log = (
+            "=== target_app.py ===\n"
+            "Traceback (most recent call last):\n"
+            "NameError: name 'io' is not defined\n"
+        )
+        return shadow
+
+    monkeypatch.setattr(pipeline, "execute_exploit_artifacts", fake_execute)
+
+    result = patchmod.generate_and_validate_patch(artifacts, "Deserialization")
+
+    assert result.patch_verdict == "inconclusive_crash"
+    assert result.patch_exploit_blocked is False
+
+
+def test_not_dynamically_confirmed_skips_patch_entirely():
+    artifacts = _artifacts("target_app.py", dynamically_confirmed=False)
+    result = patchmod.generate_and_validate_patch(artifacts, "CMDi")
+    assert result.patch_skip_reason
+    assert not result.patch_attempted
+
+
+def test_no_llm_backend_skips_with_reason(tmp_path, monkeypatch):
+    target = _write_target(tmp_path)
+    artifacts = _artifacts(str(target))
+    monkeypatch.setattr(patchmod, "_llm_generate_patch", lambda *a, **k: None)
+    result = patchmod.generate_and_validate_patch(artifacts, "CMDi")
+    assert result.patch_skip_reason
+    assert not result.patch_attempted
+
+
+def test_missing_target_file_skips_with_reason():
+    artifacts = _artifacts("/no/such/path/target_app.py")
+    result = patchmod.generate_and_validate_patch(artifacts, "CMDi")
+    assert result.patch_skip_reason
+    assert not result.patch_attempted
+
+
+def test_response_shows_crash_detects_traceback():
+    assert patchmod._response_shows_crash(
+        "Traceback (most recent call last):\nNameError: x") is True
+
+
+def test_response_shows_crash_ignores_clean_log():
+    assert patchmod._response_shows_crash(
+        '127.0.0.1 - - [x] "POST /ping HTTP/1.1" 404 -') is False
+
+
+def test_response_shows_crash_detects_exception_on_route():
+    assert patchmod._response_shows_crash(
+        "Exception on /ping [POST]") is True

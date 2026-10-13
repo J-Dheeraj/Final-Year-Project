@@ -97,7 +97,15 @@ except (ImportError, ModuleNotFoundError):
 # ─────────────────────────────────────────────────────────────────────────────
 
 _LOG_FMT = "%(asctime)s  %(levelname)-7s  %(name)s — %(message)s"
-logging.basicConfig(format=_LOG_FMT, datefmt="%H:%M:%S", level=logging.INFO)
+# basicConfig() itself is deferred to main() below, not called here at
+# import time: this module is also imported as a library (by
+# cve_watcher.py, provtrail_bridge.py, tests), and configuring the ROOT
+# logger's handlers as a side effect of import is a standard anti-
+# pattern - found (while adding tests) to corrupt pytest's own
+# stdout/stderr capture via logging's atexit shutdown hook closing a
+# stream pytest still owned, which is why no test here ever imported
+# this module directly before now. getLogger() itself is safe at import
+# time; only basicConfig()'s handler attachment is not.
 log = logging.getLogger("cve_pipeline")
 
 
@@ -3180,6 +3188,7 @@ from src.integrations.obsidian_ingest import obsidian_ingest  # noqa: F401
 
 def main() -> None:
     _fix_stdout()
+    logging.basicConfig(format=_LOG_FMT, datefmt="%H:%M:%S", level=logging.INFO)
     args = _parse_args()
     try:
         report = asyncio.run(run_pipeline(args))

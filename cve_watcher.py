@@ -108,15 +108,27 @@ LOG_FILE    = BASE_DIR / "watcher.log"
 REPORTS_DIR.mkdir(exist_ok=True)
 
 # ── logging ───────────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-        logging.StreamHandler(sys.stdout),
-    ],
-)
+# basicConfig() itself is deferred to main() below, not called here at
+# import time: this module is also imported as a library (by
+# provtrail_bridge.py, by tests), and configuring the ROOT logger's
+# handlers as a side effect of import is a standard anti-pattern - it
+# also opened/appended to the real watcher.log file on every import, and
+# was found (while adding tests) to corrupt pytest's own stdout/stderr
+# capture via logging's atexit shutdown hook closing a stream pytest
+# still owned. getLogger() itself is safe at import time; only
+# basicConfig()'s handler attachment is not.
 log = logging.getLogger("cve_watcher")
+
+
+def _configure_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s  %(levelname)-8s  %(message)s",
+        handlers=[
+            logging.FileHandler(LOG_FILE, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
 
 # ── seen-CVE store ────────────────────────────────────────────────────────────
 
@@ -559,6 +571,7 @@ def poll_once(since: datetime, seen: SeenStore,
 
 def main() -> None:
     _fix_stdout()
+    _configure_logging()
     parser = argparse.ArgumentParser(description="CVE feed watcher → auto pipeline")
     parser.add_argument("--interval",  default=60,  type=int,
                         help="Poll interval in minutes (default: 60)")
