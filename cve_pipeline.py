@@ -856,17 +856,25 @@ def fetch_advisory(ctx: RunContext[PipelineDeps], cve_or_ghsa_id: str) -> dict:
     return result
 
 
+_GHSA_FROM_CVE_QUERY = """
+  query($cveId: String!) {
+    securityAdvisories(identifier: {type: CVE, value: $cveId}, first: 1) {
+      nodes { ghsaId }
+    }
+  }
+"""
+
+
 def _resolve_ghsa_from_cve(cve_id: str) -> str | None:
-    """Ask the GitHub Advisory GraphQL API to map a CVE ID to its GHSA ID."""
+    """Ask the GitHub Advisory GraphQL API to map a CVE ID to its GHSA ID.
+    cve_id is passed as a GraphQL variable, not interpolated into the
+    query text - this request carries GITHUB_TOKEN, and cve_id can
+    originate from an external feed entry, so it is not trusted input."""
     token = os.environ.get("GITHUB_TOKEN", "")
     try:
         resp = requests.post(
             "https://api.github.com/graphql",
-            json={"query": f"""{{
-              securityAdvisories(identifier: {{type: CVE, value: "{cve_id}"}}, first: 1) {{
-                nodes {{ ghsaId }}
-              }}
-            }}"""},
+            json={"query": _GHSA_FROM_CVE_QUERY, "variables": {"cveId": cve_id}},
             headers={
                 "Authorization": f"Bearer {token}" if token else "",
                 "User-Agent": "cve-pipeline/1.0",
