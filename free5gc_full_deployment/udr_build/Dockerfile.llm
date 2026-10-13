@@ -7,20 +7,30 @@
 # selects which materialized file (one per model - see
 # run_model_sweep.py); defaults to the original single-model filename.
 # See docs/FREE5GC_LLM_PATCH_RESULTS.md.
-FROM golang:1.26-bookworm AS builder
+FROM golang:1.26-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c AS builder
 ARG UDR_COMMIT
 ARG PATCHED_FILE=api_datarepository_llm_patched.go
+ENV UDR_COMMIT=${UDR_COMMIT}
 WORKDIR /src
-RUN git clone https://github.com/free5gc/udr.git . \
-    && git checkout ${UDR_COMMIT}
+# Keep this validation identical to Dockerfile: Docker performs ARG/ENV
+# substitution before the shell sees a RUN instruction, so read the value at
+# runtime via printenv and quote it before handing it to git.  The documented
+# vulnerable revision uses a trailing ^; no other ref syntax is accepted.
+RUN commit="$(printenv UDR_COMMIT)"; \
+    echo "$commit" | grep -Eq '^[0-9a-fA-F]{40}\^?$' \
+      || (echo "UDR_COMMIT must be a 40-hex-char git SHA, optionally with one trailing ^, got: $commit" >&2 && exit 1) \
+    && git clone https://github.com/free5gc/udr.git . \
+    && git checkout "$commit"
 COPY ${PATCHED_FILE} internal/sbi/api_datarepository.go
 RUN go build -o /udr ./cmd/...
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tini \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --no-create-home --uid 10001 --shell /usr/sbin/nologin udr
 WORKDIR /free5gc
-RUN mkdir -p config/ log/ cert/
-COPY --from=builder /udr ./udr
+RUN mkdir -p config/ log/ cert/ && chown -R udr:udr /free5gc
+COPY --from=builder --chown=udr:udr /udr ./udr
+USER udr
 ENTRYPOINT ["/usr/bin/tini", "--"]
 EXPOSE 8000
