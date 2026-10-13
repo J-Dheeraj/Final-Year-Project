@@ -26,7 +26,7 @@ jobs:
 
       - name: Audit installed dependencies for known vulnerabilities
         run: |
-          pip install pip-audit
+          pip install --require-hashes -r requirements-ci.lock.txt
           pip-audit -r requirements.lock.txt --strict
 
       - name: Byte-compile the main pipeline
