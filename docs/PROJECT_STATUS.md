@@ -1280,7 +1280,16 @@ one's opening move is unambiguous.
   correctness.
 
   **A genuine Claude Code catalog run, and the Codex leg of Step 2, both
-  remain not yet done.**
+  remain not yet done.** (2026-10-13 addendum: `reports/claude_code_catalog_run_2026-09-25/`
+  was found to hold a genuine `claude`-backend report for 2 of the 6
+  catalogue CVEs - CVE-2026-27602 and CVE-2026-42208, timestamped
+  ~04:43-04:45 UTC the same day, about 20 minutes after the Ollama
+  mislabeling above was discovered and moved out. The other 4 CVEs were
+  never re-run under this attempt, it was never finished or written up
+  anywhere, and nothing in this project's docs or the FYP report cites
+  either of the 2 reports it produced - confirmed via a full-repo search
+  for their `pipeline_id`s. Left in place as found, not deleted: it is
+  orphaned, not evidence of anything currently claimed.)
 
 - **2026-09-25 (originally reported as "Claude Code catalog run" - Steps
   2/3 of the 6-step multi-agent comparison plan; SUPERSEDED - see the

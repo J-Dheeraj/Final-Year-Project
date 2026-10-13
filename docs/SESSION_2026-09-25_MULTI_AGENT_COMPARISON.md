@@ -266,6 +266,15 @@ in place:
    mistake and its correction are both visible in git history rather
    than folded away.
 
+**2026-10-13 addendum.** After the move above, `reports/claude_code_catalog_run_2026-09-25/`
+was repopulated with a genuine `claude`-backend report for 2 of the 6
+catalogue CVEs (CVE-2026-27602, CVE-2026-42208), timestamped ~20 minutes
+after the move. The other 4 CVEs were never re-run under this attempt,
+it was never finished or written up anywhere, and a full-repo search for
+its `pipeline_id`s found no citation of either report in this project's
+docs or the FYP report. Left in place as found: it's an orphaned,
+incomplete artifact, not evidence of anything currently claimed.
+
 ### Round 6 results (the real data, correctly labeled as Ollama)
 
 | CVE | Class | Confirmed | Refine attempts | Patch attempted | `patch_verdict` | Time (s) |

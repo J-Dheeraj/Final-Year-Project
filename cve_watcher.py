@@ -431,6 +431,7 @@ def run_pipeline(cve_id: str, fmt: str, no_probe: bool,
             cache_ttl = 86_400,
             format    = fmt,
             out       = str(out_path),
+            run_id    = "",  # bare reports/<cve-id>/ path, matching the CLI's own --run-id default
             verbose   = False,
         )
 
@@ -513,9 +514,14 @@ def poll_once(since: datetime, seen: SeenStore,
         # Sequential — simple, no thread overhead
         for cve_id in sorted_ids:
             ok = run_pipeline(cve_id, fmt, no_probe, lab_url)
-            seen.add(cve_id)
             if ok:
+                seen.add(cve_id)
                 succeeded += 1
+            else:
+                # Do not mark a failed run as seen - otherwise a transient
+                # or fixable pipeline error permanently drops this CVE from
+                # all future polls instead of letting it be retried.
+                log.warning(f"  [{cve_id}] not marked seen - will retry next poll")
     else:
         # Parallel — process up to *workers* CVEs at the same time
         log.info(f"Running {len(sorted_ids)} CVEs with {workers} workers ...")
@@ -531,9 +537,11 @@ def poll_once(since: datetime, seen: SeenStore,
                 except Exception as exc:
                     log.warning(f"  [{cve_id}] unexpected error: {exc}")
                     ok = False
-                seen.add(cve_id)
                 if ok:
+                    seen.add(cve_id)
                     succeeded += 1
+                else:
+                    log.warning(f"  [{cve_id}] not marked seen - will retry next poll")
 
     return len(new_ids), succeeded
 

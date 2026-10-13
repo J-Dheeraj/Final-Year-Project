@@ -201,8 +201,17 @@ def generate_and_validate_patch(artifacts: "ExploitArtifacts", vuln_class: str,
                 vuln_class=vuln_class,
             )
             probe = execute_exploit_artifacts(probe, extra_arg=variant)
-            bypassed = bool(probe.executed and not probe.execution_skip_reason
-                            and probe.dynamically_confirmed)
+            if probe.execution_skip_reason:
+                # The re-probe itself never produced a real signal (target
+                # failed to start, never became healthy, or poc.py hung) -
+                # that is NOT evidence the patch blocked this payload, only
+                # that this payload was never actually tested. Counting it
+                # as "still blocked" would let a patch pass on variants it
+                # was never run against.
+                log.warning("[Stage 3.8] Multi-payload re-probe %r did not run: %s",
+                            variant, probe.execution_skip_reason)
+                continue
+            bypassed = bool(probe.dynamically_confirmed)
             log.info("[Stage 3.8] Multi-payload re-probe %r: %s",
                       variant, "BYPASSED patch" if bypassed else "still blocked")
             if bypassed:

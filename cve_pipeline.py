@@ -2667,6 +2667,15 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
         except subprocess.TimeoutExpired:
             exit_code = None
             poc_output = f"poc.py timed out after {poc_timeout:.0f}s (possible hang)"
+            # A hung poc.py produces exit_code=None, which collapses to
+            # dynamically_confirmed=False below - indistinguishable from a
+            # genuine clean rejection unless callers also check this. Stage
+            # 3.8's patch validator relies on execution_skip_reason (already
+            # set for "never became healthy") to tell "ran and failed" apart
+            # from "didn't produce a real signal"; a timeout belongs in the
+            # same bucket, not silently counted as a confirmed block.
+            artifacts.execution_skip_reason = (
+                f"poc.py timed out after {poc_timeout:.0f}s (possible hang)")
 
         artifacts.executed = True
         artifacts.exit_code = exit_code
