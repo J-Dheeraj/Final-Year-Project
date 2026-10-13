@@ -120,6 +120,9 @@ No API key required. Auto-detects:
 ## Environment
 
 - `NVD_API_KEY`: stored in `~/.claude/settings.json` env section and `.env`
+- `UNSANDBOXED_EXEC=0`: refuses Stage 3.6 generated-code execution
+  outright instead of running it as an unsandboxed host subprocess
+  (default: allowed - see `docs/SCOPE_AND_LIMITATIONS.md` Limitation 8)
 - Watcher polls every 60 min, 2 parallel workers
 - Reports saved to `reports/`, deduplication via `seen_cves.json`
 

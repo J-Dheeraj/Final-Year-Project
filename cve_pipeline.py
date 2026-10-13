@@ -2622,6 +2622,19 @@ def execute_exploit_artifacts(artifacts: ExploitArtifacts,
         artifacts.execution_skip_reason = "no artifacts were generated to execute"
         return artifacts
 
+    if os.environ.get("UNSANDBOXED_EXEC", "1") == "0":
+        # Explicit kill switch: this function runs LLM-generated
+        # target_app.py and poc.py as real host subprocesses, with no
+        # container/VM/network isolation. Defaults to allowing execution
+        # (Stage 3.6's dynamic confirmation is this pipeline's core
+        # function, and cve_watcher.py runs it unattended) - set
+        # UNSANDBOXED_EXEC=0 to refuse execution entirely in an
+        # environment that should never run generated code.
+        artifacts.execution_skip_reason = (
+            "execution refused: UNSANDBOXED_EXEC=0 disables generated "
+            "code execution in this environment")
+        return artifacts
+
     # generate_exploit_artifacts stores these RELATIVE to wherever the
     # pipeline happened to be invoked from. Popen's `cwd=` below changes
     # the child's working directory before it resolves its own argv[0]/argv,

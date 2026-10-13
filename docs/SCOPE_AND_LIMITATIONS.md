@@ -296,6 +296,28 @@ researcher controls, bound to `127.0.0.1`. No claim in this project
 depends on, nor should be confused with, testing a system the researcher
 does not own or have permission to test.
 
+## Limitation 8: generated code execution is unsandboxed by default
+
+`execute_exploit_artifacts` (Stage 3.6) runs every generated
+`target_app.py` and `poc.py` as a real host subprocess - no container,
+VM, filesystem restriction, or network-egress rule around it. The
+generation prompts request minimal, self-contained local code, but a
+prompt is not an enforceable security boundary against a model that
+deviates from it. This is a real, accepted architectural tradeoff, not
+an oversight: Stage 3.6's dynamic confirmation is this project's central
+capability, and `cve_watcher.py` runs it unattended on every newly-
+discovered CVE. An independent review flagged the absence of any way to
+turn this off; `UNSANDBOXED_EXEC=0` is the fix, set as an environment
+variable before running `cve_pipeline.py` or `cve_watcher.py` - it
+refuses execution outright (`execution_skip_reason` records why) rather
+than running generated code in an environment that should never do so.
+It defaults to allowing execution (any value other than `"0"`, or
+unset), since disabling it by default would silently stop the watcher's
+core function rather than add real protection. Genuine sandboxing
+(container or VM isolation with a restricted network policy) remains
+future work, tracked here rather than implemented, since it is
+meaningfully larger than a flag.
+
 ## Summary table for the report's own scope section
 
 | Claim | Evidence level | Where |
