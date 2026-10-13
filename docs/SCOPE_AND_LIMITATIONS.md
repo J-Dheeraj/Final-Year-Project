@@ -324,7 +324,7 @@ meaningfully larger than a flag.
 |---|---|---|
 | "The bug pattern described in CVE-X is exploitable" | Dynamic (real subprocess exit code) | Main pipeline, 5/6 confirmed CVEs |
 | "Package Y itself is exploitable" | Not demonstrated, except `CVE-2026-23949` (`jaraco.context`) — real package, real exploit, real fix, 2026-09-25 | `real_upstream_case/CVE-2026-23949/` |
-| "A generated patch closes the known exploit without breaking the app" | Dynamic, two-check regression test; demonstrated once (2026-09-23 round 4, `CVE-2026-78683`) after 0/8 attempts across rounds 1-3 | Stage 3.8, `reports/LIVE_LLM_CATALOG_RUN.md` round 4 |
+| "A generated patch closes the known exploit without a detected crash on a benign request" | Dynamic, corrected validator (Limitation 3 above): crash-absence on both the exploit and a same-route benign probe, not a vulnerability-class-specific expected response — heuristic patch-screening, read as `confirmed_fix`, not confirmed functional correctness except where separately content-verified | Stage 3.8 (`src/pipeline/patch.py`), `docs/FINAL_EVIDENCE_SUMMARY.md` |
 | "Reachability analysis narrows 102 real functions to 4 relevant ones" | Real, AST-based | `src/reachability/`, free5GC |
 | "The generated free5GC patch compiles against the real project" | Real, compile-time | `verify_against_real_upstream.py` |
 | "The real free5GC fix closes the bug at runtime, all four handlers" | **Dynamic, real HTTP exchange, 2026-09-28** | `free5gc_full_deployment/evidence/verdict.json` |
