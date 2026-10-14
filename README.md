@@ -1058,20 +1058,29 @@ The pipeline's exploit-generation-and-confirmation loop (3.5-3.7) never
 produced a *fix* — only a confirmed vulnerability. Stage 3.8 closes that:
 when an exploit is dynamically confirmed, `generate_and_validate_patch()`
 asks an LLM to patch `target_app.py`'s vulnerable handler (given the
-advisory's own `root_cause`/`fix_summary` as context), then trusts the
-result only if BOTH hold after re-running against the patched target:
+advisory's own `root_cause`/`fix_summary` as context), then re-runs
+against the patched target. The original two-check criterion here
+(original exploit fails + a separate `/health` check still passes) was
+found, by direct trace inspection, to accept a patch whose vulnerable
+route had simply crashed - indistinguishable to that check from a
+genuine fix. The corrected validator instead checks `patch_exploit_blocked`
+(the exploit fails without a detected crash) and `patch_function_preserved`
+(a benign, non-malicious request to the *same* route still completes
+without a detected crash), producing a four-outcome `patch_verdict`:
+`heuristic_fix_screened` / `not_blocked` / `regression_broke_route` /
+`inconclusive_crash` - read as heuristic patch-screening, not confirmed
+correctness, since crash-absence alone cannot tell a working route apart
+from one that was deleted and now cleanly 404s. An additive, stricter
+signal, `patch_function_preserved_strict`, also checks the benign
+request's own HTTP status code for exactly this gap.
 
-1. The *original* exploit script now **fails** (`verify()` returns falsy /
-   nonzero exit) — the vulnerability is actually closed, not just moved.
-2. `/health` still returns 200 — the patch didn't just break the app.
-
-A patch that fails either check is discarded and reported as
-`patch_validated: false` with the reason, never silently upgraded to a
-success. No AI backend available means no patch is attempted at all
-(`patch_skip_reason` states why) — same "say why nothing ran" honesty as
-every other AI-dependent stage in this pipeline. See `docs/CRS_MAPPING.md`
-for how this maps onto OSS-CRS's `apply-patch-build`/`run-pov`/`run-test`
-validation cycle, and `reports/CVE_CATALOG.md` for real outcomes.
+A patch that isn't blocked without a crash is discarded and reported with
+the reason, never silently upgraded to a success. No AI backend available
+means no patch is attempted at all (`patch_skip_reason` states why) - same
+"say why nothing ran" honesty as every other AI-dependent stage in this
+pipeline. See `docs/CRS_MAPPING.md` for how this maps onto OSS-CRS's
+`apply-patch-build`/`run-pov`/`run-test` validation cycle, and
+`reports/CVE_CATALOG.md` for real outcomes.
 
 ### Stage 4 — Report
 
@@ -1259,7 +1268,7 @@ rejections remain preserved as environment/model outcomes.
 
 ### OpenAI API reruns: OpenEMR and free5GC (2026-10-10)
 
-The new OpenAI API reruns used the existing local validation harnesses and all 23 model IDs exposed by the project. OpenEMR completed both experiments: **0/23 bypasses** and **16/23 fully working patch gates**. The free5GC bypass run completed with **0/23 bypasses** against the real upstream patched deployment. Its patch run now covers all 23 models: **18/23 runs passed the full four-handler validation pipeline (one model-generated handler plus three deterministic materializations)**, five compile failures, and one deprecated-model failure. The interrupted and continuation runs are combined in the final report with source report references.
+The new OpenAI API reruns used the existing local validation harnesses and all 23 model IDs exposed by the project. OpenEMR completed both experiments: **0/23 bypasses** and **16/23 fully working patch gates**. The free5GC bypass run completed with **0/23 bypasses** against the real upstream patched deployment. Its patch run now covers all 23 models: **18/23 runs passed the full four-handler validation pipeline (one model-generated handler plus three deterministic materializations)**, and 5/23 failed to compile — one of those five because `gpt-3.5-turbo-1106` itself had been deprecated by OpenAI (a 404 on the generation call, so no patch was ever produced to compile), not a sixth, separate failure category. 18 + 5 = 23 exactly. The interrupted and continuation runs are combined in the final report with source report references.
 
 Per-model runtime, input/output tokens, estimated cost, proposals, diffs, and failures are preserved in the raw reports listed in [`docs/RESULTS_SUMMARY.md`](docs/RESULTS_SUMMARY.md).
 
