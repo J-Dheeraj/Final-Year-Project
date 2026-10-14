@@ -940,12 +940,17 @@ Routes to a class-specific probe function. For SSRF:
 6. Returns curl commands, bypass results, and BLOCKED/EXPLOITED/THEORETICAL per technique
 
 **Honest gap, stated plainly (fixed by Stage 3.6 below for the artifact-execution
-half of it)**: SSRF is the only class above with a live lab wired into Stage 3
-itself. `_probe_sqli`, `_probe_cmdi`, `_probe_path_traversal`, `_probe_xss`, and
-`_probe_deserialization` are all static regex pattern-matching against the code
-diff - not live exploitation. Every one of their `bypass_results` entries carries
-`"tested": False` in the code, hardcoded. "THEORETICAL — test against WAF/patched
-endpoint" was a literal, honest label for what those probes actually do. It just
+half of it)**: SSRF is the only class above with a live lab, against the real
+named target, wired into Stage 3 itself. `_probe_sqli`, `_probe_cmdi`, `_probe_xss`,
+and `_probe_deserialization` are static regex pattern-matching against the code
+diff - not live exploitation. `_probe_path_traversal` is a partial exception: besides
+its own regex check, it also runs a real, executed demonstration that a `"../"`-style
+path escapes a sandboxed base directory under Python's own path-join semantics -
+genuinely executed, not a regex match, but generic and target-independent, so it
+still doesn't execute the named package's own vulnerable function. Every probe's
+`bypass_results` entries still carry `"tested": False` in the code, hardcoded.
+"THEORETICAL — test against WAF/patched endpoint" was a literal, honest label for
+what those probes actually do. It just
 wasn't obvious from the report output alone that "probe" and "regex match" meant
 the same thing for six of the seven classes.
 
