@@ -716,7 +716,7 @@ Eight findings stand out from the results reported in Chapter~4.
 \begin{enumerate}
 \item Dynamic exploit confirmation against local reproductions reached 5 of 6 CVEs in the best single Ollama round, and every class in the catalogue confirmed at least once across all rounds combined: evidence that the underlying generation-and-execution approach is viable across a range of vulnerability classes on the reproductions tested, not just the one it was originally tuned against, and not independent evidence about the named upstream packages themselves (Section~\ref{sec:limitations-method-related}).
 
-\item Two of the confirmation-rate swings observed across rounds were traced to specific, fixable implementation defects rather than to model capability, underscoring that a pipeline's reported ``confirmation rate'' is only as trustworthy as its own surrounding plumbing, and that this distinction is worth checking explicitly rather than assumed.
+\item Two of the confirmation-rate swings observed across rounds were traced to specific, fixable implementation defects rather than to model capability. A pipeline's reported ``confirmation rate'' is only as trustworthy as its own surrounding plumbing, and this distinction is worth checking explicitly rather than assumed.
 
 \item Patch generation and acceptance lagged exploit confirmation substantially throughout the local-model rounds: at most one of six catalogue CVEs was flagged as accepted by the two-check criterion in any round; zero of forty-eight runs in the initial eight-model comparison; and three of forty-eight in a later, separate retest run after four harness bugs were fixed, none of which was tested against more than its own original payload.
 
