@@ -176,11 +176,12 @@ def main() -> int:
             proc = start_target(app)
             try:
                 proposal = entry["proposal"]
+                body = proposal.get("body")
                 response = requests.request(
                     str(proposal.get("method", "GET")).upper(),
                     f"http://127.0.0.1:{PORT}{proposal.get('path') or '/'}",
                     headers=proposal.get("headers") or {},
-                    data=proposal.get("body") if isinstance(proposal.get("body"), dict) else None,
+                    data=body if isinstance(body, (dict, str, bytes)) else None,
                     timeout=10,
                 )
                 signal = browser_signal(response.text, chrome)
