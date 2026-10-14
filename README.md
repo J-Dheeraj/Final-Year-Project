@@ -164,9 +164,9 @@ flowchart LR
     LESSONS -. checked before any LLM call .-> S37b
 ```
 
-An interactive, standalone version of this diagram — with a stage
-reference table and live verified numbers — is at
-[`architecture.html`](architecture.html) (open locally; GitHub does not
+An interactive, standalone version of this diagram, with a stage
+reference table and live verified numbers, is at
+[`architecture.html`](architecture.html) (open locally: GitHub does not
 render embedded HTML/JS inline).
 
 Every arrow into and out of Stage 3.6 is a **real subprocess exit code**,
@@ -266,10 +266,10 @@ reached the same, stronger standard.
 
 ## CVE results
 
-**This is the original template-based baseline** (no live model — text-only
+**This is the original template-based baseline** (no live model: text-only
 heuristic mode, the "no manual config needed" default path). For the newer,
-live-LLM-generated results across 5 rounds — including the first validated
-patch and the JS/TS prototype-pollution case — see "Live-LLM results" above.
+live-LLM-generated results across 5 rounds, including the first validated
+patch and the JS/TS prototype-pollution case, see "Live-LLM results" above.
 
 Every CVE below has actually been run through this pipeline — real advisory
 fetch, real generated exploit, real subprocess execution against a real
@@ -432,12 +432,12 @@ increasing order of strength:
    compile check, a Docker-based harness ran the real vulnerable and
    patched commits against a real, official MongoDB and free5GC NRF
    deployment and exercised all four handlers over real HTTP. The bug
-   is a genuine CRUD bypass, not a single-record issue — the collection
+   is a genuine CRUD bypass, not a single-record issue. The collection
    GET leaks every subscription in the system inside what looks like a
-   plain `400` rejection, the single GET and DELETE leak/delete a
+   plain `400` rejection. The single GET and DELETE leak and delete a
    single record despite a `404`, and the single PUT performs an
-   unauthorized write despite a `404` — all four closed by the same
-   one-line upstream fix, with the benign path preserved. See "Current
+   unauthorized write despite a `404`. The same one-line upstream fix
+   closes all four, with the benign path preserved. See "Current
    state" above and `free5gc_full_deployment/evidence/verdict.json`
    (`overall_verdict: "confirmed_fix_all_four_handlers"`).
 
@@ -593,13 +593,13 @@ destructive payload involved.
 
 The vulnerable commit (`b5313ea2...`) discloses real deployment metadata
 (site ID, database name, OpenEMR version) to any unauthenticated
-visitor; the fix (`50f789fa...`, PR #13133) adds an opt-in guard —
+visitor; the fix (`50f789fa...`, PR #13133) adds an opt-in guard:
 `admin.php` returns `403` by default unless
 `OPENEMR_ADMIN_PHP_ENABLED=1` is explicitly set, the same "gate, don't
 remove" fix shape as free5GC's missing `return`. A minimal Docker
-harness (`openemr_transfer_case/`) — real, official `mariadb:10.11` and
-`php:8.2-cli` images, a two-table schema instead of OpenEMR's full
-schema, no Apache, no setup wizard — ran all three scenarios against the
+harness (`openemr_transfer_case/`), using real, official `mariadb:10.11`
+and `php:8.2-cli` images, a two-table schema instead of OpenEMR's full
+schema, no Apache, no setup wizard, ran all three scenarios against the
 real, unmodified OpenEMR source:
 
 ```
@@ -757,8 +757,8 @@ python provtrail_bridge.py --source feeds
 **ProvTrail is the default source, NVD/GHSA feeds are the fallback.**
 With no `--scan` given, the bridge auto-discovers a scan at
 `.provtrail/latest-scan.{sarif,json,ai.txt}` (SARIF preferred) before
-ever touching a feed. If that source does not work — no scan
-given/discoverable, file unreadable, unparseable, or zero advisories —
+ever touching a feed. If that source does not work (no scan
+given/discoverable, file unreadable, unparseable, or zero advisories),
 the bridge falls back to this project's own NVD/GHSA feeds (reusing
 `cve_watcher`'s fetchers) so the pipeline still runs. `--source
 {auto,provtrail,feeds}` controls this (`auto` = ProvTrail then feed
@@ -780,13 +780,13 @@ combined report, and corpus-rate-limit limitation are documented in
 [`docs/PROVTRAIL_INTEGRATION_RECORD.md`](docs/PROVTRAIL_INTEGRATION_RECORD.md).
 
 **JS/TS dynamic confirmation (`provtrail_js_lab/`).** The one real gap this
-linkage had — real Python/Go labs, but zero JS/TS dynamic-execution
-capability anywhere in the pipeline — has a first, bounded proof: Stage
+linkage had (real Python/Go labs, but zero JS/TS dynamic-execution
+capability anywhere in the pipeline) has a first, bounded proof: Stage
 3.6's `execute_exploit_artifacts` now spawns `node` instead of Python when
 the target is `.js` (the Python path is completely unaffected). One real
-ProvTrail-flagged CVE from the project's actual fixture data —
+ProvTrail-flagged CVE from the project's actual fixture data,
 [CVE-2024-48910](https://github.com/advisories/GHSA-p3vf-v8qc-cwcr)
-(dompurify, Prototype Pollution, CWE-1321, CRITICAL) — is hand-authored
+(dompurify, Prototype Pollution, CWE-1321, CRITICAL), is hand-authored
 with a zero-npm-dependency Node target and a Python PoC, run through the
 *real* pipeline mechanism via `provtrail_js_lab/run_demo.py`:
 `dynamically_confirmed: True`, real global `Object.prototype` pollution.
