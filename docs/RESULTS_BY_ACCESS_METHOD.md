@@ -160,8 +160,7 @@ The OpenAI API results are:
   23 models; 0/23 bypasses against the real patched deployment.
 - `reports/reachability/free5gc_sweep_patch_openai_combined_2026-10-10.json`:
   all 23 models completed across the initial, continuation, and final single-model
-  runs; 18/23 full four-handler validation pipeline passes (one model-generated handler plus three deterministic materializations), five compile failures,
-  and one deprecated model. The source reports remain preserved separately.
+  runs: 18/23 full four-handler validation pipeline passes (one model-generated handler plus three deterministic materializations), 4/23 genuine compile failures (a patch was generated but did not build: `gpt-4-turbo`, `gpt-5.2`, `gpt-5.4`, `gpt-4.1`), and 1/23 a generation/API failure (`gpt-3.5-turbo-1106`, deprecated by OpenAI, 404 on the generation call itself, so no patch was ever produced to compile). 18 + 4 + 1 = 23, three mutually exclusive categories, verified directly against each model's own `compile.compiles`/`generation_outcome` fields. The source reports remain preserved separately.
 
 The implementation and reports were pushed in commits `4aa4964`, `af8d41e`,
 and `d4ac713`.
