@@ -940,8 +940,10 @@ Routes to a class-specific probe function. For SSRF:
 6. Returns curl commands, bypass results, and BLOCKED/EXPLOITED/THEORETICAL per technique
 
 **Honest gap, stated plainly (fixed by Stage 3.6 below for the artifact-execution
-half of it)**: SSRF is the only class above with a live lab, against the real
-named target, wired into Stage 3 itself. `_probe_sqli`, `_probe_cmdi`, `_probe_xss`,
+half of it)**: SSRF is the only class above with a live lab wired into Stage 3
+itself — against a controlled lab reproduction (`ssrf_lab/`), which
+`image_loader.py` itself documents as simulating the pre-patch `lmdeploy`
+behaviour, not the real, named `lmdeploy` package. `_probe_sqli`, `_probe_cmdi`, `_probe_xss`,
 and `_probe_deserialization` are static regex pattern-matching against the code
 diff - not live exploitation. `_probe_path_traversal` is a partial exception: besides
 its own regex check, it also runs a real, executed demonstration that a `"../"`-style

@@ -30,12 +30,12 @@ but is not backend-dependent in any simple way** - the same model
 family can succeed through one access path and fail through another
 (e.g. `claude-sonnet-5` failed with `exit 1` via `claude -p` on one
 free5GC pass, then produced a clean, fully-confirmed patch through the
-AIxTech gateway on the very next). No backend's weaker results should
-be read as that backend being unsound; every failure mode traced back
-to either a specific model's generation quality or a specific
-environment constraint (compile error, deprecated model ID, OAuth
-expiry, per-key model allowlist), never to a flaw in the validation
-harness itself once the methodology pitfalls below were fixed.
+AIxTech gateway on the very next). The investigated failures were attributed to a specific model's
+generation quality or a specific environment constraint (compile error,
+deprecated model ID, OAuth expiry, per-key model allowlist) after the
+methodology pitfalls below were fixed, not asserted to exhaustively rule
+out every other possible cause; no backend's weaker results here should
+be read as that backend being unsound on the evidence available.
 
 ## Headline numbers by access method
 
@@ -63,8 +63,12 @@ estimated or reconstructed from memory.
   unexecuted.
 - **No new CVE class, platform, or full-core-network deployment** was
   added in this pass - free5GC and OpenEMR remain the two real-upstream
-  cases; the 6-CVE catalogue remains supporting, template-reproduction
-  evidence, not primary evidence.
+  cases evaluated across these five access methods (this pass did not
+  re-run `jaraco.context`/CVE-2026-23949 through them); the project as a
+  whole has three real-upstream cases in total (`jaraco.context`,
+  free5GC, OpenEMR, see `docs/RESULTS_SUMMARY.md`), not two. The 6-CVE
+  catalogue remains supporting, template-reproduction evidence, not
+  primary evidence.
 - **No fuzzing claim is made anywhere** - this project's own framing
   note (`docs/CRS_MAPPING.md`) already states the original "fuzzing
   LLMs to secure OSS" pitch was dropped; nothing in this evidence pass
