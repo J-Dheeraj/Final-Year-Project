@@ -38,13 +38,13 @@ README originally described. Two results now anchor the project,
 both runtime-confirmed against real upstream software, not just
 compile-verified or reproduced. Since this section was first written,
 the thesis itself (`free5gc_full_deployment/FYP_Report_main_upgraded.tex`)
-has been substantially finalized: a third real-upstream case (OpenEMR,
-below) was folded in, the Literature Review was independently verified and
-extended with 9 further citations, a methodology worksheet and a
+has been substantially finalized. A third real-upstream case (OpenEMR,
+below) was folded in. The Literature Review was independently verified and
+extended with 9 further citations. A methodology worksheet and a
 results/discussion checklist were both filled out and audited against the
-report, and the report's own source-evaluation documents
+report. The report's own source-evaluation documents
 (`docs/SOURCE_EVALUATION_CRAAP.md`, `docs/GREY_LITERATURE_CLASSIFICATION.md`,
-`docs/SCSE_REPORT_GUIDE_AUDIT_2002.md`) were added. See
+`docs/SCSE_REPORT_GUIDE_AUDIT_2002.md`) were added as well. See
 [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)'s session log for the
 full, dated history of that work.
 
@@ -67,9 +67,9 @@ full, dated history of that work.
   minimal Docker deployment, a four-outcome verdict) applied to a
   second, unrelated domain: an unauthenticated `admin.php` information
   disclosure in OpenEMR, an open-source EHR system. Verdict:
-  `confirmed_fix` - the vulnerable build discloses real site/DB/version
+  `confirmed_fix`. The vulnerable build discloses real site/DB/version
   metadata, the patched build blocks by default, and the patch's own
-  documented opt-in (`OPENEMR_ADMIN_PHP_ENABLED=1`) still works,
+  documented opt-in (`OPENEMR_ADMIN_PHP_ENABLED=1`) still works —
   proving the fix gates rather than removes functionality. See
   [`docs/OPENEMR_TRANSFER_CASE_PLAN.md`](docs/OPENEMR_TRANSFER_CASE_PLAN.md)
   and [`docs/OPENEMR_TRANSFER_RESULTS.md`](docs/OPENEMR_TRANSFER_RESULTS.md).
@@ -102,10 +102,10 @@ full, dated history of that work.
 The full written account of both results, alongside the main six-CVE
 catalogue and the hosted-model comparisons below, is
 [`free5gc_full_deployment/FYP_Report_main_upgraded.tex`](free5gc_full_deployment/FYP_Report_main_upgraded.tex)
-(compiled: `FYP_Report_main_upgraded.pdf`, same directory) - this file
+(compiled: `FYP_Report_main_upgraded.pdf`, same directory). This file
 *is* the report's authoritative working copy (24+ commits edit it
-directly; see `git log -- free5gc_full_deployment/FYP_Report_main_upgraded.tex`),
-and `git tag -l 'fyp-rd-freeze-*'` lists the dated freeze tags, newest
+directly; see `git log -- free5gc_full_deployment/FYP_Report_main_upgraded.tex`).
+`git tag -l 'fyp-rd-freeze-*'` lists the dated freeze tags, newest
 first by date, each one pinning an exact, independently-reproducible
 snapshot of both the report and the evidence it cites.
 
@@ -240,7 +240,7 @@ the Claude CLI's structured JSON output mode exposes this directly):
 **all six models confirmed all six exploits (36/36)**. Patch generation
 remained the harder problem even at this larger scale: every model
 reached only 4–5 of 6 `confirmed_fix` verdicts under the corrected
-validator below, and the cheapest model tested matched the best
+validator below. The cheapest model tested matched the best
 confirmed-fix rate at roughly a third of every other model's real cost.
 
 **The patch validator itself needed correcting, twice.** The original
@@ -257,7 +257,7 @@ corrected verdict's benign-path check only required the *absence of a
 crash*, not a *correct* response: 14 of 27 `confirmed_fix` verdicts in
 the 36-run comparison had returned a non-200 status on that check
 without being flagged. This was reproduced, quantified, and closed for
-the cases this project could: a content-verified reassessment of 6
+the cases this project could. A content-verified reassessment of 6
 recoverable patched artifacts confirmed all 6 as genuinely correct
 fixes, and the real-upstream `jaraco.context` case above independently
 reached the same, stronger standard.
@@ -512,7 +512,7 @@ itself was still billed in full ($1.11). See
 
 Limitations stated explicitly, not hidden: the real fix commit is public,
 so a model could in principle reproduce it from training data rather
-than genuinely re-deriving it (not controlled for here); each model was
+than genuinely re-deriving it (not controlled for here). Each model was
 run once, and re-running `qwen2.5-coder:7b` produced a textually
 different but semantically identical patch, confirming real run-to-run
 variance exists. See
@@ -537,7 +537,7 @@ initially credited 3 models with a "bypass" for simply re-asking for
 the already-authorized resource. Two Claude models,
 `claude-opus-5`/`claude-opus-5-5`, refused to produce an exploit
 payload at all, even under the same authorized-red-team framing every
-other model accepted; the Claude run cost $11.62 total, the largest
+other model accepted. The Claude run cost $11.62 total, the largest
 single spend in this project. See
 [`docs/FREE5GC_BYPASS_PROBE_RESULTS.md`](docs/FREE5GC_BYPASS_PROBE_RESULTS.md)
 and [`docs/FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md`](docs/FREE5GC_CLAUDE_BYPASS_PROBE_RESULTS.md).
@@ -593,7 +593,7 @@ destructive payload involved.
 
 The vulnerable commit (`b5313ea2...`) discloses real deployment metadata
 (site ID, database name, OpenEMR version) to any unauthenticated
-visitor; the fix (`50f789fa...`, PR #13133) adds an opt-in guard:
+visitor. The fix (`50f789fa...`, PR #13133) adds an opt-in guard:
 `admin.php` returns `403` by default unless
 `OPENEMR_ADMIN_PHP_ENABLED=1` is explicitly set, the same "gate, don't
 remove" fix shape as free5GC's missing `return`. A minimal Docker
@@ -945,7 +945,7 @@ itself. `_probe_sqli`, `_probe_cmdi`, `_probe_path_traversal`, `_probe_xss`, and
 `_probe_deserialization` are all static regex pattern-matching against the code
 diff - not live exploitation. Every one of their `bypass_results` entries carries
 `"tested": False` in the code, hardcoded. "THEORETICAL — test against WAF/patched
-endpoint" was a literal, honest label for what those probes actually do; it just
+endpoint" was a literal, honest label for what those probes actually do. It just
 wasn't obvious from the report output alone that "probe" and "regex match" meant
 the same thing for six of the seven classes.
 
@@ -1036,16 +1036,16 @@ a failure nobody pre-anticipated, not just the ones already coded into (3),
 a small, honest, narrow built-in rule library for signatures this project
 has concretely observed. Built-in/lesson fixes are targeted string
 replacements to the already-generated source (same minimal-diff philosophy
-as Stage 4's own patch generation); an LLM fix is a full-file replacement,
+as Stage 4's own patch generation). An LLM fix is a full-file replacement,
 the natural shape of its response, gated on a confirmed re-execution before
 being trusted or persisted either way. A newly-successful revision - from
 any source - is persisted, so a fix learned on one CVE applies immediately
 to the next CVE of the same class hitting the same failure shape, with no
 further AI call needed.
 
-Bounded, not autonomous: capped at `max_iterations` (default 3); a failure
+Bounded, not autonomous: capped at `max_iterations` (default 3). A failure
 signature with no known fix stops immediately and reports "no known
-revision" rather than guessing or looping forever; the lessons store only
+revision" rather than guessing or looping forever. The lessons store only
 grows when a run actually *confirms* a fix worked. See
 `reports/CVE_CATALOG.md`'s "Self-improvement" section for a concrete worked
 example - a CMDi exploit template that assumed POSIX shell syntax, fixed
@@ -1268,7 +1268,7 @@ rejections remain preserved as environment/model outcomes.
 
 ### OpenAI API reruns: OpenEMR and free5GC (2026-10-10)
 
-The new OpenAI API reruns used the existing local validation harnesses and all 23 model IDs exposed by the project. OpenEMR completed both experiments: **0/23 bypasses** and **16/23 fully working patch gates**. The free5GC bypass run completed with **0/23 bypasses** against the real upstream patched deployment. Its patch run now covers all 23 models: **18/23 runs passed the full four-handler validation pipeline (one model-generated handler plus three deterministic materializations)**, and 5/23 failed to compile — one of those five because `gpt-3.5-turbo-1106` itself had been deprecated by OpenAI (a 404 on the generation call, so no patch was ever produced to compile), not a sixth, separate failure category. 18 + 5 = 23 exactly. The interrupted and continuation runs are combined in the final report with source report references.
+The new OpenAI API reruns used the existing local validation harnesses and all 23 model IDs exposed by the project. OpenEMR completed both experiments: **0/23 bypasses** and **16/23 fully working patch gates**. The free5GC bypass run completed with **0/23 bypasses** against the real upstream patched deployment. Its patch run now covers all 23 models: **18/23 runs passed the full four-handler validation pipeline (one model-generated handler plus three deterministic materializations)**. The remaining 5/23 failed to compile — one of those five because `gpt-3.5-turbo-1106` itself had been deprecated by OpenAI (a 404 on the generation call, so no patch was ever produced to compile), not a sixth, separate failure category. 18 + 5 = 23 exactly. The interrupted and continuation runs are combined in the final report with source report references.
 
 Per-model runtime, input/output tokens, estimated cost, proposals, diffs, and failures are preserved in the raw reports listed in [`docs/RESULTS_SUMMARY.md`](docs/RESULTS_SUMMARY.md).
 
