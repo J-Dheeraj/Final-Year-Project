@@ -39,8 +39,8 @@ both runtime-confirmed against real upstream software, not just
 compile-verified or reproduced. Since this section was first written,
 the thesis itself (`free5gc_full_deployment/FYP_Report_main_upgraded.tex`)
 has been substantially finalized. A third real-upstream case (OpenEMR,
-below) was folded in. The Literature Review was independently verified and
-extended with 9 further citations. A methodology worksheet and a
+below) was folded in. The Literature Review's citations were checked against
+their primary sources and extended with 9 further citations. A methodology worksheet and a
 results/discussion checklist were both filled out and audited against the
 report. The report's own source-evaluation documents
 (`docs/SOURCE_EVALUATION_CRAAP.md`, `docs/GREY_LITERATURE_CLASSIFICATION.md`,
@@ -185,7 +185,7 @@ Stage 3.8 (patch generation) — one provider-agnostic call site
 per-call duration/token/cost recorded, not estimated. Full narrative,
 raw logs, and every JSON report are in
 [`reports/LIVE_LLM_CATALOG_RUN.md`](reports/LIVE_LLM_CATALOG_RUN.md);
-this is the honest summary.
+this is the summary.
 
 | Round | Confirmed | Notable |
 |---|---|---|
@@ -1040,7 +1040,7 @@ fix already learned for this vulnerability class + failure signature, (2)
 asks an LLM (`_llm_revise_artifacts`) to diagnose the actual failure log and
 rewrite both files when an AI backend is available - the path that handles
 a failure nobody pre-anticipated, not just the ones already coded into (3),
-a small, honest, narrow built-in rule library for signatures this project
+a small, narrow built-in rule library for signatures this project
 has concretely observed. Built-in/lesson fixes are targeted string
 replacements to the already-generated source (same minimal-diff philosophy
 as Stage 4's own patch generation). An LLM fix is a full-file replacement,
