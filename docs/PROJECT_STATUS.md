@@ -339,9 +339,12 @@
   right order", item 8 (patch-quality scoring). Built
   `src/reachability/score_patch_quality.py` - pure analysis, no new
   model calls - scoring diff-similarity (difflib, line-based) of the
-  14 already-generated, already compile/runtime-confirmed free5GC LLM
-  patches against the real upstream fix's own version of the same
-  function. 9/14 scored a perfect 1.0 (byte-identical). Checked whole-
+  14 already-generated free5GC LLM patches (compile and runtime
+  outcomes already recorded for each; one, qwen2.5-coder:1.5b, is
+  recorded as partial_or_inconclusive, not a pass - this entry
+  originally said all 14 were "already compile/runtime-confirmed",
+  corrected here) against the real upstream fix's own version of the
+  same function. 9/14 scored a perfect 1.0 (byte-identical). Checked whole-
   file MD5s before trusting this: found two clusters of identical
   files (qwen2.5-coder:7b + gemma2:9b + claude-haiku-4-5-20251001 all
   identical; separately, 6 Claude model names - opus-4-6/4-7/4-8/5-5,

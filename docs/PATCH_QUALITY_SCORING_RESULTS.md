@@ -9,9 +9,10 @@ runtime-confirmed, or not) for the free5GC LLM patches, never how
 CLOSE a passing patch actually is to the real upstream fix. A patch
 that compiles and passes the runtime check could still look nothing
 like the real fix - this experiment measures that for the first time,
-over patches already generated and already compile/runtime-confirmed
-in prior sessions. No new model calls; pure analysis of files already
-on disk.
+over patches already generated, with compilation and runtime outcomes
+already recorded, in prior sessions (one of the 14 is recorded as
+`partial_or_inconclusive`, not a pass - see below). No new model calls;
+pure analysis of files already on disk.
 
 ## Method
 
@@ -100,8 +101,9 @@ closeness and runtime correctness diverge for one of them. 4 of the 5
 (`codellama:13b`, `qwen2.5-coder:3b`, `llama3.1:8b`, `mistral:7b`) passed
 every check this project's harness runs
 (`confirmed_fix_all_four_handlers`), via a less minimal rewrite than the
-real fix. The fifth, `qwen2.5-coder:1.5b` (95.52% similar, the closest
-textual match among the 5), did not: its own runtime sweep records
+real fix. The fifth, `qwen2.5-coder:1.5b` (95.52% similar - a highly similar
+patch, though not the closest of the 5; `codellama:13b` is closer at
+98.51%), did not: its own runtime sweep records
 `collection_get_leak_fixed: false` and `overall_verdict:
 partial_or_inconclusive` - it compiled and was highly similar to the
 real fix, but genuinely failed to close the collection-leak handler

@@ -134,8 +134,8 @@ def main() -> int:
         "target_function": TARGET_FUNC,
         "method": "difflib.SequenceMatcher ratio + line-based diff stats against "
                    "the real upstream fix's own version of the same function; "
-                   "no new model calls - scores already-generated, already "
-                   "compile/runtime-confirmed patches from prior sessions",
+                   "no new model calls - scores already-generated patches with "
+                   "recorded compilation and runtime outcomes from prior sessions",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "models": results,
     }
