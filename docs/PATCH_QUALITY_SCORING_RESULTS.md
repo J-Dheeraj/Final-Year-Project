@@ -17,7 +17,9 @@ on disk.
 
 `src/reachability/score_patch_quality.py` extracts
 `HandleApplicationDataInfluenceDataSubsToNotifyGet` from each of the 14
-already-generated `api_datarepository_llm_patched*.go` files and from
+already-generated, already-compiled `api_datarepository_llm_patched*.go`
+files (one of the 14, `qwen2.5-coder:1.5b`, compiled but was not
+runtime-confirmed - see below) and from
 the real upstream fix's own version of the same function
 (`src/reachability/examples/free5gc_case_study/api_datarepository_patched.go`),
 then scores: `difflib.SequenceMatcher` ratio (line-based), lines
@@ -92,13 +94,21 @@ to the real fix" turn out to coincide most of the time, which is a
 genuinely reassuring, more specific claim than pass/fail alone
 supports. The remaining 5 (all smaller/weaker Ollama models -
 `codellama:13b`, `qwen2.5-coder:1.5b/3b`, `llama3.1:8b`, `mistral:7b`)
-achieved the same RUNTIME outcome through small but real textual
-deviations (1-3 extra added/removed lines each) - still passing every
-check this project's harness runs, but via a less minimal rewrite than
-the real fix. None of the 5 deviations were large rewrites; the
-gradient here is "slightly less minimal," not "a different approach
-entirely" - a real, if modest, quality signal pass/fail never surfaced
-before this.
+achieved small but real textual deviations from the real fix (1-3 extra
+added/removed lines each), not a large rewrite in any case - but textual
+closeness and runtime correctness diverge for one of them. 4 of the 5
+(`codellama:13b`, `qwen2.5-coder:3b`, `llama3.1:8b`, `mistral:7b`) passed
+every check this project's harness runs
+(`confirmed_fix_all_four_handlers`), via a less minimal rewrite than the
+real fix. The fifth, `qwen2.5-coder:1.5b` (95.52% similar, the closest
+textual match among the 5), did not: its own runtime sweep records
+`collection_get_leak_fixed: false` and `overall_verdict:
+partial_or_inconclusive` - it compiled and was highly similar to the
+real fix, but genuinely failed to close the collection-leak handler
+(see `docs/FREE5GC_LLM_MODEL_SWEEP_RESULTS.md`). This is itself a useful
+quality signal pass/fail alone never surfaced before this: high textual
+similarity to the real fix does not by itself establish runtime
+correctness.
 
 ## Scope, stated plainly
 

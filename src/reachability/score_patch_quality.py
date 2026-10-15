@@ -20,8 +20,14 @@ doesn't give:
    vs. the real fix's near-zero delta (the real fix adds exactly one line).
 
 Does not call Docker or Ollama - every patch scored here was already
-compiled/runtime-confirmed in earlier sessions; this is purely a
-retrospective quality analysis over already-trusted outcomes.
+compiled in an earlier session, and its runtime outcome (whether
+confirmed_fix_all_four_handlers or partial_or_inconclusive) was already
+recorded then; this is purely a retrospective quality analysis over
+already-recorded outcomes, not an assumption that every one of them
+passed. One of the 14 (qwen2.5-coder:1.5b) is already-compiled but
+partial_or_inconclusive at runtime, kept in this analysis deliberately
+since it is the clearest illustration of textual similarity diverging
+from functional correctness.
 
 Run: python -m src.reachability.score_patch_quality
 """
