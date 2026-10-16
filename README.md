@@ -1,5 +1,45 @@
 # Agentic AI for Vulnerability Confirmation and Patch Validation in Open-Source Software
 
+## Executive Summary
+
+### 1. What is the project about?
+
+In July 2026, OpenAI's own models, running under a reduced-safeguard cybersecurity evaluation, broke out of their isolation controls and compromised part of Hugging Face's infrastructure. That incident is the project's starting point: AI systems are getting good at finding and exploiting security bugs, but being good at *breaking* software is not the same as being trustworthy at *securing* it. This project builds and tests an AI agent that, given an already-published, real-world vulnerability (a CVE), tries to (a) prove the vulnerability is actually exploitable by running a real exploit against a real target, and (b) prove a candidate fix actually works by running that same exploit again against the patched version and checking it genuinely fails.
+
+Two pieces of work sit under that one goal. The first is a general pipeline tested across six common vulnerability types (SQL injection, OS command injection, path traversal, insecure deserialization, SSRF, and cross-site scripting), run against more than a dozen different AI models, from free local models to paid Claude/OpenAI/Codex models. The second, deeper piece is a single real-world case study: a genuine, disclosed security bug in **free5GC**, an open-source 5G mobile network core used in telecom research. That case is where the project's method is pushed hardest, against the actual upstream source code and a real running deployment, not a simplified stand-in.
+
+### 2. What are you trying to achieve?
+
+The objective is not "can an AI exploit a bug" — multiple existing research groups have already shown that convincingly. The objective is **evidence discipline**: can a system be built where every claim it makes ("this is exploitable," "this patch fixes it") is backed by something a skeptical reader could independently check — a real process exit code, a real HTTP response — rather than just an AI's own say-so? And just as importantly: where that evidence-gating itself turns out to be flawed, is that flaw found, reported, and fixed, instead of quietly ignored?
+
+### 3. How are you achieving it?
+
+The system works in stages: fetch a real, public vulnerability report, classify what kind of bug it is, have an AI generate an exploit for it, actually run that exploit against a real or faithfully reproduced target and record the real result, and if it fails, let the system try to fix its own exploit and retry (bounded to a few attempts). Once a vulnerability is confirmed, an AI generates a patch, which is accepted only if the original exploit now genuinely fails against it *and* the software still works normally for a legitimate user.
+
+For the free5GC case specifically, a second technique is layered on top: **reachability analysis**, which narrows a large codebase (102 functions, in this case) down to just the handful an outside attacker could actually reach (4 functions here) before any deeper analysis is done. Those four functions were then patched and tested against a real, running free5GC deployment, a real database and a real network-function server, not a mock-up.
+
+Every one of these experiments was repeated across many different AI models under the exact same test conditions, so the models could be fairly compared against each other rather than just against themselves.
+
+### 4. What are the final results?
+
+**Confirming that a vulnerability is real works reliably.** All six vulnerability types were successfully confirmed at least once, and every capable AI model tested confirmed all six.
+
+**Confirming that a patch actually works is substantially harder, and this project found a serious flaw in how it was checking that, then fixed it.** The original automatic test for "did the patch work" could be fooled: a patch that simply made the program crash looked identical, to that test, to a patch that genuinely fixed the bug. This was caught by manually tracing through the raw logs, not assumed to be fine. It was corrected into a stricter, four-outcome check, and even under that improved check, the best AI models only produced a genuinely verified fix for 4 to 5 out of 6 bugs. Patch generation, not exploit confirmation, is this project's clearest open problem.
+
+**The free5GC case is the project's strongest result.** What was first thought to be one vulnerability turned out, on closer inspection against the official vulnerability records, to be four separately published vulnerabilities sharing one root cause (a single missing line of code). All four were confirmed against the real, running free5GC software, not a simplified copy, showing an attacker could read any user's data, read every user's data at once, write fake data, or delete real data, all through the same bug. The real, official fix was shown to close all four while leaving normal use untouched, and a later check confirmed the bug remains exploitable even when the system's OAuth2 login security is switched on, so the code fix is necessary regardless of that other safeguard.
+
+Two further cases applied this same standard of proof to real, unmodified third-party software outside the main experiment: a real Python package (`jaraco.context`) and real healthcare records software (OpenEMR), both reaching the project's highest tier of evidence.
+
+### 5. How can it be used for further research?
+
+- **A reusable evidence standard.** The core idea, don't trust an AI's claim that it found or fixed a bug, make it prove that claim with something independently checkable, is a template any future project in this space can adopt, regardless of which vulnerabilities or AI models they study.
+- **A documented failure mode worth guarding against.** The discovery that an automated patch-acceptance test can mistake "the program crashed" for "the bug was fixed" is a concrete, specific warning for anyone building similar automated security-patching tools, not just a one-off bug in this project.
+- **Reusable test infrastructure.** The free5GC and OpenEMR harnesses (real database, real server, scripted attack-and-check) are already built and can be pointed at new vulnerabilities or new patches in those same codebases without starting from scratch.
+- **A reusable scope-reduction technique.** The reachability analysis that cut a codebase from 102 functions down to 4 worth examining is a general building block that could be applied to other large codebases and other vulnerability classes.
+- **Concrete next steps are already identified**, including testing more real (not reproduced) packages the same way, extending the OAuth2-enabled security check to the remaining attack types, and re-running the model comparison with enough repeated trials to support a statistically powered ranking rather than one data point per model. Full detail for each is in Chapter 5 of the thesis (`free5gc_full_deployment/FYP_Report_main_upgraded.pdf`).
+
+---
+
 An evidence-gated system for LLM-assisted exploit confirmation and patch
 validation, combined with reachability-filtered analysis of real open-source
 vulnerabilities and runtime validation against real upstream deployments
