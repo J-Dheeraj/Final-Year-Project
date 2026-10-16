@@ -89,12 +89,18 @@ def score(model_func: str, real_func: str) -> dict:
     added = sum(1 for l in diff if l.startswith("+") and not l.startswith("+++"))
     removed = sum(1 for l in diff if l.startswith("-") and not l.startswith("---"))
 
-    # The real fix's own shape: exactly one added `return` inside the
-    # existing early-exit validation block, nothing else changed - a
-    # near-minimal diff. A model patch that needed to add/remove many
-    # more lines than that achieved the same runtime behavior through a
-    # structurally different (more invasive) rewrite, which is a real,
-    # measurable quality difference pass/fail alone can't see.
+    # The real fix's own shape for this function: two added `return`
+    # statements, one inside each of its two existing early-exit
+    # validation blocks, nothing else changed - a near-minimal diff.
+    # "Minimal" here is operationalised as a line-count threshold (at
+    # most 2 added lines, 0 removed), not a check that the added lines
+    # are specifically `return` statements in specifically those two
+    # blocks - a different 2-line, 0-removal change would also score
+    # as "minimal" by this metric. A model patch that needed to
+    # add/remove many more lines than that achieved the same runtime
+    # behavior through a structurally different (more invasive)
+    # rewrite, which is a real, measurable quality difference pass/fail
+    # alone can't see.
     minimal_shape = (added <= 2 and removed == 0)
 
     return {

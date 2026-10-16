@@ -293,7 +293,7 @@ Table~\ref{tab:prog-env} summarises the languages, libraries, and hardware the s
 \midrule
 Programming languages & Python (pipeline orchestration, pydantic data models, reachability engine); Go (free5GC target reproduction and the real upstream module under test) \\
 Libraries / frameworks & pydantic-ai (agent orchestration), tree-sitter (AST parsing), Flask (main-catalogue reproduction targets), FastAPI (\texttt{ssrf\_lab/}), Go's standard-library \texttt{net/http} (dependency-free lab server) \\
-Hardware & 13th Gen Intel Core i9-13980HX, 16~GB RAM, NVIDIA GeForce RTX 4060 Laptop GPU (Ollama-served models run on this GPU; no dedicated accelerator was required for the model classes evaluated); Windows 11 Home, build 10.0.26200 \\
+Hardware & 13th Gen Intel Core i9-13980HX, 16~GB RAM, NVIDIA GeForce RTX 4060 Laptop GPU (Ollama-served models ran on this GPU); Windows 11 Home, build 10.0.26200. One locally hosted model, \texttt{deepseek-coder-v2:16b}, failed to load at all under this configuration: a CPU-side system-RAM allocation failure (requesting a 45~GB buffer against 16~GB available), unrelated to the GPU (\texttt{docs/FREE5GC\_LLM\_MODEL\_SWEEP\_RESULTS.md}). \\
 \bottomrule
 \end{tabular}
 \end{table}

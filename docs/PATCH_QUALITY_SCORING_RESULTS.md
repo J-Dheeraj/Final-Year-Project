@@ -25,8 +25,12 @@ the real upstream fix's own version of the same function
 (`src/reachability/examples/free5gc_case_study/api_datarepository_patched.go`),
 then scores: `difflib.SequenceMatcher` ratio (line-based), lines
 added/removed vs. the real fix, and whether the patch uses the real
-fix's own minimal shape (the real fix adds exactly one `return`
-statement and changes nothing else).
+fix's own minimal shape (the real fix for this function adds two
+`return` statements, one in each of its two existing early-exit
+validation blocks, and changes nothing else; the `minimal_fix_shape`
+flag itself only checks a line-count threshold - at most 2 added
+lines, 0 removed - not that the added lines are specifically those two
+`return` statements).
 
 ## An unexpected clustering, checked before trusting the scores
 
@@ -56,10 +60,11 @@ several "different" model names.
 **Most likely explanation, stated as a probability judgment, not a
 certainty**: the target function is short, and the task given to every
 model was "add the fix, keep everything else the same" against a
-function where the correct, idiomatic fix is a single `return`
-statement inserted at one obvious place with the surrounding code's own
-existing indentation - there is really only one sensible way to write
-that. Byte-identical convergence across several models, especially
+function where the correct, idiomatic fix is two `return` statements,
+each inserted at one obvious place (the end of an existing early-exit
+validation block) with the surrounding code's own existing indentation
+- there is really only one sensible way to write that. Byte-identical
+convergence across several models, especially
 within the same vendor's closely-related model family (the Claude
 cluster) and between two small code-specialized models plus one Claude
 model (the other cluster), is a plausible, even expected outcome for a
