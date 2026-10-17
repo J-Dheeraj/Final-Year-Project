@@ -16,17 +16,17 @@ The objective is not "can an AI exploit a bug" — multiple existing research gr
 
 The system works in stages: fetch a real, public vulnerability report, classify what kind of bug it is, have an AI generate an exploit for it, actually run that exploit against a real or faithfully reproduced target and record the real result, and if it fails, let the system try to fix its own exploit and retry (bounded to a few attempts). Once a vulnerability is confirmed, an AI generates a patch, which is accepted only if the original exploit now genuinely fails against it *and* the software still works normally for a legitimate user.
 
-For the free5GC case specifically, a second technique is layered on top: **reachability analysis**, which narrows a large codebase (102 functions, in this case) down to just the handful an outside attacker could actually reach (4 functions here) before any deeper analysis is done. Those four functions were then patched and tested against a real, running free5GC deployment, a real database and a real network-function server, not a mock-up.
+For the free5GC case specifically, a second technique is layered on top: **reachability analysis**, which narrows a large codebase (102 functions, in this case) down to a small, manually chosen set of entry points worth examining closely (4 functions here) before any deeper analysis is done — not a proven-complete map of everywhere an attacker could reach in that codebase. Those four functions were then patched and tested against a real, running free5GC deployment, a real database and a real network-function server, not a mock-up.
 
-Every one of these experiments was repeated across many different AI models under the exact same test conditions, so the models could be fairly compared against each other rather than just against themselves.
+The free local models were compared against each other under one fixed set of test conditions, and, separately, the paid hosted models were compared against each other under their own fixed set of conditions — not every access method used the exact same configuration (for example, the paid models' interface doesn't support the same fine-grained sampling controls the free ones do), so comparisons are fair within each group rather than across every method used in the project.
 
 ### 4. What are the final results?
 
 **Confirming that a vulnerability is real works reliably.** All six vulnerability types were successfully confirmed at least once, and every capable AI model tested confirmed all six.
 
-**Confirming that a patch actually works is substantially harder, and this project found a serious flaw in how it was checking that, then fixed it.** The original automatic test for "did the patch work" could be fooled: a patch that simply made the program crash looked identical, to that test, to a patch that genuinely fixed the bug. This was caught by manually tracing through the raw logs, not assumed to be fine. It was corrected into a stricter, four-outcome check, and even under that improved check, the best AI models only produced a genuinely verified fix for 4 to 5 out of 6 bugs. Patch generation, not exploit confirmation, is this project's clearest open problem.
+**Confirming that a patch actually works is substantially harder, and this project found a serious flaw in how it was checking that, then fixed it.** The original automatic test for "did the patch work" could be fooled: a patch that simply made the program crash looked identical, to that test, to a patch that genuinely fixed the bug. This was caught by manually tracing through the raw logs, not assumed to be fine. It was corrected into a stricter, four-outcome check, and even under that improved check, the best AI models only passed 4 to 5 out of 6 — and passing this automated check still falls short of independently verifying the fix is actually correct, which is exactly why patch generation, not exploit confirmation, is this project's clearest open problem.
 
-**The free5GC case is the project's strongest result.** What was first thought to be one vulnerability turned out, on closer inspection against the official vulnerability records, to be four separately published vulnerabilities sharing one root cause (a single missing line of code). All four were confirmed against the real, running free5GC software, not a simplified copy, showing an attacker could read any user's data, read every user's data at once, write fake data, or delete real data, all through the same bug. The real, official fix was shown to close all four while leaving normal use untouched, and a later check confirmed the bug remains exploitable even when the system's OAuth2 login security is switched on, so the code fix is necessary regardless of that other safeguard.
+**The free5GC case is the project's strongest result.** What was first thought to be one vulnerability turned out, on closer inspection against the official vulnerability records, to be four separately published vulnerabilities sharing one root cause (a single missing line of code). All four were confirmed against the real, running free5GC software, not a simplified copy, showing an attacker could read any user's data, read every user's data at once, write fake data, or delete real data, all through the same bug. The real, official fix was shown to close all four, and normal use was separately confirmed still to work for the specific actions actually tested (reading one's own data correctly, and deleting a record), not every possible legitimate action on every handler. A later check confirmed the bug remains exploitable even when the system's OAuth2 login security is switched on, so the code fix is necessary regardless of that other safeguard.
 
 Two further cases applied this same standard of proof to real, unmodified third-party software outside the main experiment: a real Python package (`jaraco.context`) and real healthcare records software (OpenEMR), both reaching the project's highest tier of evidence.
 
@@ -531,7 +531,7 @@ full, dated history of that work.
   minimal harness (real MongoDB, a hand-built h2c NRF stand-in) for the
   DELETE handler alone (`free5gc_runtime_case/`), then a fuller Docker
   deployment (real, official MongoDB and free5GC NRF images) covering
-  all four reachable handlers (`free5gc_full_deployment/`). The fuller
+  all four manually selected handlers (`free5gc_full_deployment/`). The fuller
   deployment found the underlying bug - a missing `return` after an
   error response - to be a genuine CRUD bypass, not a single-record
   issue: unauthorized read of one record, unauthorized read of the
@@ -670,9 +670,13 @@ crash*, not a *correct* response: 14 of 27 `confirmed_fix` verdicts in
 the 36-run comparison had returned a non-200 status on that check
 without being flagged. This was reproduced, quantified, and closed for
 the cases this project could. A content-verified reassessment of 6
-recoverable patched artifacts confirmed all 6 as genuinely correct
-fixes, and the real-upstream `jaraco.context` case above independently
-reached the same, stronger standard.
+recoverable patched artifacts passed stronger, class-specific checks —
+marker-absence on the malicious side, real expected content of varying
+granularity (full JSON equality, a specific field, or a substring
+check) on the legitimate side — bounded observations that strengthen
+the earlier screen without establishing general patch correctness. The
+real-upstream `jaraco.context` case above independently reached a
+stronger standard, with exact expected content checked on both sides.
 
 ---
 
@@ -698,7 +702,7 @@ and [`reports/METRICS.md`](reports/METRICS.md).
 | [CVE-2026-78683](https://advisories.gitlab.com/pypi/nltk/CVE-2026-78683/) | nltk | Insecure Deserialization (CWE-502) | CRITICAL 9.6 | **True** |
 | [CVE-2026-54729](https://github.com/advisories/GHSA-5846-7qm3-r52j) | dssrf | SSRF (CWE-918) | not listed | False (real network limitation, not a defect) |
 | [CVE-2026-46492](https://github.com/advisories/GHSA-32q2-hhr5-6qvv) | md-fileserver | XSS (CWE-80) | HIGH 7.2 | **True** |
-| [CVE-2026-40248](https://github.com/advisories/GHSA-jgq2-qv8v-5cmj) | free5gc/udr | Improper Authorization (CWE-285) | HIGH 7.5 | **True** — all four reachable handlers runtime-confirmed against a real upstream deployment |
+| [CVE-2026-40248](https://github.com/advisories/GHSA-jgq2-qv8v-5cmj) | free5gc/udr | Improper Authorization (CWE-285) | HIGH 7.5 | **True** — all four manually selected handlers runtime-confirmed against a real upstream deployment |
 
 **5/6** catalog CVEs dynamically confirmed by genuine subprocess execution; the
 free5GC case is verified by a different, stronger method (real upstream deployment,
