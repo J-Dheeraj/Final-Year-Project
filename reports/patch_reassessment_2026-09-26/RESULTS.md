@@ -52,10 +52,17 @@ checked against the table above - not merely "did the process crash."
 | CVE-2026-46492 | True | True | `confirmed_fix` | 200 | 200 |
 
 **All 6 surviving patches pass this stronger test.** Every malicious
-request now gets a clean, class-appropriate rejection (401/403/400 -
-never the same 200-with-marker the vulnerable version returns), and every
-legitimate request gets exactly its expected 200 response, not merely a
-crash-free one.
+request's own class-specific check finds no exploit marker in the
+response (5 of 6 classes additionally reject with a non-200 status -
+401/403/400; the sixth, XSS, returns 200 with the payload escaped rather
+than a rejection status, since escaping, not refusal, is this class's
+correct behaviour). No malicious check independently verifies the
+response status or the underlying sensitive side effect beyond marker
+absence. Every legitimate request's response was checked against real
+expected content (full JSON-object equality for 2 classes, a specific
+field value for 2, two field values for 1, and HTML substring presence
+for XSS), a materially stronger check than the malicious side, though not
+uniformly exact full-response equality across all six classes.
 
 ## A real, distinct finding surfaced while building this test: CVE-2026-46492
 

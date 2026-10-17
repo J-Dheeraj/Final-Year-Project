@@ -6,7 +6,7 @@ separate from the final thesis-writing checklist.
 ## Evidence
 
 - [x] Raw local sweep and every repeated study have been reconciled with the prose.
-- [x] Every success has compile, runtime, and benign-path evidence.
+- [x] Every success has compile and runtime evidence; benign-path evidence exists but is not uniform across every handler/model (see FYP_Report_main_upgraded.tex's functional-preservation qualifications).
 - [x] Failed, inconclusive, and environment-limited attempts remain visible.
 - [x] Every repeated run uses a distinct experiment/model/run artifact path.
 - [x] The research ledger records evidence tier and exact source files.
@@ -23,7 +23,7 @@ separate from the final thesis-writing checklist.
 
 - [x] Vulnerable free5GC behaviour is shown.
 - [x] Generated patch and compilation are shown.
-- [x] All four handler fixes and benign behaviour are shown.
+- [x] All four handler fixes are shown; benign behaviour is content-verified for the single-record GET handler specifically, with legitimate seed writes shown for PUT and a legitimate DELETE shown separately in the minimal harness, not an independent per-handler benign check for every handler.
 - [x] The failed small-model patch is shown being rejected.
 - [x] A clean reproduction from documented setup succeeds.
 

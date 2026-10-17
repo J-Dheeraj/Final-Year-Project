@@ -11,9 +11,12 @@ run, and what it has deliberately not shown.
 
 Across 5 distinct access methods - a direct Claude API key (AIxTech
 gateway), the `claude` CLI, the OpenAI API, the Codex CLI, and local
-Ollama models - and well over 60 distinct model identities tested
-against the free5GC real-upstream CVE, the OpenEMR real-upstream CVE,
-and the 6-CVE main catalogue:
+Ollama models - and well over 60 requested model/access combinations
+(not all of which resolved to a distinct model that was successfully
+evaluated; some names overlap across methods and many produced no
+output at all, per `docs/RESULTS_BY_ACCESS_METHOD.md`) against the
+free5GC real-upstream CVE, the OpenEMR real-upstream CVE, and the 6-CVE
+main catalogue:
 
 **Every already-validated patch held. Zero genuine bypasses were ever
 confirmed, against any patch, from any model, through any access
@@ -74,12 +77,14 @@ estimated or reconstructed from memory.
   LLMs to secure OSS" pitch was dropped; nothing in this evidence pass
   reopens it.
 - **Dollar cost is not uniformly available.** `claude -p` reports a
-  real billed figure (**$29.53** total, per `docs/RESULTS_SUMMARY.md`);
-  the OpenAI API reports a real estimated figure where a published
-  rate is known (~**$0.42** total across the catalogue and the three
-  OpenEMR/free5GC reruns); the AIxTech gateway reports token counts but
-  genuinely no dollar figure, and none was guessed for its 2026-era
-  model names with no verifiable published price
+  CLI-computed cost estimate (**$29.53** total, per
+  `docs/RESULTS_SUMMARY.md`), which per Anthropic's own documentation is
+  computed locally from token counts at list price and is not a verified
+  billing record; the OpenAI API similarly reports an estimated figure
+  where a published rate is known (~**$0.42** total across the catalogue
+  and the three OpenEMR/free5GC reruns); the AIxTech gateway reports
+  token counts but genuinely no dollar figure, and none was guessed for
+  its 2026-era model names with no verifiable published price
   (`docs/METHODOLOGY_PITFALLS.md` #15).
 
 ## Reading this against the other two indexes

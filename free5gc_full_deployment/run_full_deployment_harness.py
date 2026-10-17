@@ -206,15 +206,17 @@ def main():
     verdict["overall_verdict"] = "confirmed_fix_all_four_handlers" if all_confirmed else "partial_or_inconclusive"
     verdict.update({
         "handlers_total": 4,
-        "handlers_model_generated": 1,
-        "handlers_deterministically_materialized": 3,
+        "handlers_model_generated": 0,
+        "handlers_from_real_upstream_fix": 4,
         "compile_passed": bool(patched_result.get("build_ok", True)),
         "runtime_confirmed_all_four_handlers": all_confirmed,
         "benign_path_passed": patched_result["benign_path_preserved"],
         "pipeline_validation_verdict": verdict["overall_verdict"],
         "model_contribution_note": (
-            "One handler patch is model-generated; three handler changes are "
-            "deterministic reachability materialization."
+            "This harness applies the real upstream maintainer fix commit; no "
+            "handler's patch is model-generated here. For the separate harness "
+            "where one handler is model-generated and three are deterministic "
+            "reachability materializations, see run_full_deployment_harness_llm.py."
         ),
     })
     (HERE / "evidence" / "verdict.json").write_text(json.dumps(verdict, indent=2), encoding="utf-8")
