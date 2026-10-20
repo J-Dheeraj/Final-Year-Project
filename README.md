@@ -594,7 +594,10 @@ Both the Claude CLI path and a fully local, zero-cost Ollama path are
 wired into Stage 3.5 (generation), Stage 3.7 (self-improvement), and
 Stage 3.8 (patch generation) — one provider-agnostic call site
 (`_call_live_model`), Claude CLI first, local Ollama fallback, with real
-per-call duration/token/cost recorded, not estimated. Full narrative,
+per-call duration and token counts recorded directly, and a per-call
+cost figure read from the Claude CLI's own output (labelled by
+Anthropic itself as a list-price estimate from token counts, not a
+verified billing record). Full narrative,
 raw logs, and every JSON report are in
 [`reports/LIVE_LLM_CATALOG_RUN.md`](reports/LIVE_LLM_CATALOG_RUN.md);
 this is the summary.
@@ -647,13 +650,18 @@ outperformed both `gemma2:9b` (0/6) and `codellama:13b` (2/6).
 **Six hosted Claude model snapshots** (`claude-haiku-4-5`,
 `claude-sonnet-4-6`, `claude-sonnet-5`, `claude-opus-4-6`,
 `claude-opus-4-7`, `claude-opus-4-8`), same single-shot design, 36 runs
-total, with real per-call cost and token accounting (not estimated —
-the Claude CLI's structured JSON output mode exposes this directly):
+total, with real per-call token accounting and a per-call cost estimate
+(the Claude CLI's structured JSON output mode exposes this directly,
+though Anthropic's own documentation labels the figure a list-price
+estimate, not verified billing):
 **all six models confirmed all six exploits (36/36)**. Patch generation
 remained the harder problem even at this larger scale: every model
 reached only 4–5 of 6 `confirmed_fix` verdicts under the corrected
-validator below. The cheapest model tested matched the best
-confirmed-fix rate at roughly a third of every other model's real cost.
+validator below. The cheapest model tested (Haiku 4.5) also tied for
+the best confirmed-fix rate, at a reported cost ranging from roughly a
+seventh to roughly a third of the other five models' reported cost
+(cost varied substantially by model, not a single uniform ratio — see
+the thesis's Table A.5 for the full per-model breakdown).
 
 **The patch validator itself needed correcting, twice.** The original
 two-check criterion (original exploit fails + a separate `/health`
