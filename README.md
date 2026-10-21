@@ -658,10 +658,10 @@ estimate, not verified billing):
 remained the harder problem even at this larger scale: every model
 reached only 4–5 of 6 `confirmed_fix` verdicts under the corrected
 validator below. The cheapest model tested (Haiku 4.5) also tied for
-the best confirmed-fix rate, at a reported cost ranging from roughly a
-seventh to roughly a third of the other five models' reported cost
-(cost varied substantially by model, not a single uniform ratio — see
-the thesis's Table A.5 for the full per-model breakdown).
+the best confirmed-fix rate, at a reported cost ranging from 20% to
+42% of the other five models' reported cost (cost varied substantially
+by model, not a single uniform ratio — see the thesis's Table A.5 for
+the full per-model breakdown).
 
 **The patch validator itself needed correcting, twice.** The original
 two-check criterion (original exploit fails + a separate `/health`
