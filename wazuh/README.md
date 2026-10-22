@@ -1,13 +1,15 @@
-# Wazuh for local project monitoring
+# Wazuh for free5GC experiment integrity and logs
 
-Wazuh is a separate security monitoring stack, not a Python dependency for the CVE pipeline. This setup adds an opt-in local Wazuh server, indexer, and dashboard using Wazuh's official Docker deployment. It keeps the Wazuh checkout, generated certificates, and runtime data out of this repository.
+## Role in the FYP
+
+Use Wazuh only as supporting telemetry for the free5GC runtime case study. It records changes to the experiment inputs and evidence bundle, and collects the vulnerable and patched UDR process logs. It does not decide whether an exploit succeeded or a patch worked. Keep the harness's HTTP responses, benign checks, and verdict logic as the source of those conclusions.
 
 ## Requirements
 
 - Docker Desktop with the WSL 2 backend and Docker Compose
 - Git on PATH
 - At least 4 CPU cores, 8 GB RAM, and 50 GB free disk for the single-node stack
-- WSL 2 setting `vm.max_map_count=262144` (see below)
+- WSL 2 setting `vm.max_map_count=262144`
 
 For a Windows host, open a WSL 2 distribution and run:
 
@@ -15,7 +17,7 @@ For a Windows host, open a WSL 2 distribution and run:
 sudo sysctl -w vm.max_map_count=262144
 ```
 
-The setting resets when the Docker host restarts. See the Wazuh Docker documentation for persistent configuration.
+The setting resets when the Docker host restarts. See the official Wazuh Docker deployment guide for persistent configuration.
 
 ## Start the local stack
 
@@ -25,11 +27,11 @@ From the repository root in PowerShell:
 .\wazuh\install.ps1
 ```
 
-The script clones the official `wazuh/wazuh-docker` repository at **v4.14.9**, generates the documented self-signed certificates, and starts the single-node stack. It binds published services to loopback only. The dashboard is at <https://localhost:8443>; the manager and indexer APIs are available only on this host.
+The script clones the official `wazuh/wazuh-docker` repository at **v4.14.9**, generates self-signed certificates, and starts the single-node stack. Published services bind to loopback only. Open the dashboard at <https://localhost:8443>.
 
-The upstream demo credentials are `admin` / `SecretPassword`. This is a local development setup. Change the credentials before connecting remote agents or exposing any ports beyond localhost. Your browser will warn about the self-signed dashboard certificate.
+The upstream demo credentials are `admin` / `SecretPassword`. Change them before exposing the stack or connecting remote agents. Your browser will warn about the self-signed dashboard certificate.
 
-The Wazuh stack needs resources in addition to the free5GC and test containers. To stop it while preserving its data:
+To stop the stack while preserving its data:
 
 ```powershell
 Push-Location .\wazuh\.wazuh-docker\single-node
@@ -37,39 +39,28 @@ docker compose down
 Pop-Location
 ```
 
-## Monitor this Windows host and checkout
+## Collect the free5GC experiment signals
 
-The central stack alone does not monitor the Windows host or files in this checkout. Install the native Windows Wazuh agent and set its manager address to `127.0.0.1`. A Wazuh agent running in a container cannot inspect the host filesystem.
+Install the native Wazuh agent on the endpoint where the free5GC Docker experiment runs. The Windows host agent can monitor local project files. For Docker event monitoring, install/configure the agent on the Docker server as described by Wazuh; that is a separate optional setup and depends on where the Docker daemon runs.
 
-After enrolling the host agent, merge the `directories` and `ignore` entries below into its existing `<syscheck>` section (do not add a second `<syscheck>` block). Add the `<localfile>` blocks as siblings of `<syscheck>` in `ossec.conf`. Replace the example path with the absolute path to this checkout. The first entry enables real-time file integrity monitoring for the project. The `localfile` entries collect the repository's watcher output and lab audit events when those files exist.
+Copy the relevant entries from [agent-ossec.conf.example](agent-ossec.conf.example) into the agent's existing `ossec.conf`, replace the checkout path, and restart the agent. The FIM scope targets `free5gc_full_deployment` while excluding the cloned upstream `compose` directory. It records changes to the harness, build configuration, and evidence bundle. The log collectors read the vulnerable and patched UDR process logs written by `run_full_deployment_harness.py`.
 
-```xml
-<syscheck>
-  <directories check_all="yes" realtime="yes">C:\path\to\Final-Year-Project</directories>
-  <ignore>C:\path\to\Final-Year-Project\.git</ignore>
-  <ignore>C:\path\to\Final-Year-Project\.venv</ignore>
-  <ignore>C:\path\to\Final-Year-Project\reports</ignore>
-  <ignore>C:\path\to\Final-Year-Project\__pycache__</ignore>
-  <ignore>C:\path\to\Final-Year-Project\.pytest_cache</ignore>
-</syscheck>
-<localfile>
-  <location>C:\path\to\Final-Year-Project\watcher.log</location>
-  <log_format>syslog</log_format>
-</localfile>
-<localfile>
-  <location>C:\path\to\Final-Year-Project\watcher_stderr.log</location>
-  <log_format>syslog</log_format>
-</localfile>
-<localfile>
-  <location>C:\path\to\Final-Year-Project\ssrf_lab\lab_audit.ndjson</location>
-  <log_format>json</log_format>
-</localfile>
-```
+Run the harness as usual. In Wazuh, inspect the File Integrity Monitoring events and the collected process logs around the experiment timestamps.
 
-Use the official [Windows agent installation guide](https://documentation.wazuh.com/current/installation-guide/wazuh-agent/wazuh-agent-package-windows.html) for installation and agent restart steps. Review the exclusions against your own monitoring goals; excluding `reports` reduces noise from generated experiment output.
+## How to use the telemetry in the report
+
+Keep the evaluation small and controlled:
+
+1. Run the vulnerable and patched free5GC cases with the same harness and deployment settings.
+2. Confirm that Wazuh records the expected evidence-bundle changes and receives both UDR process logs.
+3. Record log completeness and ingestion delay. Use a benign run to establish the expected background event volume.
+4. Treat these signals as experiment context and integrity history. They do not prove exploitability, patch correctness, or tamper-proof chain of custody. Wazuh will not automatically detect arbitrary application-layer exploits without suitable logs and detection rules.
+
+This gives the FYP an auditable view of what changed around a test run, while keeping the core claim tied to the project's existing dynamic checks.
 
 ## Official references
 
 - [Wazuh Docker deployment](https://documentation.wazuh.com/current/deployment-options/docker/wazuh-container.html)
-- [Changing default Wazuh Docker passwords](https://documentation.wazuh.com/current/deployment-options/docker/changing-default-password.html)
+- [Wazuh file integrity monitoring](https://documentation.wazuh.com/current/user-manual/capabilities/file-integrity/how-to-configure-fim.html)
+- [Using Wazuh to monitor Docker](https://documentation.wazuh.com/current/user-manual/capabilities/container-security/monitoring-docker.html)
 - [Wazuh Windows agent installation](https://documentation.wazuh.com/current/installation-guide/wazuh-agent/wazuh-agent-package-windows.html)
