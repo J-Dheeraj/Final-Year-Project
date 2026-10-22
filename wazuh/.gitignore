@@ -1,0 +1,2 @@
+# Runtime clone of wazuh/wazuh-docker, generated certificates, and local deployment state.
+/.wazuh-docker/
