@@ -35,16 +35,16 @@ if (-not (Test-Path $composeFile)) {
 # still connect through 127.0.0.1; remote agents need an explicit network setup.
 $compose = [System.IO.File]::ReadAllText($composeFile)
 $mappings = @(
-    @('"1514:1514"', '"127.0.0.1:1514:1514"'),
-    @('"1515:1515"', '"127.0.0.1:1515:1515"'),
-    @('"514:514/udp"', '"127.0.0.1:514:514/udp"'),
-    @('"55000:55000"', '"127.0.0.1:55000:55000"'),
-    @('"9200:9200"', '"127.0.0.1:9200:9200"'),
-    @('- 443:5601', '- "127.0.0.1:8443:5601"')
+    [pscustomobject]@{ Source = '"1514:1514"'; Replacement = '"127.0.0.1:1514:1514"' },
+    [pscustomobject]@{ Source = '"1515:1515"'; Replacement = '"127.0.0.1:1515:1515"' },
+    [pscustomobject]@{ Source = '"514:514/udp"'; Replacement = '"127.0.0.1:514:514/udp"' },
+    [pscustomobject]@{ Source = '"55000:55000"'; Replacement = '"127.0.0.1:55000:55000"' },
+    [pscustomobject]@{ Source = '"9200:9200"'; Replacement = '"127.0.0.1:9200:9200"' },
+    [pscustomobject]@{ Source = '- 443:5601'; Replacement = '- "127.0.0.1:8443:5601"' }
 )
 foreach ($mapping in $mappings) {
-    $source = $mapping[0]
-    $replacement = $mapping[1]
+    $source = $mapping.Source
+    $replacement = $mapping.Replacement
     if ($compose.Contains($source)) {
         $compose = $compose.Replace($source, $replacement)
     } elseif (-not $compose.Contains($replacement)) {
