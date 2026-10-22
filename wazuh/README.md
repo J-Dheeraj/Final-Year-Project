@@ -41,7 +41,7 @@ Pop-Location
 
 The central stack alone does not monitor the Windows host or files in this checkout. Install the native Windows Wazuh agent and set its manager address to `127.0.0.1`. A Wazuh agent running in a container cannot inspect the host filesystem.
 
-After enrolling the host agent, add the following entries to its `ossec.conf`, replacing the path with the absolute path to this checkout. The first entry enables real-time file integrity monitoring for the project. The `localfile` entries collect the repository's watcher output and lab audit events when those files exist.
+After enrolling the host agent, merge the `directories` and `ignore` entries below into its existing `<syscheck>` section (do not add a second `<syscheck>` block). Add the `<localfile>` blocks as siblings of `<syscheck>` in `ossec.conf`. Replace the example path with the absolute path to this checkout. The first entry enables real-time file integrity monitoring for the project. The `localfile` entries collect the repository's watcher output and lab audit events when those files exist.
 
 ```xml
 <syscheck>
