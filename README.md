@@ -1080,17 +1080,11 @@ Clean reproduction record: [docs/REPRODUCTION_RECORD_2026-10-10.md](docs/REPRODU
 
 ## Reference
 
-### Optional local Wazuh monitoring
+### Optional Wazuh telemetry for the free5GC case study
 
-This repository includes an opt-in, local Wazuh Docker stack for monitoring the development host and project checkout. It is pinned to the official Wazuh Docker release and binds services to localhost. The central stack alone does not monitor the Windows host; install the native Wazuh agent to collect host telemetry and file-integrity events.
+Wazuh is included as a supporting observability layer for the free5GC runtime experiment: it can record changes to the experiment inputs and evidence bundle and collect vulnerable/patched UDR process logs. The pipeline's dynamic checks remain the source of exploit and patch verdicts.
 
-See [the Wazuh setup guide](wazuh/README.md) for system requirements, installation, host-agent configuration, and teardown.
-
-Start the stack from PowerShell at the repository root with:
-
-```powershell
-.\wazuh\install.ps1
-```
+See [the focused Wazuh guide](wazuh/README.md) and [agent configuration example](wazuh/agent-ossec.conf.example) for installation and setup.
 
 Operational detail for running, configuring, and navigating this repository.
 
