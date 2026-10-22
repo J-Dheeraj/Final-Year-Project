@@ -1,0 +1,20 @@
+<!--
+Example Wazuh agent configuration for the free5GC experiment.
+Replace C:\path\to\Final-Year-Project with the absolute checkout path.
+Merge the syscheck and localfile elements into the agent's existing ossec_config.
+-->
+<ossec_config>
+<syscheck>
+  <directories check_all="yes" realtime="yes">C:\path\to\Final-Year-Project\free5gc_full_deployment</directories>
+  <ignore>C:\path\to\Final-Year-Project\free5gc_full_deployment\compose</ignore>
+</syscheck>
+
+<localfile>
+  <location>C:\path\to\Final-Year-Project\free5gc_full_deployment\evidence\vulnerable_process.log</location>
+  <log_format>syslog</log_format>
+</localfile>
+<localfile>
+  <location>C:\path\to\Final-Year-Project\free5gc_full_deployment\evidence\patched_process.log</location>
+  <log_format>syslog</log_format>
+</localfile>
+</ossec_config>
