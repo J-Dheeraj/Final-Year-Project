@@ -1086,6 +1086,12 @@ Wazuh is included as a supporting observability layer for the free5GC runtime ex
 
 See [the focused Wazuh guide](wazuh/README.md) and [agent configuration example](wazuh/agent-ossec.conf.example) for installation and setup.
 
+Start the optional local stack from PowerShell at the repository root:
+
+```powershell
+.\wazuh\install.ps1
+```
+
 Operational detail for running, configuring, and navigating this repository.
 
 ### Quick start
