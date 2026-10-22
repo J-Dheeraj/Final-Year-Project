@@ -1,8 +1,8 @@
-# Wazuh for free5GC experiment integrity and logs
+# Wazuh for FYP result integrity and experiment logs
 
 ## Role in the FYP
 
-Use Wazuh only as supporting telemetry for the free5GC runtime case study. It records changes to the experiment inputs and evidence bundle, and collects the vulnerable and patched UDR process logs. It does not decide whether an exploit succeeded or a patch worked. Keep the harness's HTTP responses, benign checks, and verdict logic as the source of those conclusions.
+Use Wazuh only as a supporting integrity and observability layer for the results already produced by the FYP. Its File Integrity Monitoring (FIM) can baseline the current result files and report changes made after the agent is configured. It can also collect the available vulnerable and patched free5GC UDR process logs. It cannot recreate alerts or runtime telemetry for past runs, and it does not decide whether an exploit succeeded or a patch worked. The harness's HTTP responses, benign checks, and verdict logic remain the source of those conclusions.
 
 ## Requirements
 
@@ -39,22 +39,22 @@ docker compose down
 Pop-Location
 ```
 
-## Collect the free5GC experiment signals
+## Monitor the existing result bundles
 
 Install the native Wazuh agent on the endpoint where the free5GC Docker experiment runs. The Windows host agent can monitor local project files. For Docker event monitoring, install/configure the agent on the Docker server as described by Wazuh; that is a separate optional setup and depends on where the Docker daemon runs.
 
-Copy the relevant entries from [agent-ossec.conf.example](agent-ossec.conf.example) into the agent's existing `ossec.conf`, replace the checkout path, and restart the agent. The FIM scope targets `free5gc_full_deployment` while excluding the cloned upstream `compose` directory. It records changes to the harness, build configuration, and evidence bundle. The log collectors read the vulnerable and patched UDR process logs written by `run_full_deployment_harness.py`.
+Copy the relevant entries from [agent-ossec.conf.example](agent-ossec.conf.example) into the agent's existing `ossec.conf`, replace the checkout path, and restart the agent. FIM covers the existing evidence folders for the minimal and full free5GC cases, the OpenEMR transfer case, and `reports/reachability`. The agent establishes its baseline when configured; it can report later changes to those files, but it cannot prove whether a result was altered before that baseline. The two log collectors point to the vulnerable and patched UDR process logs in the full free5GC bundle.
 
-Run the harness as usual. In Wazuh, inspect the File Integrity Monitoring events and the collected process logs around the experiment timestamps.
+The result bundles are already present, so you can configure the agent against them without rerunning the experiments. In Wazuh, confirm that files from each monitored folder are inventoried. For new controlled checks, inspect subsequent FIM events and the collected UDR process logs. Do not change the original evidence to test detection; use a disposable copy.
 
 ## How to use the telemetry in the report
 
 Keep the evaluation small and controlled:
 
-1. Run the vulnerable and patched free5GC cases with the same harness and deployment settings.
-2. Confirm that Wazuh records the expected evidence-bundle changes and receives both UDR process logs.
-3. Record log completeness and ingestion delay. Use a benign run to establish the expected background event volume.
-4. Treat these signals as experiment context and integrity history. They do not prove exploitability, patch correctness, or tamper-proof chain of custody. Wazuh will not automatically detect arbitrary application-layer exploits without suitable logs and detection rules.
+1. Configure FIM on the existing result folders and record the baseline inventory.
+2. Check that the expected result files from the free5GC and OpenEMR cases and the reachability reports are visible in Wazuh.
+3. On a disposable copy, make one harmless test-file change and record whether Wazuh reports it and how long ingestion takes. Record completeness and delay for the available UDR logs separately.
+4. Report Wazuh as post-baseline integrity monitoring and log collection. These signals do not prove exploitability, patch correctness, or tamper-proof chain of custody. Wazuh will not automatically detect arbitrary application-layer exploits without suitable logs and detection rules.
 
 This gives the FYP an auditable view of what changed around a test run, while keeping the core claim tied to the project's existing dynamic checks.
 
