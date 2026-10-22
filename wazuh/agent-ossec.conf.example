@@ -1,0 +1,19 @@
+<!--
+Snippet for the Wazuh agent ossec.conf.
+Replace C:\path\to\Final-Year-Project with the absolute checkout path.
+Merge the directories/ignore entries into the existing syscheck block.
+Keep each localfile block as a top-level sibling of syscheck.
+-->
+<syscheck>
+  <directories check_all="yes" realtime="yes">C:\path\to\Final-Year-Project\free5gc_full_deployment</directories>
+  <ignore>C:\path\to\Final-Year-Project\free5gc_full_deployment\compose</ignore>
+</syscheck>
+
+<localfile>
+  <location>C:\path\to\Final-Year-Project\free5gc_full_deployment\evidence\vulnerable_process.log</location>
+  <log_format>syslog</log_format>
+</localfile>
+<localfile>
+  <location>C:\path\to\Final-Year-Project\free5gc_full_deployment\evidence\patched_process.log</location>
+  <log_format>syslog</log_format>
+</localfile>
