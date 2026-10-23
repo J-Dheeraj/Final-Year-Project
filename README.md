@@ -1080,6 +1080,18 @@ Clean reproduction record: [docs/REPRODUCTION_RECORD_2026-10-10.md](docs/REPRODU
 
 ## Reference
 
+### Optional Wazuh integrity monitoring for existing results
+
+Wazuh can baseline and monitor the existing free5GC and OpenEMR evidence folders and the reachability result reports for changes after configuration. It can also collect the vulnerable/patched free5GC UDR logs. It cannot reconstruct telemetry from past runs or establish pre-baseline integrity; the pipeline's dynamic checks remain the source of exploit and patch verdicts.
+
+See [the focused Wazuh guide](wazuh/README.md) and [agent configuration example](wazuh/agent-ossec.conf.example) for installation and setup.
+
+Start the optional local stack from PowerShell at the repository root:
+
+```powershell
+.\wazuh\install.ps1
+```
+
 Operational detail for running, configuring, and navigating this repository.
 
 ### Quick start

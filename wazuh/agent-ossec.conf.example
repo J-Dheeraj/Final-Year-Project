@@ -1,0 +1,22 @@
+<!--
+Example Wazuh agent configuration for monitoring existing FYP result bundles.
+Replace C:\path\to\Final-Year-Project with the absolute checkout path.
+Merge the syscheck and localfile elements into the agent's existing ossec_config.
+-->
+<ossec_config>
+<syscheck>
+  <directories check_all="yes" realtime="yes">C:\path\to\Final-Year-Project\free5gc_runtime_case\evidence</directories>
+  <directories check_all="yes" realtime="yes">C:\path\to\Final-Year-Project\free5gc_full_deployment\evidence</directories>
+  <directories check_all="yes" realtime="yes">C:\path\to\Final-Year-Project\openemr_transfer_case\evidence</directories>
+  <directories check_all="yes" realtime="yes">C:\path\to\Final-Year-Project\reports\reachability</directories>
+</syscheck>
+
+<localfile>
+  <location>C:\path\to\Final-Year-Project\free5gc_full_deployment\evidence\vulnerable_process.log</location>
+  <log_format>syslog</log_format>
+</localfile>
+<localfile>
+  <location>C:\path\to\Final-Year-Project\free5gc_full_deployment\evidence\patched_process.log</location>
+  <log_format>syslog</log_format>
+</localfile>
+</ossec_config>
