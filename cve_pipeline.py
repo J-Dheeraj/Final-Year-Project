@@ -1811,8 +1811,8 @@ def _probe_path_traversal(code_before: str, code_after: str) -> dict:
             evil_input     = "../../../../etc/passwd"
             joined         = _os.path.realpath(_os.path.join(safe_base, evil_input))
             sandbox_escaped = not joined.startswith(safe_base)
-    except Exception:
-        pass
+    except Exception as exc:
+        log.warning("Path traversal sandbox probe error: %s", exc)
 
     confirmed = bool(vuln_hits) or sandbox_escaped
 
