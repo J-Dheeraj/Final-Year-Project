@@ -9,6 +9,8 @@ circular import. Function-local imports resolve it cleanly because by
 the time these functions are actually CALLED, cve_pipeline has finished
 loading.
 """
+import copy
+import concurrent.futures
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -109,6 +111,169 @@ _BUILTIN_REVISIONS: dict[str, dict] = {
         "target_patches": [],
     },
 }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Propose→Probe→Compose cycle — harness² adaptation
+# Xu et al., 2026 — arXiv 2610.14224
+# ─────────────────────────────────────────────────────────────────────────────
+# Instead of one LLM call, generate K candidate revisions with K different
+# prompting strategies in parallel (PROPOSE), execute each against the same
+# CVE target (PROBE), then select the confirmed winner or compose a final
+# synthesis from the K failure logs (COMPOSE). This matches harness²'s core
+# cycle without requiring their infrastructure (Vertex AI, OpenCode executor):
+# the pipeline's own _call_live_model and execute_exploit_artifacts stand in.
+
+_PPC_STRATEGIES = ("diagnose", "minimal", "step_back")
+
+
+def _build_ppc_prompt(strategy: str, vuln_class: str, poc_text: str,
+                       target_text: str, execution_log: str) -> str:
+    shared = (
+        f"\nExecution log (what actually happened):\n```\n{execution_log[-2000:]}\n```\n\n"
+        f"Current poc.py:\n```python\n{poc_text}\n```\n\n"
+        f"Current target_app.py:\n```python\n{target_text}\n```\n\n"
+        f"Output EXACTLY two sections, no markdown fences, no commentary outside them:\n\n"
+        f"===POC_START===\n(complete corrected poc.py)\n===POC_END===\n\n"
+        f"===TARGET_START===\n(complete corrected target_app.py)\n===TARGET_END==="
+    )
+    if strategy == "diagnose":
+        return (
+            f"A {vuln_class} proof-of-concept exploit and its minimal target failed. "
+            f"Diagnose the root cause from the execution log and output both files corrected. "
+            f"Preserve the 4-phase pattern (health→exploit→verify→exit 0/1) and fix only "
+            f"what is broken.\n{shared}"
+        )
+    if strategy == "minimal":
+        return (
+            f"A {vuln_class} proof-of-concept exploit and its minimal target failed. "
+            f"The structure is probably correct. Make the SMALLEST possible change — "
+            f"find the one or two lines that are wrong and fix only those. Do not redesign.\n{shared}"
+        )
+    if strategy == "step_back":
+        return (
+            f"A {vuln_class} exploit failed. Set aside the existing implementation — the whole "
+            f"approach may be wrong. Think from first principles: what must a {vuln_class} "
+            f"exploit demonstrate? Write a clean implementation from scratch. Keep the 4-phase "
+            f"pattern (health→exploit→verify→exit 0/1).\n{shared}"
+        )
+    raise ValueError(f"Unknown PPC strategy: {strategy!r}")
+
+
+def _ppc_revise_artifacts(vuln_class: str, poc_text: str, target_text: str,
+                           execution_log: str, artifacts):
+    """Propose→Probe→Compose: K parallel proposals with different strategies,
+    each probed by actually running it against the CVE target, then composed
+    into the best revision.
+
+    Adapts the harness² cycle (Xu et al., 2026, arXiv 2610.14224) natively:
+    same PPC logic, same parallel exploration, but driven by the pipeline's
+    own _call_live_model and execute_exploit_artifacts.
+
+    Returns (poc_code, target_code, gen_call, ppc_meta) or None.
+    ppc_meta carries per-strategy probe outcomes for telemetry."""
+    from cve_pipeline import _call_live_model, _live_model_available, _extract_marker, execute_exploit_artifacts
+    if not _live_model_available():
+        return None
+
+    poc_path = Path(artifacts.poc_path)
+    target_path = Path(artifacts.target_app_path)
+
+    # ── Stage 1: PROPOSE ──────────────────────────────────────────────────────
+    prompts = {
+        s: _build_ppc_prompt(s, vuln_class, poc_text, target_text, execution_log)
+        for s in _PPC_STRATEGIES
+    }
+    raw: dict = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(_PPC_STRATEGIES)) as ex:
+        future_to_s = {ex.submit(_call_live_model, p, 180): s for s, p in prompts.items()}
+        for fut in concurrent.futures.as_completed(future_to_s):
+            s = future_to_s[fut]
+            try:
+                result = fut.result()
+            except Exception:
+                continue
+            if not result.text:
+                continue
+            poc_code = _extract_marker(result.text, "===POC_START===", "===POC_END===")
+            tgt_code = _extract_marker(result.text, "===TARGET_START===", "===TARGET_END===")
+            if poc_code and tgt_code:
+                raw[s] = (poc_code, tgt_code, result)
+
+    if not raw:
+        return None
+
+    # ── Stage 2: PROBE ────────────────────────────────────────────────────────
+    # Each candidate gets its own temp files so probes don't clobber each other.
+    probed: dict = {}
+    for s, (poc_code, tgt_code, gen_call) in raw.items():
+        ppc_poc = poc_path.parent / f"poc.ppc_{s}.py"
+        ppc_tgt = target_path.parent / f"target_app.ppc_{s}.py"
+        try:
+            ppc_poc.write_text(poc_code, encoding="utf-8")
+            ppc_tgt.write_text(tgt_code, encoding="utf-8")
+        except OSError:
+            continue
+        probe = copy.copy(artifacts)
+        probe.poc_path = str(ppc_poc)
+        probe.target_app_path = str(ppc_tgt)
+        probe.dynamically_confirmed = False
+        probe.exit_code = -1
+        probe.execution_log = ""
+        try:
+            probe = execute_exploit_artifacts(probe)
+        except Exception:
+            continue
+        probed[s] = (probe, gen_call, poc_code, tgt_code)
+
+    if not probed:
+        return None
+
+    ppc_meta = {
+        s: {"strategy": s, "confirmed": p.dynamically_confirmed, "exit_code": p.exit_code}
+        for s, (p, *_) in probed.items()
+    }
+
+    # ── Stage 3: COMPOSE ──────────────────────────────────────────────────────
+    # Priority 1: a confirmed exploit — use the first winner.
+    for s, (probe, gen_call, poc_code, tgt_code) in probed.items():
+        if probe.dynamically_confirmed:
+            return poc_code, tgt_code, gen_call, {"winner": s, "k": len(probed), "probes": ppc_meta}
+
+    # Priority 2: compose from K failure logs. This is the genuine harness²
+    # composition step: behavioral diffs between K failed attempts guide the
+    # synthesized fix, rather than simply retrying the best single attempt.
+    failure_evidence = "\n\n".join(
+        f"=== Strategy '{s}' (exit {p.exit_code}) ===\n{p.execution_log[-800:]}"
+        for s, (p, *_) in probed.items()
+    )
+    compose_prompt = (
+        f"K={len(probed)} different exploit strategies for {vuln_class} all failed. "
+        f"Here are their execution logs — look for patterns across them (what consistently "
+        f"works vs. consistently fails) to identify the real blocker:\n\n"
+        f"{failure_evidence}\n\n"
+        f"Output a SYNTHESIZED fix using the best elements from each attempt. "
+        f"Original poc.py:\n```python\n{poc_text}\n```\n"
+        f"Original target_app.py:\n```python\n{target_text}\n```\n"
+        f"Keep the 4-phase pattern. Output:\n"
+        f"===POC_START===\n(complete corrected poc.py)\n===POC_END===\n"
+        f"===TARGET_START===\n(complete corrected target_app.py)\n===TARGET_END==="
+    )
+    try:
+        compose_call = _call_live_model(compose_prompt, 240)
+    except Exception:
+        compose_call = None
+    if compose_call and compose_call.text:
+        poc_code = _extract_marker(compose_call.text, "===POC_START===", "===POC_END===")
+        tgt_code = _extract_marker(compose_call.text, "===TARGET_START===", "===TARGET_END===")
+        if poc_code and tgt_code:
+            ppc_meta["composed"] = True
+            return poc_code, tgt_code, compose_call, {"winner": "composed", "k": len(probed), "probes": ppc_meta}
+
+    # Fallback: return the first probe's artifacts (better than nothing).
+    s0 = next(iter(probed))
+    _, gen_call, poc_code, tgt_code = probed[s0]
+    return poc_code, tgt_code, gen_call, {"winner": f"{s0}_partial", "k": len(probed), "probes": ppc_meta}
 
 
 def _llm_revise_artifacts(vuln_class: str, poc_text: str, target_text: str,
@@ -224,20 +389,32 @@ def refine_and_reexecute(artifacts: "ExploitArtifacts", vuln_class: str,
                     new_poc_text, new_target_text = p, t
 
         revision_call = None
+        ppc_meta = None
         if new_poc_text is None:
-            # No lesson, no built-in rule, or the rule didn't match this
-            # source - the path that lets Stage 3.7 handle a failure
-            # nobody anticipated, instead of stopping here unconditionally.
-            llm_fix = _llm_revise_artifacts(vuln_class, poc_text, target_text,
-                                             artifacts.execution_log)
-            if llm_fix is not None:
-                new_poc_text, new_target_text, revision_call = llm_fix
-                source = "llm"
-                rule = {"description": "LLM-diagnosed revision from the execution log",
-                        "poc_full": new_poc_text, "target_full": new_target_text}
+            # No lesson, no built-in rule, or the rule didn't match this source.
+            # Use the Propose→Probe→Compose cycle (harness², Xu et al. 2026) to
+            # generate K candidate revisions in parallel, probe each by running it,
+            # and compose the winner from behavioral diffs across the K attempts.
+            # Falls back gracefully to the single-call path if no backend is up.
+            ppc_fix = _ppc_revise_artifacts(vuln_class, poc_text, target_text,
+                                             artifacts.execution_log, artifacts)
+            if ppc_fix is not None:
+                new_poc_text, new_target_text, revision_call, ppc_meta = ppc_fix
+                winner = (ppc_meta or {}).get("winner", "?")
+                k = (ppc_meta or {}).get("k", 1)
+                source = "ppc_llm"
+                rule = {
+                    "description": (
+                        f"harness²-PPC revision (winner={winner}, k={k})"
+                    ),
+                    "poc_full": new_poc_text,
+                    "target_full": new_target_text,
+                }
 
         entry = {"iteration": iteration, "signature": signature, "source": source,
                   "exit_code_before": artifacts.exit_code}
+        if ppc_meta is not None:
+            entry["ppc_meta"] = ppc_meta
         # Real, measured cost of this iteration's live-model call, per the
         # benchmark protocol's "record time/tokens/cost for every call"
         # rule - same shape as generation_*/patch_gen_* on ExploitArtifacts,
