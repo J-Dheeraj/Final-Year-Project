@@ -3242,7 +3242,17 @@ from src.integrations.obsidian_ingest import obsidian_ingest  # noqa: F401
 
 def main() -> None:
     _fix_stdout()
-    logging.basicConfig(format=_LOG_FMT, datefmt="%H:%M:%S", level=logging.INFO)
+    _log_path = Path(__file__).parent / "logs" / "pipeline.log"
+    _log_path.parent.mkdir(exist_ok=True)
+    logging.basicConfig(
+        handlers=[
+            logging.FileHandler(_log_path, encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
+        format=_LOG_FMT,
+        datefmt="%H:%M:%S",
+        level=logging.INFO,
+    )
     args = _parse_args()
     try:
         report = asyncio.run(run_pipeline(args))

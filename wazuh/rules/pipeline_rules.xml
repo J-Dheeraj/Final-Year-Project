@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Wazuh custom rules for the FYP CVE pipeline.
+  Deploy to: /var/ossec/etc/rules/pipeline_rules.xml
+  Rule ID range: 100200–100210 (local custom range, adjust to avoid collisions)
+-->
+<group name="fyp-pipeline,">
+
+  <!-- Level 10: exploit dynamically confirmed — attacker perspective: vuln proven -->
+  <rule id="100200" level="10">
+    <decoded_as>fyp-pipeline-confirmed</decoded_as>
+    <description>FYP pipeline: exploit dynamically confirmed for $(cve_id)</description>
+    <group>exploit,confirmation,</group>
+  </rule>
+
+  <!-- Level 7: exploit ran but was not confirmed (exit_code != 0) -->
+  <rule id="100201" level="7">
+    <decoded_as>fyp-pipeline-exploit-run</decoded_as>
+    <field name="exit_code">^[^0]</field>
+    <description>FYP pipeline: exploit ran but not confirmed (exit $(exit_code)) for $(cve_id)</description>
+    <group>exploit,failure,</group>
+  </rule>
+
+  <!-- Level 10: Stage 3.7 PPC revision produced a confirmed exploit -->
+  <rule id="100202" level="10">
+    <decoded_as>fyp-pipeline-ppc</decoded_as>
+    <description>FYP pipeline: Stage 3.7 PPC confirmed exploit on iteration $(iteration) via $(source) for $(cve_id)</description>
+    <group>exploit,self-improvement,ppc,</group>
+  </rule>
+
+  <!-- Level 5: Stage 3.7 exhausted all iterations without confirmation -->
+  <rule id="100203" level="5">
+    <decoded_as>fyp-pipeline-ppc-exhausted</decoded_as>
+    <description>FYP pipeline: Stage 3.7 PPC exhausted max_iterations without confirming $(cve_id)</description>
+    <group>self-improvement,ppc,failure,</group>
+  </rule>
+
+  <!-- Level 8: patch validated — defender perspective: fix confirmed -->
+  <rule id="100204" level="8">
+    <decoded_as>fyp-pipeline-patch-valid</decoded_as>
+    <description>FYP pipeline: patch validated for $(cve_id)</description>
+    <group>patch,validation,</group>
+  </rule>
+
+  <!-- Level 7: patch rejected — fix did not hold -->
+  <rule id="100205" level="7">
+    <decoded_as>fyp-pipeline-patch-rejected</decoded_as>
+    <description>FYP pipeline: patch rejected for $(cve_id)</description>
+    <group>patch,failure,</group>
+  </rule>
+
+  <!-- Level 12: same CVE confirmed twice in 10 min — possible automation loop -->
+  <rule id="100206" level="12" frequency="2" timeframe="600">
+    <if_matched_sid>100200</if_matched_sid>
+    <same_field>cve_id</same_field>
+    <description>FYP pipeline: repeated exploit confirmation for $(cve_id) — possible unintended loop</description>
+    <group>exploit,repeated,anomaly,</group>
+  </rule>
+
+</group>

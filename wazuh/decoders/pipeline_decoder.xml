@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Wazuh custom decoders for the FYP CVE pipeline (cve_pipeline.py).
+  Deploy to: /var/ossec/etc/decoders/pipeline_decoder.xml
+-->
+
+<!-- Root decoder: matches any [Stage N.*] log line -->
+<decoder name="fyp-pipeline">
+  <prematch>\[Stage \d</prematch>
+</decoder>
+
+<!-- Stage 3.6: exploit executed -->
+<decoder name="fyp-pipeline-exploit-run">
+  <parent>fyp-pipeline</parent>
+  <regex>\[Stage 3\.6\].*exit_code=(\d+).*cve=(\S+)</regex>
+  <order>exit_code,cve_id</order>
+</decoder>
+
+<!-- Stage 3.6: exploit dynamically confirmed -->
+<decoder name="fyp-pipeline-confirmed">
+  <parent>fyp-pipeline</parent>
+  <regex>\[Stage 3\.6\].*dynamically_confirmed=True.*cve=(\S+)</regex>
+  <order>cve_id</order>
+</decoder>
+
+<!-- Stage 3.7: PPC revision cycle completed -->
+<decoder name="fyp-pipeline-ppc">
+  <parent>fyp-pipeline</parent>
+  <regex>\[Stage 3\.7\].*Revision succeeded on iteration (\d+) \(source=(\S+)\).*cve=(\S+)</regex>
+  <order>iteration,source,cve_id</order>
+</decoder>
+
+<!-- Stage 3.7: all revisions exhausted without success -->
+<decoder name="fyp-pipeline-ppc-exhausted">
+  <parent>fyp-pipeline</parent>
+  <regex>\[Stage 3\.7\].*max_iterations reached without confirmation.*cve=(\S+)</regex>
+  <order>cve_id</order>
+</decoder>
+
+<!-- Stage 4: patch validated -->
+<decoder name="fyp-pipeline-patch-valid">
+  <parent>fyp-pipeline</parent>
+  <regex>\[Stage 4\].*patch_validated=True.*cve=(\S+)</regex>
+  <order>cve_id</order>
+</decoder>
+
+<!-- Stage 4: patch rejected -->
+<decoder name="fyp-pipeline-patch-rejected">
+  <parent>fyp-pipeline</parent>
+  <regex>\[Stage 4\].*patch_validated=False.*cve=(\S+)</regex>
+  <order>cve_id</order>
+</decoder>
